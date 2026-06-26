@@ -4,6 +4,10 @@ data class User(
     val id: String = "",
     val name: String = "",
     val email: String = "",
+    val photoUrl: String = "",
+    val provider: String = "Email", // "Email" or "Google"
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastLoginAt: Long = System.currentTimeMillis(),
     val role: String = "user" // "user" or "admin"
 )
 

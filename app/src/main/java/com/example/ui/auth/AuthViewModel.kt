@@ -59,6 +59,71 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
         }
     }
 
+    fun signInWithGoogle(idToken: String) {
+        _authState.value = AuthState.Loading
+        viewModelScope.launch {
+            try {
+                val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+                val result = auth.signInWithCredential(credential).await()
+                result.user?.let { fbUser ->
+                    val existingProfile = repository.getUserProfile(fbUser.uid)
+                    val finalUser = if (existingProfile != null) {
+                        existingProfile.copy(lastLoginAt = System.currentTimeMillis())
+                    } else {
+                        val role = if (fbUser.email == "auracommunityact@gmail.com") "admin" else "user"
+                        User(
+                            id = fbUser.uid,
+                            name = fbUser.displayName ?: "Google User",
+                            email = fbUser.email ?: "",
+                            photoUrl = fbUser.photoUrl?.toString() ?: "",
+                            provider = "Google",
+                            createdAt = System.currentTimeMillis(),
+                            lastLoginAt = System.currentTimeMillis(),
+                            role = role
+                        )
+                    }
+                    repository.createUserProfile(finalUser)
+                    _currentUser.value = finalUser
+                    _authState.value = AuthState.Success
+                } ?: run {
+                    _authState.value = AuthState.Error("Unable to sign in with Google. Please try again.")
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Google Authentication Failed")
+            }
+        }
+    }
+
+    fun simulateGoogleSignIn(testEmail: String = "google_student@aura.edu", testName: String = "Aura Student") {
+        _authState.value = AuthState.Loading
+        viewModelScope.launch {
+            try {
+                val fakeUid = "google_sim_" + testEmail.hashCode()
+                val existingProfile = repository.getUserProfile(fakeUid)
+                val finalUser = if (existingProfile != null) {
+                    existingProfile.copy(lastLoginAt = System.currentTimeMillis())
+                } else {
+                    val role = if (testEmail == "auracommunityact@gmail.com") "admin" else "user"
+                    User(
+                        id = fakeUid,
+                        name = testName,
+                        email = testEmail,
+                        photoUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80",
+                        provider = "Google",
+                        createdAt = System.currentTimeMillis(),
+                        lastLoginAt = System.currentTimeMillis(),
+                        role = role
+                    )
+                }
+                repository.createUserProfile(finalUser)
+                _currentUser.value = finalUser
+                _authState.value = AuthState.Success
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Failed to simulate login")
+            }
+        }
+    }
+
     fun register(name: String, email: String, pass: String) {
         _authState.value = AuthState.Loading
         viewModelScope.launch {

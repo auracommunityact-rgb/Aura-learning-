@@ -1,6 +1,11 @@
 package com.example
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.remember
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
@@ -11,6 +16,9 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,14 +58,40 @@ fun AuraLearningApp() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory)
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
+    val authState by authViewModel.authState.collectAsState()
 
-    val startDest = if (authViewModel.authState.value is com.example.ui.auth.AuthState.Success || currentUser != null) "main" else "login"
+    // Seamlessly check if a user is already signed in to Firebase so we can skip the login screen completely
+    val isRestoringSession = remember(authState, currentUser) {
+        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null && currentUser == null && authState !is com.example.ui.auth.AuthState.Error
+    }
 
-    NavHost(navController = navController, startDestination = "login") { // Simplified start destination handling
-        composable("login") { LoginScreen(navController, authViewModel) }
-        composable("register") { RegisterScreen(navController, authViewModel) }
-        composable("main") {
-            MainScreen(authViewModel = authViewModel)
+    if (isRestoringSession) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+            ) {
+                Text(
+                    text = "Aura Learning",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                CircularProgressIndicator()
+            }
+        }
+    } else {
+        val startDest = if (currentUser != null) "main" else "login"
+        NavHost(navController = navController, startDestination = startDest) {
+            composable("login") { LoginScreen(navController, authViewModel) }
+            composable("register") { RegisterScreen(navController, authViewModel) }
+            composable("main") {
+                MainScreen(authViewModel = authViewModel)
+            }
         }
     }
 }

@@ -68,6 +68,25 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
             ) {
                 Text("Sign Up")
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                Text(
+                    text = "OR",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            GoogleSignInButton(viewModel = viewModel)
+
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = { navController.popBackStack() }) {
                 Text("Already have an account? Login")
