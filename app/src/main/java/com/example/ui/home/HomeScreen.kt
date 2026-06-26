@@ -24,7 +24,7 @@ import com.example.ui.auth.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)) {
+fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController, viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)) {
     val banners by viewModel.banners.collectAsState()
     val recentBooks by viewModel.recentBooks.collectAsState()
     val recentVideos by viewModel.recentVideos.collectAsState()

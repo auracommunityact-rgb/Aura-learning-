@@ -10,16 +10,15 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 @Composable
-fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
+fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
+    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val authState by viewModel.authState.collectAsState()
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
-            navController.navigate("main") {
-                popUpTo("login") { inclusive = true }
-            }
+            navController.popBackStack("main", inclusive = false)
         }
     }
 
@@ -30,8 +29,16 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Aura Learning", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+        Text("Create Account", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Full Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,
@@ -54,12 +61,12 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
             CircularProgressIndicator()
         } else {
             Button(
-                onClick = { viewModel.login(email, password) },
+                onClick = { viewModel.register(name, email, password) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Login")
+                Text("Sign Up")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -79,8 +86,8 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
             GoogleSignInButton(viewModel = viewModel)
 
             Spacer(modifier = Modifier.height(16.dp))
-            TextButton(onClick = { navController.navigate("register") }) {
-                Text("Don't have an account? Sign Up")
+            TextButton(onClick = { navController.popBackStack() }) {
+                Text("Already have an account? Login")
             }
         }
 

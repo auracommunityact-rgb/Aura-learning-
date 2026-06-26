@@ -46,6 +46,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                 }
             }
         } else {
+            _currentUser.value = repository.getGuestProfile()
             _authState.value = AuthState.Idle
         }
     }
@@ -57,7 +58,10 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                 val result = auth.signInWithEmailAndPassword(email, pass).await()
                 result.user?.let {
                     val userProfile = repository.getUserProfile(it.uid)
-                    _currentUser.value = userProfile
+                    if (userProfile != null) {
+                        val mergedUser = mergeGuestData(userProfile)
+                        _currentUser.value = mergedUser
+                    }
                     _authState.value = AuthState.Success
                 } ?: run {
                     _authState.value = AuthState.Error("Login failed")
@@ -73,9 +77,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
         try {
             val fakeUid = "email_sim_" + email.hashCode()
             val existingProfile = repository.getUserProfile(fakeUid)
-            val finalUser = if (existingProfile != null) {
-                existingProfile.copy(lastLoginAt = System.currentTimeMillis())
-            } else {
+            val baseUser = existingProfile ?: run {
                 val role = if (email == "auracommunityact@gmail.com") "admin" else "user"
                 User(
                     id = fakeUid,
@@ -84,7 +86,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                     role = role
                 )
             }
-            repository.createUserProfile(finalUser)
+            val finalUser = mergeGuestData(baseUser)
             _currentUser.value = finalUser
             _authState.value = AuthState.Success
         } catch (simError: Exception) {
@@ -100,9 +102,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                 val result = auth.signInWithCredential(credential).await()
                 result.user?.let { fbUser ->
                     val existingProfile = repository.getUserProfile(fbUser.uid)
-                    val finalUser = if (existingProfile != null) {
-                        existingProfile.copy(lastLoginAt = System.currentTimeMillis())
-                    } else {
+                    val baseUser = existingProfile ?: run {
                         val role = if (fbUser.email == "auracommunityact@gmail.com") "admin" else "user"
                         User(
                             id = fbUser.uid,
@@ -111,11 +111,10 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                             photoUrl = fbUser.photoUrl?.toString() ?: "",
                             provider = "Google",
                             createdAt = System.currentTimeMillis(),
-                            lastLoginAt = System.currentTimeMillis(),
                             role = role
                         )
                     }
-                    repository.createUserProfile(finalUser)
+                    val finalUser = mergeGuestData(baseUser)
                     _currentUser.value = finalUser
                     _authState.value = AuthState.Success
                 } ?: run {
@@ -133,9 +132,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
             try {
                 val fakeUid = "google_sim_" + testEmail.hashCode()
                 val existingProfile = repository.getUserProfile(fakeUid)
-                val finalUser = if (existingProfile != null) {
-                    existingProfile.copy(lastLoginAt = System.currentTimeMillis())
-                } else {
+                val baseUser = existingProfile ?: run {
                     val role = if (testEmail == "auracommunityact@gmail.com") "admin" else "user"
                     User(
                         id = fakeUid,
@@ -144,11 +141,10 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                         photoUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80",
                         provider = "Google",
                         createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis(),
                         role = role
                     )
                 }
-                repository.createUserProfile(finalUser)
+                val finalUser = mergeGuestData(baseUser)
                 _currentUser.value = finalUser
                 _authState.value = AuthState.Success
             } catch (e: Exception) {
@@ -165,8 +161,8 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                 result.user?.let {
                     val role = if (email == "auracommunityact@gmail.com") "admin" else "user"
                     val newUser = User(id = it.uid, name = name, email = email, role = role)
-                    repository.createUserProfile(newUser)
-                    _currentUser.value = newUser
+                    val finalUser = mergeGuestData(newUser)
+                    _currentUser.value = finalUser
                     _authState.value = AuthState.Success
                 }
             } catch (e: Exception) {
@@ -181,8 +177,8 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
             val fakeUid = "email_sim_" + email.hashCode()
             val role = if (email == "auracommunityact@gmail.com") "admin" else "user"
             val newUser = User(id = fakeUid, name = name, email = email, role = role)
-            repository.createUserProfile(newUser)
-            _currentUser.value = newUser
+            val finalUser = mergeGuestData(newUser)
+            _currentUser.value = finalUser
             _authState.value = AuthState.Success
         } catch (simError: Exception) {
             _authState.value = AuthState.Error("Registration failed and simulation also failed: ${simError.message}")
@@ -192,8 +188,13 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
     fun updateUserProfile(user: User) {
         viewModelScope.launch {
             try {
-                repository.createUserProfile(user)
-                _currentUser.value = user
+                if (user.id == "guest_user") {
+                    repository.saveGuestProfile(user)
+                    _currentUser.value = user
+                } else {
+                    repository.createUserProfile(user)
+                    _currentUser.value = user
+                }
             } catch (e: Exception) {
                 // handle error
             }
@@ -218,6 +219,22 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
             user.savedVideos + videoId
         }
         updateUserProfile(user.copy(savedVideos = newSavedVideos))
+    }
+
+    private suspend fun mergeGuestData(user: User): User {
+        val guestProfile = repository.getGuestProfile()
+        val mergedBooks = (user.savedBooks + guestProfile.savedBooks).distinct()
+        val mergedVideos = (user.savedVideos + guestProfile.savedVideos).distinct()
+        
+        val updatedUser = user.copy(
+            savedBooks = mergedBooks, 
+            savedVideos = mergedVideos, 
+            lastLoginAt = System.currentTimeMillis()
+        )
+        
+        repository.createUserProfile(updatedUser)
+        repository.clearGuestProfile()
+        return updatedUser
     }
 
     fun logout() {

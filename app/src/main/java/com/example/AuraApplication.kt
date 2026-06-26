@@ -4,9 +4,16 @@ import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 
+import android.content.Context
+
+object AppContext {
+    lateinit var context: Context
+}
+
 class AuraApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        AppContext.context = this
         if (FirebaseApp.getApps(this).isEmpty()) {
             val hasCustomKey = BuildConfig.FIREBASE_API_KEY.isNotEmpty() && BuildConfig.FIREBASE_API_KEY != "YOUR_API_KEY"
             

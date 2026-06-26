@@ -4,6 +4,7 @@ import com.example.data.models.Banner
 import com.example.data.models.Book
 import com.example.data.models.User
 import com.example.data.models.Video
+import com.example.AppContext
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -11,6 +12,30 @@ import kotlinx.coroutines.tasks.await
 class AuraRepository {
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
+    private val prefs by lazy { AppContext.context.getSharedPreferences("guest_prefs", android.content.Context.MODE_PRIVATE) }
+
+    fun getGuestProfile(): User {
+        val savedBooks = prefs.getStringSet("savedBooks", emptySet())?.toList() ?: emptyList()
+        val savedVideos = prefs.getStringSet("savedVideos", emptySet())?.toList() ?: emptyList()
+        return User(
+            id = "guest_user",
+            name = "Guest",
+            role = "guest",
+            savedBooks = savedBooks,
+            savedVideos = savedVideos
+        )
+    }
+
+    fun saveGuestProfile(user: User) {
+        prefs.edit()
+            .putStringSet("savedBooks", user.savedBooks.toSet())
+            .putStringSet("savedVideos", user.savedVideos.toSet())
+            .apply()
+    }
+    
+    fun clearGuestProfile() {
+        prefs.edit().clear().apply()
+    }
 
     // Auth
     fun getCurrentUser() = auth.currentUser

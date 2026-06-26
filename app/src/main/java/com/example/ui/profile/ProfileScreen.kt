@@ -26,14 +26,14 @@ import com.example.ui.auth.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
+fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController) {
     val currentUser by authViewModel.currentUser.collectAsState()
     val context = LocalContext.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile Settings", fontWeight = FontWeight.Bold) },
+                title = { Text(if (currentUser != null) "Profile Settings" else "Guest Profile", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -226,7 +226,7 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
                 Button(
                     onClick = {
                         authViewModel.logout()
-                        navController.navigate("login") {
+                        navController.navigate("home") {
                             popUpTo(0) { inclusive = true }
                         }
                     },
@@ -244,11 +244,49 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
                     )
                 }
             } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                Spacer(modifier = Modifier.height(32.dp))
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Guest",
+                    modifier = Modifier.size(96.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Welcome, Guest!",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Sign in to sync your progress, bookmarks, certificates, and learning history.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                Button(
+                    onClick = { rootNavController.navigate("login") },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(50.dp),
+                    shape = RoundedCornerShape(24.dp)
                 ) {
-                    CircularProgressIndicator()
+                    Text("Login")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { rootNavController.navigate("register") },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(50.dp),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text("Sign Up")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                TextButton(
+                    onClick = { /* already guest, do nothing or show toast */ }
+                ) {
+                    Text("Continue as Guest")
                 }
             }
         }

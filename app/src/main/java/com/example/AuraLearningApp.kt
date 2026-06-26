@@ -55,49 +55,22 @@ val items = listOf(
 
 @Composable
 fun AuraLearningApp() {
-    val navController = rememberNavController()
+    val rootNavController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory)
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
     val authState by authViewModel.authState.collectAsState()
 
-    // Seamlessly check if a user is already signed in to Firebase so we can skip the login screen completely
-    val isRestoringSession = remember(authState, currentUser) {
-        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null && currentUser == null && authState !is com.example.ui.auth.AuthState.Error
-    }
-
-    if (isRestoringSession) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = androidx.compose.ui.Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-            ) {
-                Text(
-                    text = "Aura Learning",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                CircularProgressIndicator()
-            }
-        }
-    } else {
-        val startDest = if (currentUser != null) "main" else "login"
-        NavHost(navController = navController, startDestination = startDest) {
-            composable("login") { LoginScreen(navController, authViewModel) }
-            composable("register") { RegisterScreen(navController, authViewModel) }
-            composable("main") {
-                MainScreen(authViewModel = authViewModel)
-            }
+    NavHost(navController = rootNavController, startDestination = "main") {
+        composable("login") { LoginScreen(rootNavController, authViewModel) }
+        composable("register") { RegisterScreen(rootNavController, authViewModel) }
+        composable("main") {
+            MainScreen(authViewModel = authViewModel, rootNavController = rootNavController)
         }
     }
 }
 
 @Composable
-fun MainScreen(authViewModel: AuthViewModel) {
+fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigation.NavController) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -130,10 +103,10 @@ fun MainScreen(authViewModel: AuthViewModel) {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen(navController, authViewModel) }
-            composable(Screen.Videos.route) { VideosScreen(navController, authViewModel) }
-            composable(Screen.Books.route) { BooksScreen(navController, authViewModel) }
-            composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel) }
+            composable(Screen.Home.route) { HomeScreen(navController, authViewModel, rootNavController) }
+            composable(Screen.Videos.route) { VideosScreen(navController, authViewModel, rootNavController) }
+            composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
+            composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel, rootNavController) }
         }
     }
 }

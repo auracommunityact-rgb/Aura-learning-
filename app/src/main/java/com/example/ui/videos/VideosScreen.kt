@@ -22,10 +22,33 @@ import com.example.ui.auth.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, viewModel: VideosViewModel = viewModel(factory = ViewModelFactory)) {
+fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController, viewModel: VideosViewModel = viewModel(factory = ViewModelFactory)) {
     val videos by viewModel.videos.collectAsState()
     val selectedClass by viewModel.selectedClass.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+
+    var showLoginPrompt by remember { mutableStateOf(false) }
+
+    if (showLoginPrompt) {
+        AlertDialog(
+            onDismissRequest = { showLoginPrompt = false },
+            title = { Text("Sign In Required") },
+            text = { Text("You need to sign in to save videos.") },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showLoginPrompt = false
+                    rootNavController.navigate("login") 
+                }) {
+                    Text("Login")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLoginPrompt = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     val classes = listOf("1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th")
     val videosBySubject = videos.groupBy { it.subject.ifEmpty { "Other" } }
@@ -88,7 +111,13 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, vie
                                         contentScale = ContentScale.Crop
                                     )
                                     IconButton(
-                                        onClick = { authViewModel.toggleSaveVideo(video.id) },
+                                        onClick = { 
+                                            if (currentUser == null) {
+                                                showLoginPrompt = true
+                                            } else {
+                                                authViewModel.toggleSaveVideo(video.id)
+                                            }
+                                        },
                                         modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd)
                                     ) {
                                         val isSaved = currentUser?.savedVideos?.contains(video.id) == true
