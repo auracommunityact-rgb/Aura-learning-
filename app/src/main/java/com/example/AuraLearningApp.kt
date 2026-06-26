@@ -130,9 +130,9 @@ fun MainScreen(authViewModel: AuthViewModel) {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen(navController) }
-            composable(Screen.Videos.route) { VideosScreen(navController) }
-            composable(Screen.Books.route) { BooksScreen(navController) }
+            composable(Screen.Home.route) { HomeScreen(navController, authViewModel) }
+            composable(Screen.Videos.route) { VideosScreen(navController, authViewModel) }
+            composable(Screen.Books.route) { BooksScreen(navController, authViewModel) }
             composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel) }
         }
     }

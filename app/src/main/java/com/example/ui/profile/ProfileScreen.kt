@@ -128,6 +128,23 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Stats Row
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("${user.savedBooks.size}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Text("Saved Books", style = MaterialTheme.typography.labelMedium)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("${user.savedVideos.size}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Text("Saved Videos", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         // Auth Provider Chip
                         val providerLabel = if (user.provider == "Google") "Google Sign-In" else "Email & Password"
                         SuggestionChip(

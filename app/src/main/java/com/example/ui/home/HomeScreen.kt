@@ -20,17 +20,20 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.ui.ViewModelFactory
 
+import com.example.ui.auth.AuthViewModel
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)) {
+fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)) {
     val banners by viewModel.banners.collectAsState()
     val recentBooks by viewModel.recentBooks.collectAsState()
     val recentVideos by viewModel.recentVideos.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Aura Learning", color = MaterialTheme.colorScheme.primary) },
+                title = { Text("Hi, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"}!", color = MaterialTheme.colorScheme.primary) },
                 actions = {
                     IconButton(onClick = { /* TODO search */ }) {
                         Icon(Icons.Filled.Search, contentDescription = "Search")

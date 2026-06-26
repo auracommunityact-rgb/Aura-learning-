@@ -142,6 +142,37 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
         }
     }
 
+    fun updateUserProfile(user: User) {
+        viewModelScope.launch {
+            try {
+                repository.createUserProfile(user)
+                _currentUser.value = user
+            } catch (e: Exception) {
+                // handle error
+            }
+        }
+    }
+
+    fun toggleSaveBook(bookId: String) {
+        val user = _currentUser.value ?: return
+        val newSavedBooks = if (user.savedBooks.contains(bookId)) {
+            user.savedBooks - bookId
+        } else {
+            user.savedBooks + bookId
+        }
+        updateUserProfile(user.copy(savedBooks = newSavedBooks))
+    }
+
+    fun toggleSaveVideo(videoId: String) {
+        val user = _currentUser.value ?: return
+        val newSavedVideos = if (user.savedVideos.contains(videoId)) {
+            user.savedVideos - videoId
+        } else {
+            user.savedVideos + videoId
+        }
+        updateUserProfile(user.copy(savedVideos = newSavedVideos))
+    }
+
     fun logout() {
         auth.signOut()
         _currentUser.value = null
