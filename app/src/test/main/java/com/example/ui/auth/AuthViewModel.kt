@@ -12,7 +12,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
-    private val auth = FirebaseAuth.getInstance()
+    private val auth = FirebaseAuth.getInstance().apply {
+        if (com.example.BuildConfig.FIREBASE_AUTH_DOMAIN.isNotEmpty() && com.example.BuildConfig.FIREBASE_AUTH_DOMAIN != "YOUR_AUTH_DOMAIN") {
+            setCustomAuthDomain(com.example.BuildConfig.FIREBASE_AUTH_DOMAIN)
+        }
+    }
     
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
