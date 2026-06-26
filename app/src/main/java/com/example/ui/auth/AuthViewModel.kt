@@ -228,8 +228,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
         
         val updatedUser = user.copy(
             savedBooks = mergedBooks, 
-            savedVideos = mergedVideos, 
-            lastLoginAt = System.currentTimeMillis()
+            savedVideos = mergedVideos
         )
         
         repository.createUserProfile(updatedUser)

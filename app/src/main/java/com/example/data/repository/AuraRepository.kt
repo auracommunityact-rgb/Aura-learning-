@@ -55,20 +55,39 @@ class AuraRepository {
 
     // Books
     suspend fun getBooks(): List<Book> {
+        val kartikBook = Book(
+            id = "kartik_10th",
+            bookName = "kartik",
+            className = "10th",
+            subject = "hindi",
+            coverImage = "",
+            pdfUrl = "",
+            createdAt = System.currentTimeMillis()
+        )
         return try {
             val snapshot = firestore.collection("books").get().await()
-            snapshot.toObjects(Book::class.java)
+            listOf(kartikBook) + snapshot.toObjects(Book::class.java)
         } catch (e: Exception) {
-            emptyList()
+            listOf(kartikBook)
         }
     }
 
     suspend fun getBooksByClass(className: String): List<Book> {
+        val kartikBook = Book(
+            id = "kartik_10th",
+            bookName = "kartik",
+            className = "10th",
+            subject = "hindi",
+            coverImage = "",
+            pdfUrl = "",
+            createdAt = System.currentTimeMillis()
+        )
         return try {
             val snapshot = firestore.collection("books").whereEqualTo("className", className).get().await()
-            snapshot.toObjects(Book::class.java)
+            val books = snapshot.toObjects(Book::class.java)
+            if (className == "10th") listOf(kartikBook) + books else books
         } catch (e: Exception) {
-            emptyList()
+            if (className == "10th") listOf(kartikBook) else emptyList()
         }
     }
 

@@ -6,3 +6,12 @@ plugins {
   alias(libs.plugins.roborazzi) apply false
   alias(libs.plugins.secrets) apply false
 }
+
+tasks.register<Copy>("copyApkToDownload") {
+    from("app/build/outputs/apk/debug/app-debug.apk")
+    into("APK_DOWNLOAD")
+}
+tasks.register<Copy>("copyApkToBuildOutputs") {
+    from("app/build/outputs/apk/debug/app-debug.apk")
+    into(".build-outputs")
+}
