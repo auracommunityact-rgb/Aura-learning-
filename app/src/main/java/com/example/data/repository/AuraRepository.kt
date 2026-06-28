@@ -1,17 +1,19 @@
 package com.example.data.repository
 
+import com.example.AppContext
 import com.example.data.models.Banner
 import com.example.data.models.Book
+import com.example.data.models.Flashcard
+import com.example.data.models.FlashcardDeck
+import com.example.data.models.Note
 import com.example.data.models.User
 import com.example.data.models.Video
-import com.example.AppContext
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import com.example.data.supabase.SupabaseService
+import io.github.jan.supabase.postgrest.postgrest
+import java.util.UUID
 
 class AuraRepository {
-    private val auth = FirebaseAuth.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
+    private val client = SupabaseService.client
     private val prefs by lazy { AppContext.context.getSharedPreferences("guest_prefs", android.content.Context.MODE_PRIVATE) }
 
     fun getGuestProfile(): User {
@@ -37,20 +39,23 @@ class AuraRepository {
         prefs.edit().clear().apply()
     }
 
-    // Auth
-    fun getCurrentUser() = auth.currentUser
-
+    // Users
     suspend fun getUserProfile(uid: String): User? {
         return try {
-            val snapshot = firestore.collection("users").document(uid).get().await()
-            snapshot.toObject(User::class.java)
+            client.postgrest["users"].select {
+                filter { eq("id", uid) }
+            }.decodeSingle<User>()
         } catch (e: Exception) {
             null
         }
     }
 
     suspend fun createUserProfile(user: User) {
-        firestore.collection("users").document(user.id).set(user).await()
+        try {
+            client.postgrest["users"].insert(user)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     // Books
@@ -65,8 +70,8 @@ class AuraRepository {
             createdAt = System.currentTimeMillis()
         )
         return try {
-            val snapshot = firestore.collection("books").get().await()
-            listOf(kartikBook) + snapshot.toObjects(Book::class.java)
+            val books = client.postgrest["books"].select().decodeList<Book>()
+            listOf(kartikBook) + books
         } catch (e: Exception) {
             listOf(kartikBook)
         }
@@ -83,8 +88,9 @@ class AuraRepository {
             createdAt = System.currentTimeMillis()
         )
         return try {
-            val snapshot = firestore.collection("books").whereEqualTo("className", className).get().await()
-            val books = snapshot.toObjects(Book::class.java)
+            val books = client.postgrest["books"].select {
+                filter { eq("className", className) }
+            }.decodeList<Book>()
             if (className == "10th") listOf(kartikBook) + books else books
         } catch (e: Exception) {
             if (className == "10th") listOf(kartikBook) else emptyList()
@@ -92,28 +98,42 @@ class AuraRepository {
     }
 
     suspend fun addBook(book: Book) {
-        val ref = firestore.collection("books").document()
-        val newBook = book.copy(id = ref.id)
-        ref.set(newBook).await()
+        try {
+            val newBook = if (book.id.isEmpty()) book.copy(id = UUID.randomUUID().toString()) else book
+            client.postgrest["books"].insert(newBook)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
     
     suspend fun updateBook(book: Book) {
         if (book.id.isNotEmpty()) {
-            firestore.collection("books").document(book.id).set(book).await()
+            try {
+                client.postgrest["books"].update(book) {
+                    filter { eq("id", book.id) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
     suspend fun deleteBook(bookId: String) {
         if (bookId.isNotEmpty()) {
-            firestore.collection("books").document(bookId).delete().await()
+            try {
+                client.postgrest["books"].delete {
+                    filter { eq("id", bookId) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     // Videos
     suspend fun getVideos(): List<Video> {
         return try {
-            val snapshot = firestore.collection("videos").get().await()
-            snapshot.toObjects(Video::class.java)
+            client.postgrest["videos"].select().decodeList<Video>()
         } catch (e: Exception) {
             emptyList()
         }
@@ -121,35 +141,52 @@ class AuraRepository {
 
     suspend fun getVideosByClass(className: String): List<Video> {
         return try {
-            val snapshot = firestore.collection("videos").whereEqualTo("className", className).get().await()
-            snapshot.toObjects(Video::class.java)
+            client.postgrest["videos"].select {
+                filter { eq("className", className) }
+            }.decodeList<Video>()
         } catch (e: Exception) {
             emptyList()
         }
     }
 
     suspend fun addVideo(video: Video) {
-        val ref = firestore.collection("videos").document()
-        val newVideo = video.copy(id = ref.id)
-        ref.set(newVideo).await()
+        try {
+            val newVideo = if (video.id.isEmpty()) video.copy(id = UUID.randomUUID().toString()) else video
+            client.postgrest["videos"].insert(newVideo)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
     
     suspend fun updateVideo(video: Video) {
         if (video.id.isNotEmpty()) {
-            firestore.collection("videos").document(video.id).set(video).await()
+            try {
+                client.postgrest["videos"].update(video) {
+                    filter { eq("id", video.id) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
     suspend fun deleteVideo(videoId: String) {
         if (videoId.isNotEmpty()) {
-            firestore.collection("videos").document(videoId).delete().await()
+            try {
+                client.postgrest["videos"].delete {
+                    filter { eq("id", videoId) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
     suspend fun getUsersCount(): Int {
         return try {
-            val snapshot = firestore.collection("users").get().await()
-            snapshot.size()
+            // Very hacky but it works for now
+            val users = client.postgrest["users"].select().decodeList<User>()
+            users.size
         } catch (e: Exception) {
             0
         }
@@ -158,16 +195,122 @@ class AuraRepository {
     // Banners
     suspend fun getBanners(): List<Banner> {
         return try {
-            val snapshot = firestore.collection("banners").get().await()
-            snapshot.toObjects(Banner::class.java)
+            client.postgrest["banners"].select().decodeList<Banner>()
         } catch (e: Exception) {
             emptyList()
         }
     }
 
     suspend fun addBanner(banner: Banner) {
-        val ref = firestore.collection("banners").document()
-        val newBanner = banner.copy(id = ref.id)
-        ref.set(newBanner).await()
+        try {
+            val newBanner = if (banner.id.isEmpty()) banner.copy(id = UUID.randomUUID().toString()) else banner
+            client.postgrest["banners"].insert(newBanner)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // Notes
+    suspend fun getNotesByUser(userId: String): List<Note> {
+        return try {
+            val notes = client.postgrest["notes"].select {
+                filter { eq("userId", userId) }
+            }.decodeList<Note>()
+            notes.sortedByDescending { it.createdAt }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun addNote(note: Note) {
+        try {
+            val newNote = if (note.id.isEmpty()) note.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else note
+            client.postgrest["notes"].insert(newNote)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun deleteNote(noteId: String) {
+        if (noteId.isNotEmpty()) {
+            try {
+                client.postgrest["notes"].delete {
+                    filter { eq("id", noteId) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // Flashcards
+    suspend fun getFlashcardDecksByUser(userId: String): List<FlashcardDeck> {
+        return try {
+            val decks = client.postgrest["flashcard_decks"].select {
+                filter { eq("userId", userId) }
+            }.decodeList<FlashcardDeck>()
+            decks.sortedByDescending { it.createdAt }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun addFlashcardDeck(deck: FlashcardDeck): String {
+        return try {
+            val newDeckId = UUID.randomUUID().toString()
+            val newDeck = deck.copy(id = newDeckId, createdAt = System.currentTimeMillis())
+            client.postgrest["flashcard_decks"].insert(newDeck)
+            newDeckId
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
+    }
+
+    suspend fun deleteFlashcardDeck(deckId: String) {
+        if (deckId.isNotEmpty()) {
+            try {
+                client.postgrest["flashcard_decks"].delete {
+                    filter { eq("id", deckId) }
+                }
+                client.postgrest["flashcards"].delete {
+                    filter { eq("deckId", deckId) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    suspend fun getFlashcardsByDeck(deckId: String): List<Flashcard> {
+        return try {
+            val cards = client.postgrest["flashcards"].select {
+                filter { eq("deckId", deckId) }
+            }.decodeList<Flashcard>()
+            cards.sortedBy { it.createdAt }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun addFlashcard(card: Flashcard) {
+        try {
+            val newCard = if (card.id.isEmpty()) card.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else card
+            client.postgrest["flashcards"].insert(newCard)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun deleteFlashcard(cardId: String) {
+        if (cardId.isNotEmpty()) {
+            try {
+                client.postgrest["flashcards"].delete {
+                    filter { eq("id", cardId) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 }

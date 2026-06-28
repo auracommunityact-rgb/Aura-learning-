@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.remember
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircle
@@ -48,6 +49,7 @@ import androidx.compose.runtime.getValue
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Filled.Home)
+    object Study : Screen("study", "Study", Icons.Filled.Edit)
     object Videos : Screen("videos", "Videos", Icons.Filled.PlayCircle)
     object Books : Screen("books", "Books", Icons.Filled.MenuBook)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
@@ -55,6 +57,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 
 val items = listOf(
     Screen.Home,
+    Screen.Study,
     Screen.Videos,
     Screen.Books,
     Screen.Profile
@@ -71,12 +74,31 @@ fun AuraLearningApp() {
         composable("login") { LoginScreen(rootNavController, authViewModel) }
         composable("register") { RegisterScreen(rootNavController, authViewModel) }
         composable("admin_dashboard") { AdminDashboardScreen(rootNavController) }
+        composable("exam_results") { com.example.ui.profile.ExamResultScreen(rootNavController, rootNavController) }
+        composable(
+            "exam_webview?url={url}&title={title}",
+            arguments = listOf(
+                androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("title") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val url = backStackEntry.arguments?.getString("url") ?: ""
+            val title = backStackEntry.arguments?.getString("title") ?: "Result"
+            com.example.ui.profile.ResultWebViewScreen(navController = rootNavController, url = url, title = title)
+        }
         composable(
             "pdf_viewer?url={url}",
             arguments = listOf(androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->
             val url = backStackEntry.arguments?.getString("url") ?: ""
             com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url)
+        }
+        composable(
+            "flashcards/{deckId}",
+            arguments = listOf(androidx.navigation.navArgument("deckId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val deckId = backStackEntry.arguments?.getString("deckId") ?: ""
+            com.example.ui.study.FlashcardsScreen(navController = rootNavController, deckId = deckId)
         }
         composable("main") {
             MainScreen(authViewModel = authViewModel, rootNavController = rootNavController)
@@ -149,6 +171,7 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen(navController, authViewModel, rootNavController) }
+            composable(Screen.Study.route) { com.example.ui.study.StudyScreen(navController, authViewModel, rootNavController) }
             composable(Screen.Videos.route) { VideosScreen(navController, authViewModel, rootNavController) }
             composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
             composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel, rootNavController) }

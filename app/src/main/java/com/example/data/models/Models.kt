@@ -1,5 +1,8 @@
 package com.example.data.models
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class User(
     val id: String = "",
     val name: String = "",
@@ -12,6 +15,7 @@ data class User(
     val savedVideos: List<String> = emptyList()
 )
 
+@Serializable
 data class Book(
     val id: String = "",
     val bookName: String = "",
@@ -22,6 +26,7 @@ data class Book(
     val createdAt: Long = 0L
 )
 
+@Serializable
 data class Video(
     val id: String = "",
     val title: String = "",
@@ -33,10 +38,40 @@ data class Video(
     val createdAt: Long = 0L
 )
 
+@Serializable
 data class Banner(
     val id: String = "",
     val title: String = "",
     val imageUrl: String = "",
     val link: String = "",
+    val createdAt: Long = 0L
+)
+
+@Serializable
+data class Note(
+    val id: String = "",
+    val userId: String = "",
+    val title: String = "",
+    val content: String = "",
+    val associatedId: String = "",
+    val createdAt: Long = 0L
+)
+
+@Serializable
+data class FlashcardDeck(
+    val id: String = "",
+    val userId: String = "",
+    val title: String = "",
+    val subject: String = "",
+    val className: String = "",
+    val createdAt: Long = 0L
+)
+
+@Serializable
+data class Flashcard(
+    val id: String = "",
+    val deckId: String = "",
+    val frontText: String = "",
+    val backText: String = "",
     val createdAt: Long = 0L
 )

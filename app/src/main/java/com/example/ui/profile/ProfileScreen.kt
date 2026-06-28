@@ -24,6 +24,9 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.ui.auth.AuthViewModel
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.School
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController) {
@@ -220,6 +223,8 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
                     }
                 }
 
+                ExamResultCard(rootNavController)
+
                 Spacer(modifier = Modifier.weight(1f))
 
                 // Sign Out Button
@@ -267,6 +272,10 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
                 )
                 Spacer(modifier = Modifier.height(32.dp))
                 
+                ExamResultCard(rootNavController)
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
                 Button(
                     onClick = { rootNavController.navigate("login") },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(50.dp),
@@ -288,6 +297,53 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
                 ) {
                     Text("Continue as Guest")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExamResultCard(rootNavController: NavController) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp)
+            .clickable {
+                rootNavController.navigate("exam_results")
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🎓", style = MaterialTheme.typography.headlineSmall)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Check Exam Result",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "View your official board exam results.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
             }
         }
     }
