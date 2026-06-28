@@ -2,25 +2,69 @@ package com.example.ui.study
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.data.models.Flashcard
-import com.example.data.models.FlashcardDeck
-import com.example.data.models.Note
-import com.example.ui.ViewModelFactory
 import com.example.ui.auth.AuthViewModel
+
+data class StudyTool(
+    val id: String,
+    val title: String,
+    val description: String,
+    val icon: ImageVector,
+    val isAi: Boolean = false
+)
+
+val allStudyTools = listOf(
+    StudyTool("notes_reader", "Notes Reader", "Read digital notes with beautiful UI", Icons.Filled.MenuBook),
+    StudyTool("pdf_reader", "PDF Reader", "Open and read PDF books", Icons.Filled.PictureAsPdf),
+    StudyTool("pdf_highlighter", "PDF Highlighter", "Highlight and annotate PDFs", Icons.Filled.BorderColor),
+    StudyTool("ocr_scanner", "OCR Text Scanner", "Extract text from images", Icons.Filled.DocumentScanner),
+    StudyTool("translate", "Translate Notes", "Translate study material", Icons.Filled.Translate),
+    StudyTool("tts", "Text To Speech", "Listen to your notes aloud", Icons.Filled.RecordVoiceOver),
+    StudyTool("calculator", "Scientific Calculator", "Solve mathematical calculations", Icons.Filled.Calculate),
+    StudyTool("planner", "Study Planner", "Organize your study schedule", Icons.Filled.CalendarMonth),
+    StudyTool("pomodoro", "Pomodoro Timer", "Increase study focus", Icons.Filled.Timer),
+    StudyTool("todo", "To-Do List", "Manage daily study tasks", Icons.Filled.Checklist),
+    StudyTool("countdown", "Exam Countdown", "Track remaining exam days", Icons.Filled.Event),
+    StudyTool("goal_tracker", "Goal Tracker", "Track learning goals", Icons.Filled.TrackChanges),
+    StudyTool("quiz_gen", "Quiz Generator", "Generate quizzes for practice", Icons.Filled.Quiz),
+    StudyTool("mock_tests", "Mock Tests", "Practice complete exams", Icons.Filled.Assignment),
+    StudyTool("result_analysis", "Result Analysis", "Analyze performance", Icons.Filled.Analytics),
+    StudyTool("progress", "Progress Tracker", "Track study performance", Icons.Filled.TrendingUp),
+    StudyTool("ai_homework", "AI Homework Helper", "Owner AI: Help solve homework", Icons.Filled.SmartToy, true),
+    StudyTool("ai_doubt", "AI Doubt Solver", "Owner AI: Solve student doubts", Icons.Filled.QuestionAnswer, true),
+    StudyTool("ai_summarizer", "AI Notes Summarizer", "Owner AI: Create short notes", Icons.Filled.Summarize, true),
+    StudyTool("ai_essay", "AI Essay Writer", "Owner AI: Write essays", Icons.Filled.Description, true),
+    StudyTool("ai_flashcard", "AI Flashcard Gen", "Owner AI: Generate flashcards", Icons.Filled.Style, true),
+    StudyTool("ai_mcq", "AI MCQ Generator", "Owner AI: Generate MCQs", Icons.Filled.ListAlt, true),
+    StudyTool("video_lectures", "Video Lectures", "Watch educational videos", Icons.Filled.VideoLibrary),
+    StudyTool("ncert", "NCERT Books", "Read NCERT books online", Icons.Filled.LibraryBooks),
+    StudyTool("prev_papers", "Previous Papers", "Practice past exams", Icons.Filled.HistoryEdu),
+    StudyTool("sample_papers", "Sample Papers", "Practice model papers", Icons.Filled.Science),
+    StudyTool("syllabus", "Syllabus Viewer", "View latest syllabus", Icons.Filled.Subject),
+    StudyTool("notebook", "Digital Notebook", "Create personal notes", Icons.Filled.NoteAlt),
+    StudyTool("drawing_pad", "Drawing Pad", "Draw diagrams", Icons.Filled.Draw),
+    StudyTool("doc_scanner", "Document Scanner", "Scan documents to PDF", Icons.Filled.Scanner),
+    StudyTool("cloud_backup", "Cloud Backup", "Backup user data securely", Icons.Filled.CloudUpload),
+    StudyTool("download_manager", "Download Manager", "Manage your downloads", Icons.Filled.Download),
+    StudyTool("study_streak", "Study Streak", "Increase consistency", Icons.Filled.LocalFireDepartment),
+    StudyTool("achievements", "Achievements", "Unlock badges & rewards", Icons.Filled.WorkspacePremium),
+    StudyTool("weekly_report", "Weekly Report", "Weekly performance report", Icons.Filled.Assessment),
+    StudyTool("rewards", "Rewards System", "Redeem rewards & coins", Icons.Filled.CardGiftcard)
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,119 +73,51 @@ fun StudyScreen(
     authViewModel: AuthViewModel,
     rootNavController: NavController
 ) {
-    val studyViewModel: StudyViewModel = viewModel(factory = ViewModelFactory)
-    val currentUser by authViewModel.currentUser.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
     
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Notes", "Flashcards")
-
-    val notes by studyViewModel.notes.collectAsState()
-    val decks by studyViewModel.decks.collectAsState()
-
-    var showAddNoteDialog by remember { mutableStateOf(false) }
-    var showAddDeckDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(currentUser) {
-        currentUser?.id?.let {
-            studyViewModel.loadStudyData(it)
-        }
-    }
-
-    if (showAddNoteDialog) {
-        AddNoteDialog(
-            onDismiss = { showAddNoteDialog = false },
-            onAdd = { title, content ->
-                currentUser?.id?.let { userId ->
-                    studyViewModel.addNote(Note(userId = userId, title = title, content = content), userId)
-                }
-                showAddNoteDialog = false
-            }
-        )
-    }
-
-    if (showAddDeckDialog) {
-        AddDeckDialog(
-            onDismiss = { showAddDeckDialog = false },
-            onAdd = { title, subject, className ->
-                currentUser?.id?.let { userId ->
-                    studyViewModel.addDeck(FlashcardDeck(userId = userId, title = title, subject = subject, className = className), userId)
-                }
-                showAddDeckDialog = false
-            }
-        )
+    val filteredTools = remember(searchQuery) {
+        if (searchQuery.isBlank()) allStudyTools
+        else allStudyTools.filter { it.title.contains(searchQuery, ignoreCase = true) || it.description.contains(searchQuery, ignoreCase = true) }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Study Tools", fontWeight = FontWeight.Bold) }
+                title = { Text("Study Tools", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
-        },
-        floatingActionButton = {
-            if (currentUser != null) {
-                FloatingActionButton(onClick = {
-                    if (selectedTab == 0) showAddNoteDialog = true else showAddDeckDialog = true
-                }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add")
-                }
-            }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            TabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(title) }
-                    )
-                }
-            }
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                placeholder = { Text("Search 36+ tools...") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                shape = RoundedCornerShape(24.dp),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                )
+            )
 
-            if (currentUser == null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Please log in to use study tools.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                if (selectedTab == 0) {
-                    // Notes Tab
-                    if (notes.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No notes found. Tap + to add.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(notes) { note ->
-                                NoteCard(note, onDelete = { studyViewModel.deleteNote(note.id, currentUser!!.id) })
-                            }
-                        }
-                    }
-                } else {
-                    // Flashcards Tab
-                    if (decks.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No flashcard decks found. Tap + to add.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(decks) { deck ->
-                                DeckCard(
-                                    deck = deck,
-                                    onClick = {
-                                        rootNavController.navigate("flashcards/${deck.id}")
-                                    },
-                                    onDelete = {
-                                        studyViewModel.deleteDeck(deck.id, currentUser!!.id)
-                                    }
-                                )
-                            }
-                        }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(filteredTools) { tool ->
+                    ToolCard(tool = tool) {
+                        // Navigate to generic placeholder or specific screen
+                        rootNavController.navigate("tool_viewer/${tool.id}?title=${tool.title}")
                     }
                 }
             }
@@ -150,129 +126,48 @@ fun StudyScreen(
 }
 
 @Composable
-fun NoteCard(note: Note, onDelete: () -> Unit) {
+fun ToolCard(tool: StudyTool, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(note.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(note.content, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-@Composable
-fun DeckCard(deck: FlashcardDeck, onClick: () -> Unit, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column {
-                Text(deck.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                if (deck.subject.isNotEmpty() || deck.className.isNotEmpty()) {
-                    Text("${deck.className} • ${deck.subject}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-            }
+            Icon(
+                imageVector = tool.icon,
+                contentDescription = tool.title,
+                modifier = Modifier.size(40.dp),
+                tint = if (tool.isAi) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = tool.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = tool.description,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddNoteDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add Note") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
-                    label = { Text("Content") },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    maxLines = 5
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = { if (title.isNotBlank()) onAdd(title, content) }) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddDeckDialog(onDismiss: () -> Unit, onAdd: (String, String, String) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf("") }
-    var className by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Create Deck") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Deck Title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = subject,
-                    onValueChange = { subject = it },
-                    label = { Text("Subject (Optional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = className,
-                    onValueChange = { className = it },
-                    label = { Text("Class (Optional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = { if (title.isNotBlank()) onAdd(title, subject, className) }) {
-                Text("Create")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
 }

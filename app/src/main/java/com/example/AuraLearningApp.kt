@@ -39,6 +39,8 @@ import com.example.ui.books.BooksScreen
 import com.example.ui.home.HomeScreen
 import com.example.ui.profile.ProfileScreen
 import com.example.ui.videos.VideosScreen
+import com.example.ui.theme.ThemeViewModel
+
 
 import com.example.ui.admin.AdminLoginDialog
 import com.example.ui.admin.AdminDashboardScreen
@@ -64,7 +66,7 @@ val items = listOf(
 )
 
 @Composable
-fun AuraLearningApp() {
+fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
     val rootNavController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory)
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
@@ -100,15 +102,27 @@ fun AuraLearningApp() {
             val deckId = backStackEntry.arguments?.getString("deckId") ?: ""
             com.example.ui.study.FlashcardsScreen(navController = rootNavController, deckId = deckId)
         }
+        composable(
+            "tool_viewer/{toolId}?title={title}",
+            arguments = listOf(
+                androidx.navigation.navArgument("toolId") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("title") { type = androidx.navigation.NavType.StringType; defaultValue = "Study Tool" }
+            )
+        ) { backStackEntry ->
+            val toolId = backStackEntry.arguments?.getString("toolId") ?: ""
+            val title = backStackEntry.arguments?.getString("title") ?: "Study Tool"
+            com.example.ui.study.ToolViewerScreen(navController = rootNavController, toolId = toolId, title = title)
+        }
         composable("main") {
-            MainScreen(authViewModel = authViewModel, rootNavController = rootNavController)
+            MainScreen(authViewModel = authViewModel, rootNavController = rootNavController, themeViewModel = themeViewModel)
         }
     }
 }
 
 @Composable
-fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigation.NavController) {
+fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigation.NavController, themeViewModel: ThemeViewModel? = null) {
     val navController = rememberNavController()
+
     
     var profileTaps by remember { mutableStateOf(0) }
     var lastProfileTapTime by remember { mutableStateOf(0L) }
@@ -174,7 +188,7 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
             composable(Screen.Study.route) { com.example.ui.study.StudyScreen(navController, authViewModel, rootNavController) }
             composable(Screen.Videos.route) { VideosScreen(navController, authViewModel, rootNavController) }
             composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
-            composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel, rootNavController) }
+            composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel, rootNavController, themeViewModel) }
         }
     }
 }

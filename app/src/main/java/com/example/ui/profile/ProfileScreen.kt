@@ -25,13 +25,19 @@ import coil.compose.AsyncImage
 import com.example.ui.auth.AuthViewModel
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.SettingsBrightness
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.DarkMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController) {
+fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController, themeViewModel: com.example.ui.theme.ThemeViewModel? = null) {
     val currentUser by authViewModel.currentUser.collectAsState()
     val context = LocalContext.current
+
+    val themeMode = themeViewModel?.themeMode?.collectAsState()?.value ?: 0
 
     Scaffold(
         topBar = {
@@ -47,9 +53,70 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(androidx.compose.foundation.rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            
+            // Appearance Section
+            if (themeViewModel != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "Appearance",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("App Theme", style = MaterialTheme.typography.bodyLarge)
+                            Row {
+                                IconButton(
+                                    onClick = { themeViewModel.setThemeMode(0) },
+                                    modifier = Modifier.background(
+                                        if (themeMode == 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                        CircleShape
+                                    )
+                                ) {
+                                    Icon(Icons.Filled.SettingsBrightness, "System", tint = if (themeMode == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                IconButton(
+                                    onClick = { themeViewModel.setThemeMode(1) },
+                                    modifier = Modifier.background(
+                                        if (themeMode == 1) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                        CircleShape
+                                    )
+                                ) {
+                                    Icon(Icons.Filled.LightMode, "Light", tint = if (themeMode == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                IconButton(
+                                    onClick = { themeViewModel.setThemeMode(2) },
+                                    modifier = Modifier.background(
+                                        if (themeMode == 2) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                        CircleShape
+                                    )
+                                ) {
+                                    Icon(Icons.Filled.DarkMode, "Dark", tint = if (themeMode == 2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (currentUser != null) {
                 val user = currentUser!!
                 
