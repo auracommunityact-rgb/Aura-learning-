@@ -96,6 +96,18 @@ class AuraRepository {
         val newBook = book.copy(id = ref.id)
         ref.set(newBook).await()
     }
+    
+    suspend fun updateBook(book: Book) {
+        if (book.id.isNotEmpty()) {
+            firestore.collection("books").document(book.id).set(book).await()
+        }
+    }
+    
+    suspend fun deleteBook(bookId: String) {
+        if (bookId.isNotEmpty()) {
+            firestore.collection("books").document(bookId).delete().await()
+        }
+    }
 
     // Videos
     suspend fun getVideos(): List<Video> {
@@ -120,6 +132,27 @@ class AuraRepository {
         val ref = firestore.collection("videos").document()
         val newVideo = video.copy(id = ref.id)
         ref.set(newVideo).await()
+    }
+    
+    suspend fun updateVideo(video: Video) {
+        if (video.id.isNotEmpty()) {
+            firestore.collection("videos").document(video.id).set(video).await()
+        }
+    }
+    
+    suspend fun deleteVideo(videoId: String) {
+        if (videoId.isNotEmpty()) {
+            firestore.collection("videos").document(videoId).delete().await()
+        }
+    }
+    
+    suspend fun getUsersCount(): Int {
+        return try {
+            val snapshot = firestore.collection("users").get().await()
+            snapshot.size()
+        } catch (e: Exception) {
+            0
+        }
     }
 
     // Banners

@@ -8,10 +8,12 @@ plugins {
 }
 
 tasks.register<Copy>("copyApkToDownload") {
+    dependsOn("app:assembleDebug")
     from("app/build/outputs/apk/debug/app-debug.apk")
     into("APK_DOWNLOAD")
 }
 tasks.register<Copy>("copyApkToBuildOutputs") {
+    dependsOn("app:assembleDebug")
     from("app/build/outputs/apk/debug/app-debug.apk")
     into(".build-outputs")
 }

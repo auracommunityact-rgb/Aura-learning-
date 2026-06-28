@@ -39,6 +39,13 @@ import com.example.ui.home.HomeScreen
 import com.example.ui.profile.ProfileScreen
 import com.example.ui.videos.VideosScreen
 
+import com.example.ui.admin.AdminLoginDialog
+import com.example.ui.admin.AdminDashboardScreen
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Filled.Home)
     object Videos : Screen("videos", "Videos", Icons.Filled.PlayCircle)
@@ -63,6 +70,7 @@ fun AuraLearningApp() {
     NavHost(navController = rootNavController, startDestination = "main") {
         composable("login") { LoginScreen(rootNavController, authViewModel) }
         composable("register") { RegisterScreen(rootNavController, authViewModel) }
+        composable("admin_dashboard") { AdminDashboardScreen(rootNavController) }
         composable("main") {
             MainScreen(authViewModel = authViewModel, rootNavController = rootNavController)
         }
@@ -72,6 +80,20 @@ fun AuraLearningApp() {
 @Composable
 fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigation.NavController) {
     val navController = rememberNavController()
+    
+    var profileTaps by remember { mutableStateOf(0) }
+    var lastProfileTapTime by remember { mutableStateOf(0L) }
+    var showAdminLoginDialog by remember { mutableStateOf(false) }
+    
+    if (showAdminLoginDialog) {
+        AdminLoginDialog(
+            onDismiss = { showAdminLoginDialog = false },
+            onLoginSuccess = {
+                showAdminLoginDialog = false
+                rootNavController.navigate("admin_dashboard")
+            }
+        )
+    }
 
     Scaffold(
         bottomBar = {
@@ -85,6 +107,22 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
                         label = { Text(screen.title) },
                         selected = currentRoute == screen.route,
                         onClick = {
+                            if (screen == Screen.Profile) {
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastProfileTapTime < 2000) {
+                                    profileTaps++
+                                    if (profileTaps == 3) {
+                                        showAdminLoginDialog = true
+                                        profileTaps = 0
+                                    }
+                                } else {
+                                    profileTaps = 1
+                                }
+                                lastProfileTapTime = currentTime
+                            } else {
+                                profileTaps = 0
+                            }
+                            
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
