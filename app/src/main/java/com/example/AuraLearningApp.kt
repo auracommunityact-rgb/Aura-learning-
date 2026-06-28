@@ -71,6 +71,13 @@ fun AuraLearningApp() {
         composable("login") { LoginScreen(rootNavController, authViewModel) }
         composable("register") { RegisterScreen(rootNavController, authViewModel) }
         composable("admin_dashboard") { AdminDashboardScreen(rootNavController) }
+        composable(
+            "pdf_viewer?url={url}",
+            arguments = listOf(androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val url = backStackEntry.arguments?.getString("url") ?: ""
+            com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url)
+        }
         composable("main") {
             MainScreen(authViewModel = authViewModel, rootNavController = rootNavController)
         }

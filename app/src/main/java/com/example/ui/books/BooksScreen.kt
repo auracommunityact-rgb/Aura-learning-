@@ -96,13 +96,8 @@ fun BooksScreen(navController: NavController, authViewModel: AuthViewModel, root
                         Card(
                             modifier = Modifier.fillMaxWidth().height(220.dp).clickable { 
                                 if (book.pdfUrl.isNotEmpty()) {
-                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                                    intent.setDataAndType(android.net.Uri.parse(book.pdfUrl), "application/pdf")
-                                    try {
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No PDF viewer found", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
+                                    val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                    rootNavController.navigate("pdf_viewer?url=$encodedUrl")
                                 }
                             },
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

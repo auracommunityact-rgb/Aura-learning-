@@ -57,11 +57,11 @@ class AuraRepository {
     suspend fun getBooks(): List<Book> {
         val kartikBook = Book(
             id = "kartik_10th",
-            bookName = "kartik",
+            bookName = "Kartika",
             className = "10th",
-            subject = "hindi",
-            coverImage = "",
-            pdfUrl = "",
+            subject = "Hindi",
+            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/31GDpJrSb3L._AC_UF1000,1000_QL80_.jpg",
+            pdfUrl = "https://drive.google.com/file/d/1QXmCcR1XyEMjEdTWw1I4KsSNTTROgGMY/preview",
             createdAt = System.currentTimeMillis()
         )
         return try {
@@ -75,11 +75,11 @@ class AuraRepository {
     suspend fun getBooksByClass(className: String): List<Book> {
         val kartikBook = Book(
             id = "kartik_10th",
-            bookName = "kartik",
+            bookName = "Kartika",
             className = "10th",
-            subject = "hindi",
-            coverImage = "",
-            pdfUrl = "",
+            subject = "Hindi",
+            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/31GDpJrSb3L._AC_UF1000,1000_QL80_.jpg",
+            pdfUrl = "https://drive.google.com/file/d/1QXmCcR1XyEMjEdTWw1I4KsSNTTROgGMY/preview",
             createdAt = System.currentTimeMillis()
         )
         return try {

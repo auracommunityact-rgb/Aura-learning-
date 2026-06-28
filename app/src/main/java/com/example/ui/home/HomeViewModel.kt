@@ -21,6 +21,9 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _recentVideos = MutableStateFlow<List<Video>>(emptyList())
     val recentVideos: StateFlow<List<Video>> = _recentVideos.asStateFlow()
 
+    private val _allBooks = MutableStateFlow<List<Book>>(emptyList())
+    val allBooks: StateFlow<List<Book>> = _allBooks.asStateFlow()
+
     init {
         fetchData()
     }
@@ -28,8 +31,10 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private fun fetchData() {
         viewModelScope.launch {
             _banners.value = repository.getBanners()
+            val fetchedBooks = repository.getBooks()
+            _allBooks.value = fetchedBooks
             // In a real app we'd limit this or order by createdAt, for now just fetch all
-            _recentBooks.value = repository.getBooks().sortedByDescending { it.createdAt }.take(5)
+            _recentBooks.value = fetchedBooks.sortedByDescending { it.createdAt }.take(5)
             _recentVideos.value = repository.getVideos().sortedByDescending { it.createdAt }.take(5)
         }
     }
