@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +29,7 @@ data class StudyTool(
 )
 
 val allStudyTools = listOf(
-    StudyTool("notes_reader", "Notes Reader", "Read digital notes with beautiful UI", Icons.Filled.MenuBook),
+    StudyTool("notes_reader", "Notes Reader", "Read digital notes with beautiful UI", Icons.AutoMirrored.Filled.MenuBook),
     StudyTool("pdf_reader", "PDF Reader", "Open and read PDF books", Icons.Filled.PictureAsPdf),
     StudyTool("pdf_highlighter", "PDF Highlighter", "Highlight and annotate PDFs", Icons.Filled.BorderColor),
     StudyTool("ocr_scanner", "OCR Text Scanner", "Extract text from images", Icons.Filled.DocumentScanner),
@@ -41,20 +42,20 @@ val allStudyTools = listOf(
     StudyTool("countdown", "Exam Countdown", "Track remaining exam days", Icons.Filled.Event),
     StudyTool("goal_tracker", "Goal Tracker", "Track learning goals", Icons.Filled.TrackChanges),
     StudyTool("quiz_gen", "Quiz Generator", "Generate quizzes for practice", Icons.Filled.Quiz),
-    StudyTool("mock_tests", "Mock Tests", "Practice complete exams", Icons.Filled.Assignment),
+    StudyTool("mock_tests", "Mock Tests", "Practice complete exams", Icons.AutoMirrored.Filled.Assignment),
     StudyTool("result_analysis", "Result Analysis", "Analyze performance", Icons.Filled.Analytics),
-    StudyTool("progress", "Progress Tracker", "Track study performance", Icons.Filled.TrendingUp),
+    StudyTool("progress", "Progress Tracker", "Track study performance", Icons.AutoMirrored.Filled.TrendingUp),
     StudyTool("ai_homework", "AI Homework Helper", "Owner AI: Help solve homework", Icons.Filled.SmartToy, true),
     StudyTool("ai_doubt", "AI Doubt Solver", "Owner AI: Solve student doubts", Icons.Filled.QuestionAnswer, true),
     StudyTool("ai_summarizer", "AI Notes Summarizer", "Owner AI: Create short notes", Icons.Filled.Summarize, true),
     StudyTool("ai_essay", "AI Essay Writer", "Owner AI: Write essays", Icons.Filled.Description, true),
     StudyTool("ai_flashcard", "AI Flashcard Gen", "Owner AI: Generate flashcards", Icons.Filled.Style, true),
-    StudyTool("ai_mcq", "AI MCQ Generator", "Owner AI: Generate MCQs", Icons.Filled.ListAlt, true),
+    StudyTool("ai_mcq", "AI MCQ Generator", "Owner AI: Generate MCQs", Icons.AutoMirrored.Filled.ListAlt, true),
     StudyTool("video_lectures", "Video Lectures", "Watch educational videos", Icons.Filled.VideoLibrary),
-    StudyTool("ncert", "NCERT Books", "Read NCERT books online", Icons.Filled.LibraryBooks),
+    StudyTool("ncert", "NCERT Books", "Read NCERT books online", Icons.AutoMirrored.Filled.LibraryBooks),
     StudyTool("prev_papers", "Previous Papers", "Practice past exams", Icons.Filled.HistoryEdu),
     StudyTool("sample_papers", "Sample Papers", "Practice model papers", Icons.Filled.Science),
-    StudyTool("syllabus", "Syllabus Viewer", "View latest syllabus", Icons.Filled.Subject),
+    StudyTool("syllabus", "Syllabus Viewer", "View latest syllabus", Icons.AutoMirrored.Filled.Subject),
     StudyTool("notebook", "Digital Notebook", "Create personal notes", Icons.Filled.NoteAlt),
     StudyTool("drawing_pad", "Drawing Pad", "Draw diagrams", Icons.Filled.Draw),
     StudyTool("doc_scanner", "Document Scanner", "Scan documents to PDF", Icons.Filled.Scanner),

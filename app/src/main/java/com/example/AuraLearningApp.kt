@@ -9,7 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.Icon
@@ -53,7 +53,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Home : Screen("home", "Home", Icons.Filled.Home)
     object Study : Screen("study", "Study", Icons.Filled.Edit)
     object Videos : Screen("videos", "Videos", Icons.Filled.PlayCircle)
-    object Books : Screen("books", "Books", Icons.Filled.MenuBook)
+    object Books : Screen("books", "Books", Icons.AutoMirrored.Filled.MenuBook)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
