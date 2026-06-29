@@ -102,6 +102,9 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
             val deckId = backStackEntry.arguments?.getString("deckId") ?: ""
             com.example.ui.study.FlashcardsScreen(navController = rootNavController, deckId = deckId)
         }
+        composable("study_planner") { com.example.ui.study.planner.StudyPlannerScreen(rootNavController) }
+        composable("create_schedule") { com.example.ui.study.planner.CreateScheduleScreen(rootNavController) }
+        composable("notes_translate") { com.example.ui.study.NotesTranslateScreen(rootNavController) }
         composable(
             "tool_viewer/{toolId}?title={title}",
             arguments = listOf(

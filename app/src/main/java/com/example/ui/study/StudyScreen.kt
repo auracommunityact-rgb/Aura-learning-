@@ -117,8 +117,13 @@ fun StudyScreen(
             ) {
                 items(filteredTools) { tool ->
                     ToolCard(tool = tool) {
-                        // Navigate to generic placeholder or specific screen
-                        rootNavController.navigate("tool_viewer/${tool.id}?title=${tool.title}")
+                        if (tool.id == "planner") {
+                            rootNavController.navigate("study_planner")
+                        } else if (tool.id == "translate") {
+                            rootNavController.navigate("notes_translate")
+                        } else {
+                            rootNavController.navigate("tool_viewer/${tool.id}?title=${tool.title}")
+                        }
                     }
                 }
             }
