@@ -5,9 +5,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [StudySession::class], version = 1, exportSchema = false)
+@Database(entities = [StudySession::class, PdfAnnotation::class], version = 2, exportSchema = false)
 abstract class PlannerDatabase : RoomDatabase() {
     abstract fun studySessionDao(): StudySessionDao
+    abstract fun pdfAnnotationDao(): PdfAnnotationDao
 
     companion object {
         @Volatile
@@ -19,7 +20,9 @@ abstract class PlannerDatabase : RoomDatabase() {
                     context.applicationContext,
                     PlannerDatabase::class.java,
                     "planner_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

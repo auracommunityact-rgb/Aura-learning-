@@ -93,7 +93,8 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
             arguments = listOf(androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->
             val url = backStackEntry.arguments?.getString("url") ?: ""
-            com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url)
+            val bookId = url.hashCode().toString()
+            com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url, bookId = bookId)
         }
         composable(
             "flashcards/{deckId}",
