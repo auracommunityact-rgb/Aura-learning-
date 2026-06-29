@@ -10,24 +10,45 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class BooksViewModel(private val repository: AuraRepository) : ViewModel() {
+    private val _allBooks = MutableStateFlow<List<Book>>(emptyList())
     private val _books = MutableStateFlow<List<Book>>(emptyList())
     val books: StateFlow<List<Book>> = _books.asStateFlow()
 
     private val _selectedClass = MutableStateFlow<String?>(null)
     val selectedClass: StateFlow<String?> = _selectedClass.asStateFlow()
 
+    private val _selectedSubject = MutableStateFlow<String?>(null)
+    val selectedSubject: StateFlow<String?> = _selectedSubject.asStateFlow()
+
     init {
-        fetchBooks(null)
+        fetchBooks()
     }
 
-    fun fetchBooks(className: String?) {
-        _selectedClass.value = className
+    private fun fetchBooks() {
         viewModelScope.launch {
-            if (className == null) {
-                _books.value = repository.getBooks()
-            } else {
-                _books.value = repository.getBooksByClass(className)
-            }
+            _allBooks.value = repository.getBooks()
+            applyFilters()
         }
+    }
+
+    fun setFilters(className: String?, subject: String?) {
+        _selectedClass.value = className
+        _selectedSubject.value = subject
+        applyFilters()
+    }
+
+    private fun applyFilters() {
+        val cls = _selectedClass.value
+        val sub = _selectedSubject.value
+        var filtered = _allBooks.value
+
+        if (cls != null) {
+            filtered = filtered.filter { it.className == cls }
+        }
+        if (sub != null) {
+            filtered = filtered.filter { it.subject.equals(sub, ignoreCase = true) }
+        }
+
+        _books.value = filtered
     }
 }
