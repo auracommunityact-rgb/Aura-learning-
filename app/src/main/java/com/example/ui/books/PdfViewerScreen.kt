@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +14,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.FormatColorFill
@@ -38,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.data.local.PdfAnnotation
+import com.example.data.local.PdfBookmark
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +73,7 @@ fun PdfViewerScreen(
     val progress by viewModel.downloadProgress.collectAsState()
     val pageCount by viewModel.pdfPageCount.collectAsState()
     val annotations by viewModel.annotations.collectAsState()
+    val bookmarks by viewModel.bookmarks.collectAsState()
     
     val listState = rememberLazyListState()
     var currentTool by remember { mutableStateOf(AnnotationTool.NONE) }
@@ -77,8 +84,83 @@ fun PdfViewerScreen(
     
     val undoStack = remember { mutableStateListOf<PdfAnnotation>() }
     
+    var showSummaryDialog by remember { mutableStateOf(false) }
+    var showBookmarksDialog by remember { mutableStateOf(false) }
+    var isSummarizing by remember { mutableStateOf(false) }
+    var summaryText by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+    
     LaunchedEffect(pdfUrl, bookId) {
         viewModel.loadPdf(pdfUrl, bookId)
+    }
+
+    if (showBookmarksDialog) {
+        AlertDialog(
+            onDismissRequest = { showBookmarksDialog = false },
+            title = { Text("Bookmarks") },
+            text = {
+                if (bookmarks.isEmpty()) {
+                    Text("No bookmarks added yet.")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)
+                    ) {
+                        items(bookmarks.size) { index ->
+                            val bookmark = bookmarks[index]
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(bookmark.pageNumber)
+                                            showBookmarksDialog = false
+                                        }
+                                    }
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Page ${bookmark.pageNumber + 1}")
+                                IconButton(onClick = { viewModel.toggleBookmark(bookId, bookmark.pageNumber) }) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Remove Bookmark")
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showBookmarksDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    if (showSummaryDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isSummarizing) showSummaryDialog = false },
+            title = { Text("Page Summary") },
+            text = {
+                if (isSummarizing) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(16.dp))
+                        Text("Extracting text and generating summary...")
+                    }
+                } else {
+                    Text(summaryText, style = MaterialTheme.typography.bodyMedium)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSummaryDialog = false }, enabled = !isSummarizing) {
+                    Text("Close")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -91,6 +173,26 @@ fun PdfViewerScreen(
                     }
                 },
                 actions = {
+                    val currentPageIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+                    val isBookmarked = bookmarks.any { it.pageNumber == currentPageIndex }
+                    IconButton(onClick = { viewModel.toggleBookmark(bookId, currentPageIndex) }) {
+                        Icon(if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, contentDescription = "Bookmark Page", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = { showBookmarksDialog = true }) {
+                        Icon(Icons.Filled.Bookmarks, contentDescription = "View Bookmarks", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = {
+                        showSummaryDialog = true
+                        isSummarizing = true
+                        summaryText = ""
+                        coroutineScope.launch {
+                            val pageIndex = listState.firstVisibleItemIndex
+                            summaryText = viewModel.summarizePage(pageIndex, 1080)
+                            isSummarizing = false
+                        }
+                    }) {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = "Summarize Page", tint = MaterialTheme.colorScheme.primary)
+                    }
                     IconButton(onClick = {
                         val last = annotations.maxByOrNull { it.timestamp }
                         if (last != null) {
@@ -158,7 +260,16 @@ fun PdfViewerScreen(
             if (progress == null) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (progress == -1f) {
-                Text("Error loading PDF", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text("Error loading PDF", color = MaterialTheme.colorScheme.error)
+                    Button(onClick = { viewModel.loadPdf(pdfUrl, bookId) }) {
+                        Text("Retry")
+                    }
+                }
             } else if (progress!! < 1f) {
                 Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(progress = progress!!)

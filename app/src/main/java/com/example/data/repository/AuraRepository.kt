@@ -69,11 +69,20 @@ class AuraRepository {
             pdfUrl = "https://drive.google.com/file/d/1QXmCcR1XyEMjEdTWw1I4KsSNTTROgGMY/preview",
             createdAt = System.currentTimeMillis()
         )
+        val mathsBook = Book(
+            id = "maths_10th",
+            bookName = "Maths",
+            className = "10th",
+            subject = "Mathematics",
+            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
+            pdfUrl = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/sign/Book/kemh1a1-combined.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81NzhhNWYwOS03YzdjLTQ0MWMtODBmNy1jYjk2MTFiODQwYWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJCb29rL2tlbWgxYTEtY29tYmluZWQucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4Mjc2NzYzMiwiZXhwIjoxODE0MzAzNjMyfQ.Ci44hWuaNvjT7MVqlTOZ77pHliyIbewHQQpHnVTTKp0",
+            createdAt = System.currentTimeMillis()
+        )
         return try {
             val books = client.postgrest["books"].select().decodeList<Book>()
-            listOf(kartikBook) + books
+            listOf(kartikBook, mathsBook) + books
         } catch (e: Exception) {
-            listOf(kartikBook)
+            listOf(kartikBook, mathsBook)
         }
     }
 
@@ -87,13 +96,22 @@ class AuraRepository {
             pdfUrl = "https://drive.google.com/file/d/1QXmCcR1XyEMjEdTWw1I4KsSNTTROgGMY/preview",
             createdAt = System.currentTimeMillis()
         )
+        val mathsBook = Book(
+            id = "maths_10th",
+            bookName = "Maths",
+            className = "10th",
+            subject = "Mathematics",
+            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
+            pdfUrl = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/sign/Book/kemh1a1-combined.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81NzhhNWYwOS03YzdjLTQ0MWMtODBmNy1jYjk2MTFiODQwYWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJCb29rL2tlbWgxYTEtY29tYmluZWQucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4Mjc2NzYzMiwiZXhwIjoxODE0MzAzNjMyfQ.Ci44hWuaNvjT7MVqlTOZ77pHliyIbewHQQpHnVTTKp0",
+            createdAt = System.currentTimeMillis()
+        )
         return try {
             val books = client.postgrest["books"].select {
                 filter { eq("className", className) }
             }.decodeList<Book>()
-            if (className == "10th") listOf(kartikBook) + books else books
+            if (className == "10th") listOf(kartikBook, mathsBook) + books else books
         } catch (e: Exception) {
-            if (className == "10th") listOf(kartikBook) else emptyList()
+            if (className == "10th") listOf(kartikBook, mathsBook) else emptyList()
         }
     }
 
