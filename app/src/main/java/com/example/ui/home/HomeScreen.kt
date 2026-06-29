@@ -41,7 +41,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
             TopAppBar(
                 title = { Text("Hi, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"}!", color = MaterialTheme.colorScheme.primary) },
                 actions = {
-                    IconButton(onClick = { /* TODO search */ }) {
+                    IconButton(onClick = { navController.navigate("global_search") }) {
                         Icon(Icons.Filled.Search, contentDescription = "Search")
                     }
                 }

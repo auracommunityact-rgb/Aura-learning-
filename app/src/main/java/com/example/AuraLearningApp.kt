@@ -185,6 +185,7 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen(navController, authViewModel, rootNavController) }
+            composable("global_search") { com.example.ui.home.GlobalSearchScreen(navController, rootNavController) }
             composable(Screen.Study.route) { com.example.ui.study.StudyScreen(navController, authViewModel, rootNavController) }
             composable(Screen.Videos.route) { VideosScreen(navController, authViewModel, rootNavController) }
             composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
