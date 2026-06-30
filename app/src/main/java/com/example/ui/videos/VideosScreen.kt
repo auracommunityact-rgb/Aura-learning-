@@ -190,6 +190,20 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                                                 modifier = Modifier.height(200.dp).fillMaxWidth(),
                                                 contentScale = ContentScale.Crop
                                             )
+                                            if (video.title.contains("lesson 1", ignoreCase = true)) {
+                                                Surface(
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(bottomEnd = 8.dp),
+                                                    modifier = Modifier.align(androidx.compose.ui.Alignment.TopStart)
+                                                ) {
+                                                    Text(
+                                                        text = "Lesson 1",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                    )
+                                                }
+                                            }
                                             IconButton(
                                                 onClick = { 
                                                     if (currentUser == null) {

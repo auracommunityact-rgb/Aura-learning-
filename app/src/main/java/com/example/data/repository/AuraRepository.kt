@@ -150,20 +150,41 @@ class AuraRepository {
 
     // Videos
     suspend fun getVideos(): List<Video> {
+        val mathsLesson1 = Video(
+            id = "maths_lesson_1",
+            title = "Maths lesson 1",
+            description = "lesson 1",
+            className = "10th",
+            subject = "Maths",
+            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
+            videoUrl = "https://www.youtube.com/live/3mZPT0faW2o?si=jX45HZGhnrMdAZ57",
+            createdAt = System.currentTimeMillis()
+        )
         return try {
-            client.postgrest["videos"].select().decodeList<Video>()
+            listOf(mathsLesson1) + client.postgrest["videos"].select().decodeList<Video>()
         } catch (e: Exception) {
-            emptyList()
+            listOf(mathsLesson1)
         }
     }
 
     suspend fun getVideosByClass(className: String): List<Video> {
+        val mathsLesson1 = Video(
+            id = "maths_lesson_1",
+            title = "Maths lesson 1",
+            description = "lesson 1",
+            className = "10th",
+            subject = "Maths",
+            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
+            videoUrl = "https://www.youtube.com/live/3mZPT0faW2o?si=jX45HZGhnrMdAZ57",
+            createdAt = System.currentTimeMillis()
+        )
         return try {
-            client.postgrest["videos"].select {
+            val dbVideos = client.postgrest["videos"].select {
                 filter { eq("className", className) }
             }.decodeList<Video>()
+            if (className == "10th") listOf(mathsLesson1) + dbVideos else dbVideos
         } catch (e: Exception) {
-            emptyList()
+            if (className == "10th") listOf(mathsLesson1) else emptyList()
         }
     }
 

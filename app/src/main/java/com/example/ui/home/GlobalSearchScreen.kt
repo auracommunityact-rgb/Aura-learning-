@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -153,9 +154,17 @@ fun GlobalSearchScreen(
                         Text("Videos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                     items(filteredVideos) { video ->
+                        val context = LocalContext.current
                         Card(
                             modifier = Modifier.fillMaxWidth().clickable {
-                                // Videos don't have a player view yet in this app, just a generic viewer or play action
+                                if (video.videoUrl.isNotEmpty()) {
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(video.videoUrl))
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No app found to open link", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {

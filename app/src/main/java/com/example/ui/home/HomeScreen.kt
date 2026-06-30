@@ -167,7 +167,17 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(recentVideos) { video ->
-                    Card(modifier = Modifier.width(160.dp).height(120.dp)) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    Card(modifier = Modifier.width(160.dp).height(120.dp).clickable {
+                        if (video.videoUrl.isNotEmpty()) {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(video.videoUrl))
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, "No app found to open link", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }) {
                         Box {
                             AsyncImage(
                                 model = video.thumbnail,
@@ -175,6 +185,20 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
+                            if (video.title.contains("lesson 1", ignoreCase = true)) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(bottomEnd = 8.dp),
+                                    modifier = Modifier.align(Alignment.TopStart)
+                                ) {
+                                    Text(
+                                        text = "Lesson 1",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                             Text(video.title, modifier = Modifier.align(Alignment.BottomStart).padding(8.dp), color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelMedium)
                         }
                     }
