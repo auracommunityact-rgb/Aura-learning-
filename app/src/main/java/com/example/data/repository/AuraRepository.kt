@@ -152,41 +152,73 @@ class AuraRepository {
     suspend fun getVideos(): List<Video> {
         val mathsLesson1 = Video(
             id = "maths_lesson_1",
-            title = "Maths lesson 1",
-            description = "lesson 1",
+            title = "Maths Class 10th - Part 1",
+            description = "Maths Class 10th - Part 1",
             className = "10th",
             subject = "Maths",
             thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            videoUrl = "https://www.youtube.com/live/3mZPT0faW2o?si=jX45HZGhnrMdAZ57",
-            youtubeVideoId = "3mZPT0faW2o",
-            chapter = "Polynomials",
+            videoUrl = "https://youtu.be/SyZQP15qwaQ?si=1wKUi6W4YUHKds8h",
+            youtubeVideoId = "SyZQP15qwaQ",
+            chapter = "Maths Class 10th",
             partNumber = 1,
             teacher = "Aura Teacher",
-            duration = "1:20:00",
+            duration = "45:00",
+            relatedBooks = listOf("maths_10th"),
+            createdAt = System.currentTimeMillis()
+        )
+        val mathsLesson2 = Video(
+            id = "maths_lesson_2",
+            title = "Maths Class 10th - Part 2",
+            description = "Maths Class 10th - Part 2",
+            className = "10th",
+            subject = "Maths",
+            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
+            videoUrl = "https://youtu.be/YUscmq5Pr1Q?si=NkpgdUUXzIh62pTX",
+            youtubeVideoId = "YUscmq5Pr1Q",
+            chapter = "Maths Class 10th",
+            partNumber = 2,
+            teacher = "Aura Teacher",
+            duration = "45:00",
             relatedBooks = listOf("maths_10th"),
             createdAt = System.currentTimeMillis()
         )
         return try {
-            listOf(mathsLesson1) + client.postgrest["videos"].select().decodeList<Video>()
+            listOf(mathsLesson1, mathsLesson2) + client.postgrest["videos"].select().decodeList<Video>()
         } catch (e: Exception) {
-            listOf(mathsLesson1)
+            listOf(mathsLesson1, mathsLesson2)
         }
     }
 
     suspend fun getVideosByClass(className: String): List<Video> {
         val mathsLesson1 = Video(
             id = "maths_lesson_1",
-            title = "Maths lesson 1",
-            description = "lesson 1",
+            title = "Maths Class 10th - Part 1",
+            description = "Maths Class 10th - Part 1",
             className = "10th",
             subject = "Maths",
             thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            videoUrl = "https://www.youtube.com/live/3mZPT0faW2o?si=jX45HZGhnrMdAZ57",
-            youtubeVideoId = "3mZPT0faW2o",
-            chapter = "Polynomials",
+            videoUrl = "https://youtu.be/SyZQP15qwaQ?si=1wKUi6W4YUHKds8h",
+            youtubeVideoId = "SyZQP15qwaQ",
+            chapter = "Maths Class 10th",
             partNumber = 1,
             teacher = "Aura Teacher",
-            duration = "1:20:00",
+            duration = "45:00",
+            relatedBooks = listOf("maths_10th"),
+            createdAt = System.currentTimeMillis()
+        )
+        val mathsLesson2 = Video(
+            id = "maths_lesson_2",
+            title = "Maths Class 10th - Part 2",
+            description = "Maths Class 10th - Part 2",
+            className = "10th",
+            subject = "Maths",
+            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
+            videoUrl = "https://youtu.be/YUscmq5Pr1Q?si=NkpgdUUXzIh62pTX",
+            youtubeVideoId = "YUscmq5Pr1Q",
+            chapter = "Maths Class 10th",
+            partNumber = 2,
+            teacher = "Aura Teacher",
+            duration = "45:00",
             relatedBooks = listOf("maths_10th"),
             createdAt = System.currentTimeMillis()
         )
@@ -194,9 +226,9 @@ class AuraRepository {
             val dbVideos = client.postgrest["videos"].select {
                 filter { eq("className", className) }
             }.decodeList<Video>()
-            if (className == "10th") listOf(mathsLesson1) + dbVideos else dbVideos
+            if (className == "10th") listOf(mathsLesson1, mathsLesson2) + dbVideos else dbVideos
         } catch (e: Exception) {
-            if (className == "10th") listOf(mathsLesson1) else emptyList()
+            if (className == "10th") listOf(mathsLesson1, mathsLesson2) else emptyList()
         }
     }
 
