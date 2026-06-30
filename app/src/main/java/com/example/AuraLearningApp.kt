@@ -72,7 +72,8 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
     val authState by authViewModel.authState.collectAsState()
 
-    NavHost(navController = rootNavController, startDestination = "main") {
+    NavHost(navController = rootNavController, startDestination = "splash") {
+        composable("splash") { com.example.ui.splash.SplashScreen(rootNavController) }
         composable("login") { LoginScreen(rootNavController, authViewModel) }
         composable("register") { RegisterScreen(rootNavController, authViewModel) }
         composable("admin_dashboard") { AdminDashboardScreen(rootNavController) }
