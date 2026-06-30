@@ -169,7 +169,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 items(recentVideos) { video ->
                     val context = androidx.compose.ui.platform.LocalContext.current
                     Card(modifier = Modifier.width(160.dp).height(120.dp).clickable {
-                        navController.navigate("video_player/${video.id}")
+                        rootNavController.navigate("video_player/${video.id}")
                     }) {
                         Box {
                             AsyncImage(

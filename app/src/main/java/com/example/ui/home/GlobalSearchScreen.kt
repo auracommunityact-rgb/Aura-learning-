@@ -157,7 +157,7 @@ fun GlobalSearchScreen(
                         val context = LocalContext.current
                         Card(
                             modifier = Modifier.fillMaxWidth().clickable {
-                                navController.navigate("video_player/${video.id}")
+                                rootNavController.navigate("video_player/${video.id}")
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {

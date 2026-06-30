@@ -171,7 +171,7 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                                 val context = LocalContext.current
                                 Card(
                                     modifier = Modifier.fillMaxWidth().clickable { 
-                                        navController.navigate("video_player/${video.id}")
+                                        rootNavController.navigate("video_player/${video.id}")
                                     },
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
