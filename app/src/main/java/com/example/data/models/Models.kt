@@ -34,7 +34,14 @@ data class Video(
     val className: String = "",
     val subject: String = "",
     val thumbnail: String = "",
-    val videoUrl: String = "",
+    val videoUrl: String = "", // Used as youtubeUrl
+    val youtubeVideoId: String = "",
+    val chapter: String = "",
+    val partNumber: Int = 1,
+    val teacher: String = "",
+    val duration: String = "",
+    val order: Int = 0,
+    val relatedBooks: List<String> = emptyList(),
     val createdAt: Long = 0L
 )
 

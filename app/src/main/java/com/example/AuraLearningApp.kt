@@ -97,6 +97,13 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
             com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url, bookId = bookId)
         }
         composable(
+            "video_player/{videoId}",
+            arguments = listOf(androidx.navigation.navArgument("videoId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val videoId = backStackEntry.arguments?.getString("videoId") ?: ""
+            com.example.ui.videos.VideoPlayerScreen(navController = rootNavController, videoId = videoId)
+        }
+        composable(
             "flashcards/{deckId}",
             arguments = listOf(androidx.navigation.navArgument("deckId") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->

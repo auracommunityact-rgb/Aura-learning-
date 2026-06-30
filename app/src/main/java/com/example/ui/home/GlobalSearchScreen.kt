@@ -157,14 +157,7 @@ fun GlobalSearchScreen(
                         val context = LocalContext.current
                         Card(
                             modifier = Modifier.fillMaxWidth().clickable {
-                                if (video.videoUrl.isNotEmpty()) {
-                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(video.videoUrl))
-                                    try {
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No app found to open link", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                }
+                                navController.navigate("video_player/${video.id}")
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {

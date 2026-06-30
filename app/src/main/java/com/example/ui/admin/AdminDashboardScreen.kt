@@ -280,23 +280,49 @@ fun AddBookDialog(initialBook: Book?, onDismiss: () -> Unit, onAdd: (Book) -> Un
 fun AddVideoDialog(initialVideo: Video?, onDismiss: () -> Unit, onAdd: (Video) -> Unit) {
     var title by remember { mutableStateOf(initialVideo?.title ?: "") }
     var className by remember { mutableStateOf(initialVideo?.className ?: "") }
+    var subject by remember { mutableStateOf(initialVideo?.subject ?: "") }
+    var chapter by remember { mutableStateOf(initialVideo?.chapter ?: "") }
+    var partNumber by remember { mutableStateOf(initialVideo?.partNumber?.toString() ?: "1") }
+    var teacher by remember { mutableStateOf(initialVideo?.teacher ?: "") }
+    var duration by remember { mutableStateOf(initialVideo?.duration ?: "") }
     var thumbnailUrl by remember { mutableStateOf(initialVideo?.thumbnail ?: "") }
     var videoUrl by remember { mutableStateOf(initialVideo?.videoUrl ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initialVideo == null) "Add Video (YouTube URL)" else "Edit Video") },
+        title = { Text(if (initialVideo == null) "Add Video" else "Edit Video") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") })
-                OutlinedTextField(value = className, onValueChange = { className = it }, label = { Text("Class Name (e.g. 10th)") })
-                OutlinedTextField(value = thumbnailUrl, onValueChange = { thumbnailUrl = it }, label = { Text("Thumbnail URL") })
-                OutlinedTextField(value = videoUrl, onValueChange = { videoUrl = it }, label = { Text("Video URL") })
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = subject, onValueChange = { subject = it }, label = { Text("Subject") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = className, onValueChange = { className = it }, label = { Text("Class Name (e.g. 10th)") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = chapter, onValueChange = { chapter = it }, label = { Text("Chapter") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = partNumber, onValueChange = { partNumber = it }, label = { Text("Part Number") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = teacher, onValueChange = { teacher = it }, label = { Text("Teacher Name") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = duration, onValueChange = { duration = it }, label = { Text("Duration") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = thumbnailUrl, onValueChange = { thumbnailUrl = it }, label = { Text("Thumbnail URL") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(value = videoUrl, onValueChange = { videoUrl = it }, label = { Text("YouTube Video ID / URL") }, modifier = Modifier.fillMaxWidth()) }
             }
         },
         confirmButton = {
             Button(onClick = {
-                onAdd(Video(id = initialVideo?.id ?: "", title = title, className = className, thumbnail = thumbnailUrl, videoUrl = videoUrl))
+                val yId = if (videoUrl.contains("v=")) videoUrl.substringAfter("v=").substringBefore("&")
+                          else if (videoUrl.contains("youtu.be/")) videoUrl.substringAfter("youtu.be/").substringBefore("?")
+                          else if (videoUrl.contains("live/")) videoUrl.substringAfter("live/").substringBefore("?")
+                          else videoUrl
+                onAdd(Video(
+                    id = initialVideo?.id ?: "", 
+                    title = title, 
+                    className = className, 
+                    subject = subject,
+                    chapter = chapter,
+                    partNumber = partNumber.toIntOrNull() ?: 1,
+                    teacher = teacher,
+                    duration = duration,
+                    thumbnail = thumbnailUrl, 
+                    videoUrl = videoUrl,
+                    youtubeVideoId = yId
+                ))
             }) {
                 Text(if (initialVideo == null) "Add" else "Save")
             }

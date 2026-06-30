@@ -32,6 +32,10 @@ object ViewModelFactory : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             return com.example.ui.study.StudyViewModel(repository) as T
         }
+        if (modelClass.isAssignableFrom(com.example.ui.videos.VideoPlayerViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return com.example.ui.videos.VideoPlayerViewModel(repository) as T
+        }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

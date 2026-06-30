@@ -158,6 +158,12 @@ class AuraRepository {
             subject = "Maths",
             thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
             videoUrl = "https://www.youtube.com/live/3mZPT0faW2o?si=jX45HZGhnrMdAZ57",
+            youtubeVideoId = "3mZPT0faW2o",
+            chapter = "Polynomials",
+            partNumber = 1,
+            teacher = "Aura Teacher",
+            duration = "1:20:00",
+            relatedBooks = listOf("maths_10th"),
             createdAt = System.currentTimeMillis()
         )
         return try {
@@ -176,6 +182,12 @@ class AuraRepository {
             subject = "Maths",
             thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
             videoUrl = "https://www.youtube.com/live/3mZPT0faW2o?si=jX45HZGhnrMdAZ57",
+            youtubeVideoId = "3mZPT0faW2o",
+            chapter = "Polynomials",
+            partNumber = 1,
+            teacher = "Aura Teacher",
+            duration = "1:20:00",
+            relatedBooks = listOf("maths_10th"),
             createdAt = System.currentTimeMillis()
         )
         return try {
@@ -186,6 +198,11 @@ class AuraRepository {
         } catch (e: Exception) {
             if (className == "10th") listOf(mathsLesson1) else emptyList()
         }
+    }
+
+    suspend fun getVideoById(videoId: String): Video? {
+        val videos = getVideos()
+        return videos.find { it.id == videoId }
     }
 
     suspend fun addVideo(video: Video) {

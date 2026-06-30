@@ -169,14 +169,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 items(recentVideos) { video ->
                     val context = androidx.compose.ui.platform.LocalContext.current
                     Card(modifier = Modifier.width(160.dp).height(120.dp).clickable {
-                        if (video.videoUrl.isNotEmpty()) {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(video.videoUrl))
-                            try {
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                android.widget.Toast.makeText(context, "No app found to open link", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                        navController.navigate("video_player/${video.id}")
                     }) {
                         Box {
                             AsyncImage(
