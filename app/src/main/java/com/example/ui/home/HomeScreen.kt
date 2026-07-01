@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,7 +35,11 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val recentVideos by viewModel.recentVideos.collectAsState()
     val allBooks by viewModel.allBooks.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
-    val selectedGrade by viewModel.selectedGrade.collectAsState()
+    val selectedGrade = currentUser?.selectedGrade ?: "All Grades"
+
+    LaunchedEffect(selectedGrade) {
+        viewModel.setSelectedGrade(selectedGrade)
+    }
 
     val savedBooks = allBooks.filter { currentUser?.savedBooks?.contains(it.id) == true }
 
@@ -91,7 +96,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 items(grades) { grade ->
                     FilterChip(
                         selected = selectedGrade == grade,
-                        onClick = { viewModel.setSelectedGrade(grade) },
+                        onClick = { authViewModel.updateSelectedGrade(grade) },
                         label = { Text(grade) }
                     )
                 }

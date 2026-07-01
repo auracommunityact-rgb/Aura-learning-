@@ -6,41 +6,53 @@ import com.example.data.api.GenerateContentRequest
 import com.example.data.api.GenerationConfig
 import com.example.data.api.Part
 import com.example.data.api.RetrofitClient
+import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.nl.languageid.LanguageIdentification
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.TranslatorOptions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 class TranslationService {
     private val apiKey = BuildConfig.GEMINI_API_KEY
+    private val languageIdClient = LanguageIdentification.getClient()
 
-    suspend fun translateText(text: String, fromLang: String, toLang: String, tone: String): String = withContext(Dispatchers.IO) {
-        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
-            return@withContext "Error: Gemini API key is missing. Please configure it in the Secrets panel."
-        }
-        
-        val systemPrompt = "You are an expert translator specializing in educational study notes. Translate the following text from $fromLang to $toLang. Ensure the tone is $tone. Preserve any formatting like bullet points, numbering, bold (**text**), italics (*text*), and structure as much as possible. Maintain educational accuracy and context. Output ONLY the translated text, without any additional conversational filler."
-
-        val request = GenerateContentRequest(
-            contents = listOf(
-                Content(
-                    parts = listOf(Part(text = text))
-                )
-            ),
-            systemInstruction = Content(
-                parts = listOf(Part(text = systemPrompt))
-            ),
-            generationConfig = GenerationConfig(
-                temperature = 0.3f
-            )
-        )
-        
+    suspend fun identifyLanguage(text: String): String? = withContext(Dispatchers.IO) {
         try {
-            val response = RetrofitClient.service.generateContent(apiKey, request)
-            response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Translation failed."
+            val languageCode = languageIdClient.identifyLanguage(text).await()
+            if (languageCode == "und") null else languageCode
         } catch (e: Exception) {
-            "Error: ${e.message}"
+            null
         }
     }
 
+    suspend fun translateText(
+        text: String, 
+        sourceLangCode: String, 
+        targetLangCode: String
+    ): String = withContext(Dispatchers.IO) {
+        try {
+            val options = TranslatorOptions.Builder()
+                .setSourceLanguage(sourceLangCode)
+                .setTargetLanguage(targetLangCode)
+                .build()
+                
+            val translator = Translation.getClient(options)
+            
+            val conditions = DownloadConditions.Builder().build()
+            translator.downloadModelIfNeeded(conditions).await()
+            
+            val result = translator.translate(text).await()
+            translator.close()
+            result
+        } catch (e: Exception) {
+            "Error: ${e.message ?: "Failed to translate."}"
+        }
+    }
+    
+    // Kept for the rest of the app to remain unchanged
     suspend fun improveGrammar(text: String): String = withContext(Dispatchers.IO) {
         val systemPrompt = "You are an expert editor. Fix the grammar, punctuation, and spelling of the following study notes without changing their original meaning or structure. Output ONLY the corrected text."
         processWithPrompt(text, systemPrompt)

@@ -3,8 +3,6 @@ package com.example.ui.books
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Download
@@ -35,11 +33,10 @@ fun DigitalBookshelf(
     // Group books in chunks of 3 for each shelf
     val shelves = books.chunked(3)
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 16.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
     ) {
-        items(shelves) { shelfBooks ->
+        shelves.forEach { shelfBooks ->
             ShelfRow(
                 books = shelfBooks,
                 savedBookIds = savedBookIds,

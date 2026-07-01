@@ -44,14 +44,31 @@ fun NotesTranslateScreen(navController: NavController) {
     var translatedText by remember { mutableStateOf("") }
     var isTranslating by remember { mutableStateOf(false) }
 
-    val languages = listOf("Auto Detect", "English", "Hindi", "Urdu", "Spanish", "French", "German", "Japanese", "Korean", "Chinese")
+    val languageMap = remember {
+        mapOf(
+            "Afrikaans" to "af", "Albanian" to "sq", "Arabic" to "ar", "Belarusian" to "be", 
+            "Bengali" to "bn", "Bulgarian" to "bg", "Catalan" to "ca", "Chinese" to "zh", 
+            "Croatian" to "hr", "Czech" to "cs", "Danish" to "da", "Dutch" to "nl", 
+            "English" to "en", "Esperanto" to "eo", "Estonian" to "et", "Finnish" to "fi", 
+            "French" to "fr", "Galician" to "gl", "Georgian" to "ka", "German" to "de", 
+            "Greek" to "el", "Gujarati" to "gu", "Haitian Creole" to "ht", "Hebrew" to "he", 
+            "Hindi" to "hi", "Hungarian" to "hu", "Icelandic" to "is", "Indonesian" to "id", 
+            "Irish" to "ga", "Italian" to "it", "Japanese" to "ja", "Kannada" to "kn", 
+            "Korean" to "ko", "Latvian" to "lv", "Lithuanian" to "lt", "Macedonian" to "mk", 
+            "Malay" to "ms", "Maltese" to "mt", "Marathi" to "mr", "Norwegian" to "no", 
+            "Persian" to "fa", "Polish" to "pl", "Portuguese" to "pt", "Romanian" to "ro", 
+            "Russian" to "ru", "Slovak" to "sk", "Slovenian" to "sl", "Spanish" to "es", 
+            "Swahili" to "sw", "Swedish" to "sv", "Tagalog" to "tl", "Tamil" to "ta", 
+            "Telugu" to "te", "Thai" to "th", "Turkish" to "tr", "Ukrainian" to "uk", 
+            "Urdu" to "ur", "Vietnamese" to "vi", "Welsh" to "cy"
+        )
+    }
+    val languages = remember { listOf("Auto Detect") + languageMap.keys.toList().sorted() }
+
     var fromLanguage by remember { mutableStateOf(languages[0]) }
-    var toLanguage by remember { mutableStateOf(languages[1]) }
+    var toLanguage by remember { mutableStateOf("English") }
     var fromLangExpanded by remember { mutableStateOf(false) }
     var toLangExpanded by remember { mutableStateOf(false) }
-    
-    val tones = listOf("Simple", "Formal", "Student Friendly", "Teacher Style")
-    var selectedTone by remember { mutableStateOf(tones[0]) }
 
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
     
@@ -121,7 +138,7 @@ fun NotesTranslateScreen(navController: NavController) {
             ) {
                 Box(modifier = Modifier.weight(1f)) {
                     OutlinedButton(onClick = { fromLangExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(fromLanguage)
+                        Text(fromLanguage, maxLines = 1)
                         Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                     }
                     DropdownMenu(expanded = fromLangExpanded, onDismissRequest = { fromLangExpanded = false }) {
@@ -143,7 +160,7 @@ fun NotesTranslateScreen(navController: NavController) {
                 
                 Box(modifier = Modifier.weight(1f)) {
                     OutlinedButton(onClick = { toLangExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(toLanguage)
+                        Text(toLanguage, maxLines = 1)
                         Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                     }
                     DropdownMenu(expanded = toLangExpanded, onDismissRequest = { toLangExpanded = false }) {
@@ -209,7 +226,26 @@ fun NotesTranslateScreen(navController: NavController) {
                         isTranslating = true
                         translatedText = ""
                         coroutineScope.launch {
-                            translatedText = translationService.translateText(sourceText, fromLanguage, toLanguage, selectedTone)
+                            var actualFrom = fromLanguage
+                            if (actualFrom == "Auto Detect") {
+                                val detectedCode = translationService.identifyLanguage(sourceText)
+                                if (detectedCode != null) {
+                                    val detectedLang = languageMap.entries.find { it.value == detectedCode }?.key
+                                    if (detectedLang != null) {
+                                        actualFrom = detectedLang
+                                        fromLanguage = detectedLang // Update UI
+                                    } else {
+                                        actualFrom = "English"
+                                    }
+                                } else {
+                                    actualFrom = "English"
+                                }
+                            }
+                            
+                            val sourceCode = languageMap[actualFrom] ?: "en"
+                            val targetCode = languageMap[toLanguage] ?: "es"
+                            
+                            translatedText = translationService.translateText(sourceText, sourceCode, targetCode)
                             isTranslating = false
                         }
                     } else {
@@ -225,50 +261,11 @@ fun NotesTranslateScreen(navController: NavController) {
                 if (isTranslating) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Translating notes...")
+                    Text("Downloading model / Translating...")
                 } else {
                     Icon(Icons.Filled.Translate, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Translate Notes", fontWeight = FontWeight.Bold)
-                }
-            }
-
-            // Quick Actions
-            AnimatedVisibility(visible = sourceText.isNotBlank()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AssistChip(
-                        onClick = {
-                            isTranslating = true
-                            coroutineScope.launch {
-                                translatedText = translationService.improveGrammar(sourceText)
-                                isTranslating = false
-                            }
-                        },
-                        label = { Text("✨ Grammar") }
-                    )
-                    AssistChip(
-                        onClick = {
-                            isTranslating = true
-                            coroutineScope.launch {
-                                translatedText = translationService.simplifyNotes(sourceText)
-                                isTranslating = false
-                            }
-                        },
-                        label = { Text("📚 Simplify") }
-                    )
-                    AssistChip(
-                        onClick = {
-                            isTranslating = true
-                            coroutineScope.launch {
-                                translatedText = translationService.summarizeNotes(sourceText)
-                                isTranslating = false
-                            }
-                        },
-                        label = { Text("📝 Summary") }
-                    )
                 }
             }
 
@@ -314,7 +311,7 @@ fun NotesTranslateScreen(navController: NavController) {
                             IconButton(onClick = {
                                 tts?.speak(translatedText, TextToSpeech.QUEUE_FLUSH, null, null)
                             }) {
-                                Icon(Icons.Filled.VolumeUp, contentDescription = "Speak")
+                                Icon(Icons.Filled.PlayArrow, contentDescription = "Speak")
                             }
                         }
                     }

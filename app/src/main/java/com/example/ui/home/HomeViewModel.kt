@@ -45,8 +45,14 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
             _recentVideos.value = _allVideos.value.sortedByDescending { it.createdAt }.take(5)
         } else {
             val gradeStr = grade.replace("Grade ", "")
-            _recentBooks.value = _allBooks.value.filter { it.className == gradeStr }.sortedByDescending { it.createdAt }.take(5)
-            _recentVideos.value = _allVideos.value.filter { it.className == gradeStr }.sortedByDescending { it.createdAt }.take(5)
+            val className = when (gradeStr) {
+                "1" -> "1st"
+                "2" -> "2nd"
+                "3" -> "3rd"
+                else -> "${gradeStr}th"
+            }
+            _recentBooks.value = _allBooks.value.filter { it.className == className }.sortedByDescending { it.createdAt }.take(5)
+            _recentVideos.value = _allVideos.value.filter { it.className == className }.sortedByDescending { it.createdAt }.take(5)
         }
     }
 

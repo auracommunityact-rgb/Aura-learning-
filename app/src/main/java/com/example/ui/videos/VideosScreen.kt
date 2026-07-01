@@ -30,6 +30,20 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
     val selectedSubject by viewModel.selectedSubject.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
 
+    LaunchedEffect(currentUser?.selectedGrade) {
+        val grade = currentUser?.selectedGrade ?: "All Grades"
+        val initialClass = if (grade == "All Grades") null else {
+            val gradeStr = grade.replace("Grade ", "")
+            when (gradeStr) {
+                "1" -> "1st"
+                "2" -> "2nd"
+                "3" -> "3rd"
+                else -> "${gradeStr}th"
+            }
+        }
+        viewModel.setFilters(initialClass, selectedSubject)
+    }
+
     var showLoginPrompt by remember { mutableStateOf(false) }
 
     if (showLoginPrompt) {
@@ -85,6 +99,7 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                             selected = selectedClass == null,
                             onClick = { 
                                 viewModel.setFilters(null, selectedSubject)
+                                authViewModel.updateSelectedGrade("All Grades")
                                 scope.launch { drawerState.close() }
                             },
                             modifier = Modifier.padding(horizontal = 12.dp)
@@ -96,6 +111,7 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                             selected = selectedClass == cls,
                             onClick = { 
                                 viewModel.setFilters(cls, selectedSubject)
+                                authViewModel.updateSelectedGrade("Grade ${cls.dropLast(2)}")
                                 scope.launch { drawerState.close() }
                             },
                             modifier = Modifier.padding(horizontal = 12.dp)

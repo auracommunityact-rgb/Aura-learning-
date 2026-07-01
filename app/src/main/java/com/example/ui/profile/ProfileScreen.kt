@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil.compose.AsyncImage
 import com.example.ui.auth.AuthViewModel
 
@@ -299,7 +300,8 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
                     onClick = {
                         authViewModel.logout()
                         navController.navigate("home") {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
                         }
                     },
                     modifier = Modifier

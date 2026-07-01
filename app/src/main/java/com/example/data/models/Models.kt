@@ -12,7 +12,8 @@ data class User(
     val createdAt: Long = 0L,
     val role: String = "user",
     val savedBooks: List<String> = emptyList(),
-    val savedVideos: List<String> = emptyList()
+    val savedVideos: List<String> = emptyList(),
+    val selectedGrade: String = "All Grades"
 )
 
 @Serializable

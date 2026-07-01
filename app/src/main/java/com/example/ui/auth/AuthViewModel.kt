@@ -246,6 +246,26 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
             }
         }
     }
+    fun updateSelectedGrade(grade: String) {
+        val user = _currentUser.value ?: return
+        if (user.id == "guest_user") {
+            val newUser = user.copy(selectedGrade = grade)
+            _currentUser.value = newUser
+            repository.saveGuestProfile(newUser)
+        } else {
+            val newUser = user.copy(selectedGrade = grade)
+            _currentUser.value = newUser
+            viewModelScope.launch {
+                try {
+                    client.postgrest["users"].update(newUser) {
+                        filter { eq("id", newUser.id) }
+                    }
+                } catch(e: Exception){
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
 }
 
 sealed class AuthState {

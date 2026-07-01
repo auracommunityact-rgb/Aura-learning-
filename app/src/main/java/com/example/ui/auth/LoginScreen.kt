@@ -17,7 +17,10 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
-            navController.popBackStack("main", inclusive = false)
+            viewModel.resetState()
+            navController.navigate("main") {
+                popUpTo(0) { inclusive = true }
+            }
         }
     }
 
