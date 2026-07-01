@@ -182,6 +182,16 @@ fun VideoPlayerScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(video!!.description, style = MaterialTheme.typography.bodyMedium)
                         }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { navController.navigate("quiz/${video!!.id}") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Take Lesson Quiz")
+                        }
                     }
                 }
 

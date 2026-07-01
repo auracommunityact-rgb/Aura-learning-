@@ -116,6 +116,13 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
         composable("notes_translate") { com.example.ui.study.NotesTranslateScreen(rootNavController) }
         composable("ai_chat") { com.example.ui.chat.PuterChatScreen(rootNavController) }
         composable(
+            "quiz/{lessonId}",
+            arguments = listOf(androidx.navigation.navArgument("lessonId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val lessonId = backStackEntry.arguments?.getString("lessonId") ?: ""
+            com.example.ui.quiz.QuizScreen(navController = rootNavController, lessonId = lessonId)
+        }
+        composable(
             "tool_viewer/{toolId}?title={title}",
             arguments = listOf(
                 androidx.navigation.navArgument("toolId") { type = androidx.navigation.NavType.StringType },
