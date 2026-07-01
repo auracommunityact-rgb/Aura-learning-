@@ -86,44 +86,50 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                 }
 
-                val file = File(getApplication<Application>().cacheDir, "book_$bookId.pdf")
-                if (!file.exists()) {
-                    _downloadProgress.value = 0f
-                    val downloadUrl = if (url.contains("drive.google.com/file/d/")) {
-                        val parts = url.split("/")
-                        val idIndex = parts.indexOf("d") + 1
-                        if (idIndex > 0 && idIndex < parts.size) {
-                            "https://drive.google.com/uc?export=download&id=${parts[idIndex]}"
+                val file: File
+                if (url.startsWith("/") || url.startsWith("file://")) {
+                    val path = url.removePrefix("file://")
+                    file = File(path)
+                    _downloadProgress.value = 1f
+                } else {
+                    file = File(getApplication<Application>().cacheDir, "book_$bookId.pdf")
+                    if (!file.exists()) {
+                        _downloadProgress.value = 0f
+                        val downloadUrl = if (url.contains("drive.google.com/file/d/")) {
+                            val parts = url.split("/")
+                            val idIndex = parts.indexOf("d") + 1
+                            if (idIndex > 0 && idIndex < parts.size) {
+                                "https://drive.google.com/uc?export=download&id=${parts[idIndex]}"
+                            } else url
                         } else url
-                    } else url
 
-                    val client = OkHttpClient()
-                    val request = Request.Builder().url(downloadUrl).build()
-                    val response = client.newCall(request).execute()
-                    
-                    if (!response.isSuccessful) throw Exception("Failed to download PDF")
-                    
-                    val body = response.body ?: throw Exception("Empty body")
-                    val contentLength = body.contentLength()
-                    val inputStream = body.byteStream()
-                    val outputStream = FileOutputStream(file)
-                    
-                    var bytesCopied = 0L
-                    val buffer = ByteArray(8 * 1024)
-                    var bytes = inputStream.read(buffer)
-                    while (bytes >= 0) {
-                        outputStream.write(buffer, 0, bytes)
-                        bytesCopied += bytes
-                        if (contentLength > 0) {
-                            _downloadProgress.value = bytesCopied.toFloat() / contentLength
+                        val client = OkHttpClient()
+                        val request = Request.Builder().url(downloadUrl).build()
+                        val response = client.newCall(request).execute()
+                        
+                        if (!response.isSuccessful) throw Exception("Failed to download PDF")
+                        
+                        val body = response.body ?: throw Exception("Empty body")
+                        val contentLength = body.contentLength()
+                        val inputStream = body.byteStream()
+                        val outputStream = FileOutputStream(file)
+                        
+                        var bytesCopied = 0L
+                        val buffer = ByteArray(8 * 1024)
+                        var bytes = inputStream.read(buffer)
+                        while (bytes >= 0) {
+                            outputStream.write(buffer, 0, bytes)
+                            bytesCopied += bytes
+                            if (contentLength > 0) {
+                                _downloadProgress.value = bytesCopied.toFloat() / contentLength
+                            }
+                            bytes = inputStream.read(buffer)
                         }
-                        bytes = inputStream.read(buffer)
+                        outputStream.close()
+                        inputStream.close()
                     }
-                    outputStream.close()
-                    inputStream.close()
+                    _downloadProgress.value = 1f
                 }
-
-                _downloadProgress.value = 1f
                 
                 fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                 pdfRenderer = PdfRenderer(fileDescriptor!!)

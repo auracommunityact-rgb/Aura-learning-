@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,6 +47,11 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            androidx.compose.material3.FloatingActionButton(onClick = { rootNavController.navigate("ai_chat") }) {
+                Icon(Icons.Filled.Star, contentDescription = "AI Chat")
+            }
         }
     ) { padding ->
         Column(

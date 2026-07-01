@@ -28,13 +28,23 @@ import androidx.compose.foundation.lazy.items as lazyItems
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BooksScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController, viewModel: BooksViewModel = viewModel(factory = ViewModelFactory)) {
+fun BooksScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    rootNavController: NavController,
+    viewModel: BooksViewModel = viewModel(factory = ViewModelFactory),
+    offlineBooksViewModel: OfflineBooksViewModel = viewModel()
+) {
     val books by viewModel.books.collectAsState()
     val selectedClass by viewModel.selectedClass.collectAsState()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
 
+    val offlineBooks by offlineBooksViewModel.offlineBooks.collectAsState()
+    val downloadProgress by offlineBooksViewModel.downloadProgress.collectAsState()
+
     var showLoginPrompt by remember { mutableStateOf(false) }
+    var selectedTabIndex by remember { mutableStateOf(0) }
 
     if (showLoginPrompt) {
         AlertDialog(
@@ -61,6 +71,17 @@ fun BooksScreen(navController: NavController, authViewModel: AuthViewModel, root
     val subjects = listOf("Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science")
     
     val booksBySubject = books.groupBy { it.subject.ifEmpty { "Other" } }
+    val offlineBooksList = offlineBooks.map { 
+        com.example.data.models.Book(
+            id = it.id,
+            bookName = it.bookName,
+            className = it.className,
+            subject = it.subject,
+            coverImage = it.coverImage,
+            pdfUrl = "file://" + it.localPdfPath
+        )
+    }
+    val offlineBooksBySubject = offlineBooksList.groupBy { it.subject.ifEmpty { "Other" } }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -144,77 +165,104 @@ fun BooksScreen(navController: NavController, authViewModel: AuthViewModel, root
                 TopAppBar(
                     title = { Text("Books") },
                     actions = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Filled.FilterList, contentDescription = "Filter")
+                        if (selectedTabIndex == 0) {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Filled.FilterList, contentDescription = "Filter")
+                            }
                         }
                     }
                 )
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                if (books.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        Text("No books found for selected filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TabRow(selectedTabIndex = selectedTabIndex) {
+                    Tab(
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 },
+                        text = { Text("All Books") }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 },
+                        text = { Text("Downloads") }
+                    )
+                }
+
+                if (selectedTabIndex == 0) {
+                    if (books.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                            Text("No books found for selected filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
+                            booksBySubject.forEach { (subject, subjectBooks) ->
+                                item {
+                                    Text(
+                                        text = subject,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(start = 16.dp, top = if (subject == booksBySubject.keys.first()) 16.dp else 24.dp, bottom = 8.dp)
+                                    )
+                                    DigitalBookshelf(
+                                        books = subjectBooks,
+                                        savedBookIds = currentUser?.savedBooks ?: emptyList(),
+                                        offlineBookIds = offlineBooks.map { it.id },
+                                        downloadProgress = downloadProgress,
+                                        onBookClick = { book ->
+                                            if (book.pdfUrl.isNotEmpty()) {
+                                                val urlToOpen = offlineBooks.find { it.id == book.id }?.let { "file://" + it.localPdfPath } ?: book.pdfUrl
+                                                val encodedUrl = java.net.URLEncoder.encode(urlToOpen, "UTF-8")
+                                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                            }
+                                        },
+                                        onToggleSave = { bookId ->
+                                            if (currentUser == null) {
+                                                showLoginPrompt = true
+                                            } else {
+                                                authViewModel.toggleSaveBook(bookId)
+                                            }
+                                        },
+                                        onDownloadBook = { book -> offlineBooksViewModel.downloadBook(book) },
+                                        onDeleteOfflineBook = { bookId -> offlineBooksViewModel.deleteOfflineBook(bookId) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        booksBySubject.forEach { (subject, subjectBooks) ->
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Text(
-                                    text = subject,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(top = if (subject == booksBySubject.keys.first()) 0.dp else 16.dp, bottom = 4.dp)
-                                )
-                            }
-                            items(subjectBooks) { book ->
-                                val context = LocalContext.current
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().height(220.dp).clickable { 
-                                        if (book.pdfUrl.isNotEmpty()) {
+                    if (offlineBooks.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                            Text("No downloaded books yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
+                            offlineBooksBySubject.forEach { (subject, subjectBooks) ->
+                                item {
+                                    Text(
+                                        text = subject,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(start = 16.dp, top = if (subject == offlineBooksBySubject.keys.first()) 16.dp else 24.dp, bottom = 8.dp)
+                                    )
+                                    DigitalBookshelf(
+                                        books = subjectBooks,
+                                        savedBookIds = currentUser?.savedBooks ?: emptyList(),
+                                        offlineBookIds = offlineBooks.map { it.id },
+                                        downloadProgress = downloadProgress,
+                                        onBookClick = { book ->
                                             val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
                                             rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                                        }
-                                    },
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                ) {
-                                    Column {
-                                        Box {
-                                            AsyncImage(
-                                                model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
-                                                contentDescription = book.bookName,
-                                                modifier = Modifier.height(140.dp).fillMaxWidth(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                            IconButton(
-                                                onClick = { 
-                                                    if (currentUser == null) {
-                                                        showLoginPrompt = true
-                                                    } else {
-                                                        authViewModel.toggleSaveBook(book.id) 
-                                                    }
-                                                },
-                                                modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd)
-                                            ) {
-                                                val isSaved = currentUser?.savedBooks?.contains(book.id) == true
-                                                Icon(
-                                                    imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                                                    contentDescription = "Save Book",
-                                                    tint = if (isSaved) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.White
-                                                )
+                                        },
+                                        onToggleSave = { bookId ->
+                                            if (currentUser == null) {
+                                                showLoginPrompt = true
+                                            } else {
+                                                authViewModel.toggleSaveBook(bookId)
                                             }
-                                        }
-                                        Column(modifier = Modifier.padding(8.dp)) {
-                                            Text(book.bookName, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-                                            Text("Grade ${book.className}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                                        }
-                                    }
+                                        },
+                                        onDownloadBook = { book -> offlineBooksViewModel.downloadBook(book) },
+                                        onDeleteOfflineBook = { bookId -> offlineBooksViewModel.deleteOfflineBook(bookId) }
+                                    )
                                 }
                             }
                         }
