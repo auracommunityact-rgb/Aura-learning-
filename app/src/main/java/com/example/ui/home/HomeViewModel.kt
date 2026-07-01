@@ -27,8 +27,27 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _allVideos = MutableStateFlow<List<Video>>(emptyList())
     val allVideos: StateFlow<List<Video>> = _allVideos.asStateFlow()
 
+    private val _selectedGrade = MutableStateFlow<String>("All Grades")
+    val selectedGrade: StateFlow<String> = _selectedGrade.asStateFlow()
+
     init {
         fetchData()
+    }
+
+    fun setSelectedGrade(grade: String) {
+        _selectedGrade.value = grade
+        filterContent(grade)
+    }
+
+    private fun filterContent(grade: String) {
+        if (grade == "All Grades") {
+            _recentBooks.value = _allBooks.value.sortedByDescending { it.createdAt }.take(5)
+            _recentVideos.value = _allVideos.value.sortedByDescending { it.createdAt }.take(5)
+        } else {
+            val gradeStr = grade.replace("Grade ", "")
+            _recentBooks.value = _allBooks.value.filter { it.className == gradeStr }.sortedByDescending { it.createdAt }.take(5)
+            _recentVideos.value = _allVideos.value.filter { it.className == gradeStr }.sortedByDescending { it.createdAt }.take(5)
+        }
     }
 
     private fun fetchData() {
@@ -36,11 +55,9 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
             _banners.value = repository.getBanners()
             val fetchedBooks = repository.getBooks()
             _allBooks.value = fetchedBooks
-            // In a real app we'd limit this or order by createdAt, for now just fetch all
-            _recentBooks.value = fetchedBooks.sortedByDescending { it.createdAt }.take(5)
             val fetchedVideos = repository.getVideos()
             _allVideos.value = fetchedVideos
-            _recentVideos.value = fetchedVideos.sortedByDescending { it.createdAt }.take(5)
+            filterContent(_selectedGrade.value)
         }
     }
 }

@@ -34,6 +34,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val recentVideos by viewModel.recentVideos.collectAsState()
     val allBooks by viewModel.allBooks.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val selectedGrade by viewModel.selectedGrade.collectAsState()
 
     val savedBooks = allBooks.filter { currentUser?.savedBooks?.contains(it.id) == true }
 
@@ -76,6 +77,23 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                             )
                         }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Grade Selection
+            val grades = listOf("All Grades") + (1..12).map { "Grade $it" }
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(grades) { grade ->
+                    FilterChip(
+                        selected = selectedGrade == grade,
+                        onClick = { viewModel.setSelectedGrade(grade) },
+                        label = { Text(grade) }
+                    )
                 }
             }
 
