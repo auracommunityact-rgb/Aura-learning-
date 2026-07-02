@@ -51,6 +51,33 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val notificationRepository = remember { NotificationRepository(context) }
     val unreadCount by notificationRepository.getUnreadCount().collectAsState(initial = 0)
 
+    var showAuthModal by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    val interceptAction: (() -> Unit) -> Unit = { action ->
+        if (currentUser?.id == "guest_user") {
+            pendingAction = action
+            showAuthModal = true
+        } else {
+            action()
+        }
+    }
+
+    if (showAuthModal) {
+        com.example.ui.auth.AuthModal(
+            authViewModel = authViewModel,
+            onDismissRequest = { 
+                showAuthModal = false 
+                pendingAction = null
+            },
+            onAuthSuccess = {
+                showAuthModal = false
+                pendingAction?.invoke()
+                pendingAction = null
+            }
+        )
+    }
+
     LaunchedEffect(selectedGrade) {
         viewModel.setSelectedGrade(selectedGrade)
     }
@@ -150,14 +177,14 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
             // Section 2: Continue Learning
             if (savedBooks.isNotEmpty()) {
                 item {
-                    ContinueLearningSection(savedBooks, rootNavController)
+                    ContinueLearningSection(savedBooks, rootNavController, interceptAction)
                 }
             }
 
             // Section 3: Popular Books
             if (recentBooks.isNotEmpty()) {
                 item {
-                    PopularBooksSection(recentBooks, rootNavController, currentUser, authViewModel)
+                    PopularBooksSection(recentBooks, rootNavController, currentUser, authViewModel, interceptAction)
                 }
             }
 
@@ -169,7 +196,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
             // Section 4: Video Classes
             if (recentVideos.isNotEmpty()) {
                 item {
-                    VideoClassesSection(recentVideos, rootNavController)
+                    VideoClassesSection(recentVideos, rootNavController, interceptAction)
                 }
             }
 
@@ -180,12 +207,12 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
 
             // Section 7: Recommended For You
             item {
-                RecommendedSection(recentBooks, recentVideos, rootNavController)
+                RecommendedSection(recentBooks, recentVideos, rootNavController, interceptAction)
             }
             
             // Section 9: Recently Added Content
             item {
-                RecentlyAddedSection(recentBooks, recentVideos, rootNavController)
+                RecentlyAddedSection(recentBooks, recentVideos, rootNavController, interceptAction)
             }
         }
     }
@@ -323,7 +350,7 @@ fun QuickActionsSection(navController: NavController, rootNavController: NavCont
 }
 
 @Composable
-fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavController) {
+fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit) {
     SectionHeader("Continue Learning")
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -334,9 +361,11 @@ fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavContro
                 modifier = Modifier
                     .width(260.dp)
                     .clickable {
-                        if (book.pdfUrl.isNotEmpty()) {
-                            val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                        interceptAction {
+                            if (book.pdfUrl.isNotEmpty()) {
+                                val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                            }
                         }
                     },
                 shape = RoundedCornerShape(16.dp),
@@ -372,7 +401,7 @@ fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavContro
 }
 
 @Composable
-fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavController, currentUser: User?, authViewModel: AuthViewModel) {
+fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavController, currentUser: User?, authViewModel: AuthViewModel, interceptAction: (() -> Unit) -> Unit) {
     SectionHeader("Popular Books")
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -383,9 +412,11 @@ fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavControlle
                 modifier = Modifier
                     .width(140.dp)
                     .clickable {
-                        if (book.pdfUrl.isNotEmpty()) {
-                            val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                        interceptAction {
+                            if (book.pdfUrl.isNotEmpty()) {
+                                val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                            }
                         }
                     },
                 shape = RoundedCornerShape(16.dp)
@@ -423,9 +454,11 @@ fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavControlle
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { 
-                                if (book.pdfUrl.isNotEmpty()) {
-                                    val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                    rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                interceptAction {
+                                    if (book.pdfUrl.isNotEmpty()) {
+                                        val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                        rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                    }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(36.dp),
@@ -441,7 +474,7 @@ fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavControlle
 }
 
 @Composable
-fun VideoClassesSection(recentVideos: List<Video>, rootNavController: NavController) {
+fun VideoClassesSection(recentVideos: List<Video>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit) {
     SectionHeader("Video Classes")
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -451,7 +484,11 @@ fun VideoClassesSection(recentVideos: List<Video>, rootNavController: NavControl
             Card(
                 modifier = Modifier
                     .width(280.dp)
-                    .clickable { rootNavController.navigate("video_player/${video.id}") },
+                    .clickable { 
+                        interceptAction {
+                            rootNavController.navigate("video_player/${video.id}") 
+                        }
+                    },
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column {
@@ -593,7 +630,7 @@ fun DailyMotivationBanner() {
 }
 
 @Composable
-fun RecommendedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootNavController: NavController) {
+fun RecommendedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit) {
     if (recentBooks.isEmpty()) return
     SectionHeader("Recommended For You")
     // Simplified mix of content
@@ -606,9 +643,11 @@ fun RecommendedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootN
                 modifier = Modifier
                     .width(140.dp)
                     .clickable {
-                        if (book.pdfUrl.isNotEmpty()) {
-                            val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                        interceptAction {
+                            if (book.pdfUrl.isNotEmpty()) {
+                                val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                            }
                         }
                     },
                 shape = RoundedCornerShape(16.dp)
@@ -630,7 +669,7 @@ fun RecommendedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootN
 }
 
 @Composable
-fun RecentlyAddedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootNavController: NavController) {
+fun RecentlyAddedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit) {
     if (recentVideos.isEmpty()) return
     SectionHeader("Recently Added")
     LazyRow(
@@ -641,7 +680,11 @@ fun RecentlyAddedSection(recentBooks: List<Book>, recentVideos: List<Video>, roo
             Card(
                 modifier = Modifier
                     .width(200.dp)
-                    .clickable { rootNavController.navigate("video_player/${video.id}") },
+                    .clickable { 
+                        interceptAction {
+                            rootNavController.navigate("video_player/${video.id}")
+                        }
+                    },
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column {

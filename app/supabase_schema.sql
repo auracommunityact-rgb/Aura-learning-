@@ -109,11 +109,11 @@ CREATE POLICY "Users can view and manage their own profile" ON public.users FOR 
 CREATE POLICY "Admin can manage all users" ON public.users FOR ALL USING ( (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin' );
 
 -- Books policies
-CREATE POLICY "Public read access for books" ON public.books FOR SELECT USING (true);
+CREATE POLICY "Authenticated read access for books" ON public.books FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admin write access for books" ON public.books FOR ALL USING ( (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin' );
 
 -- Videos policies
-CREATE POLICY "Public read access for videos" ON public.videos FOR SELECT USING (true);
+CREATE POLICY "Authenticated read access for videos" ON public.videos FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admin write access for videos" ON public.videos FOR ALL USING ( (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin' );
 
 -- Banners policies

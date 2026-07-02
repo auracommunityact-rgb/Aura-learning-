@@ -166,20 +166,7 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            // Permission is granted. Can get FCM token.
-            try {
-                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                    if (!task.isSuccessful) {
-                        Log.w("FCM", "Fetching FCM registration token failed", task.exception)
-                        return@addOnCompleteListener
-                    }
-                    val token = task.result
-                    Log.d("FCM", "Token: $token")
-                    // Typically you'd send this to your backend if it's the first time
-                }
-            } catch (e: Exception) {
-                Log.e("FCM", "Firebase not initialized", e)
-            }
+            // Permission granted
         } else {
             // Explain to the user that the feature is unavailable
         }
@@ -188,16 +175,6 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            try {
-                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.d("FCM", "Token: ${task.result}")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("FCM", "Firebase not initialized", e)
-            }
         }
     }
 
@@ -206,13 +183,18 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
     var showAdminLoginDialog by remember { mutableStateOf(false) }
     
     if (showAdminLoginDialog) {
-        AdminLoginDialog(
-            onDismiss = { showAdminLoginDialog = false },
-            onLoginSuccess = {
-                showAdminLoginDialog = false
-                rootNavController.navigate("admin_dashboard")
-            }
-        )
+        if (authViewModel.isAdmin) {
+            showAdminLoginDialog = false
+            rootNavController.navigate("admin_dashboard")
+        } else {
+            AdminLoginDialog(
+                onDismiss = { showAdminLoginDialog = false },
+                onLoginSuccess = {
+                    showAdminLoginDialog = false
+                    rootNavController.navigate("admin_dashboard")
+                }
+            )
+        }
     }
 
     Scaffold(
