@@ -1,35 +1,41 @@
 package com.example.ui.home
 
+import android.content.Intent
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.ui.ViewModelFactory
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
-
-import androidx.compose.runtime.remember
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.ui.platform.LocalContext
 import com.example.data.repository.notifications.NotificationRepository
+import com.example.ui.ViewModelFactory
 import com.example.ui.auth.AuthViewModel
+import com.example.data.models.Book
+import com.example.data.models.Video
+import com.example.data.models.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,15 +56,26 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     }
 
     val savedBooks = allBooks.filter { currentUser?.savedBooks?.contains(it.id) == true }
+    var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hi, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"}!", color = MaterialTheme.colorScheme.primary) },
-                actions = {
-                    IconButton(onClick = { navController.navigate("global_search") }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Search")
+                title = {
+                    Column {
+                        Text(
+                            text = "Good Morning, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"} 👋",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Let's continue learning!",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                },
+                actions = {
                     IconButton(onClick = { rootNavController.navigate("notifications") }) {
                         BadgedBox(
                             badge = {
@@ -70,177 +87,351 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                             Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
                         }
                     }
-                }
+                    IconButton(onClick = { /* navigate to profile */ }) {
+                        Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
-        },
-        floatingActionButton = {
-            androidx.compose.material3.FloatingActionButton(onClick = { rootNavController.navigate("ai_chat") }) {
-                Icon(Icons.Filled.Star, contentDescription = "AI Chat")
-            }
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 80.dp) // Add padding for bottom nav if needed
         ) {
-            // Banners Section
-            if (banners.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(banners) { banner ->
-                        Card(modifier = Modifier.width(300.dp).height(150.dp)) {
-                            AsyncImage(
-                                model = banner.imageUrl,
-                                contentDescription = banner.title,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
+            // Search Bar
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search books, videos, notes...") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clickable { navController.navigate("global_search") },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    enabled = false // To make the clickable modifier work properly
+                )
+            }
+
+            // Section 10: Explore Categories (Moved up for better UX or keep as requested)
+            item {
+                SectionExploreCategories(selectedGrade) { newGrade ->
+                    authViewModel.updateSelectedGrade(newGrade)
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Grade Selection
-            val grades = listOf("All Grades") + (1..12).map { "Grade $it" }
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(grades) { grade ->
-                    FilterChip(
-                        selected = selectedGrade == grade,
-                        onClick = { authViewModel.updateSelectedGrade(grade) },
-                        label = { Text(grade) }
-                    )
-                }
+            // Daily Study Goal
+            item {
+                DailyStudyGoalCard()
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Section 1: Hero Banner Carousel
+            item {
+                HeroBannerCarousel(context)
+            }
 
-            // My Saved Books
+            // Section 6: Quick Actions
+            item {
+                QuickActionsSection(navController, rootNavController)
+            }
+
+            // Section 2: Continue Learning
             if (savedBooks.isNotEmpty()) {
-                Text("My Saved Books", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.primary)
-                LazyRow(
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(savedBooks) { book ->
-                        Card(modifier = Modifier.width(120.dp).height(180.dp).clickable {
-                            if (book.pdfUrl.isNotEmpty()) {
-                                val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                            }
-                        }) {
-                            Column {
-                                Box {
-                                    AsyncImage(
-                                        model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
-                                        contentDescription = book.bookName,
-                                        modifier = Modifier.height(120.dp).fillMaxWidth(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    IconButton(
-                                        onClick = { authViewModel.toggleSaveBook(book.id) },
-                                        modifier = Modifier.align(Alignment.TopEnd).size(32.dp).padding(4.dp)
-                                    ) {
-                                        val isSaved = true
-                                        Icon(
-                                            imageVector = Icons.Filled.Bookmark,
-                                            contentDescription = "Save Book",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                                Text(book.bookName, modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-                            }
-                        }
-                    }
+                item {
+                    ContinueLearningSection(savedBooks, rootNavController)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Featured Books
-            Text("Recent Books", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 16.dp))
-            LazyRow(
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            // Section 3: Popular Books
+            if (recentBooks.isNotEmpty()) {
+                item {
+                    PopularBooksSection(recentBooks, rootNavController, currentUser, authViewModel)
+                }
+            }
+
+            // Section 8: Daily Motivation Banner
+            item {
+                DailyMotivationBanner()
+            }
+
+            // Section 4: Video Classes
+            if (recentVideos.isNotEmpty()) {
+                item {
+                    VideoClassesSection(recentVideos, rootNavController)
+                }
+            }
+
+            // Section 5: AI Learning Tools
+            item {
+                AILearningToolsSection(rootNavController)
+            }
+
+            // Section 7: Recommended For You
+            item {
+                RecommendedSection(recentBooks, recentVideos, rootNavController)
+            }
+            
+            // Section 9: Recently Added Content
+            item {
+                RecentlyAddedSection(recentBooks, recentVideos, rootNavController)
+            }
+        }
+    }
+}
+
+@Composable
+fun HeroBannerCarousel(context: android.content.Context) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clickable {
+                val url = "https://auralearningwebsite.netlify.app"
+                val builder = CustomTabsIntent.Builder()
+                val customTabsIntent = builder.build()
+                customTabsIntent.launchUrl(context, Uri.parse(url))
+            },
+        shape = RoundedCornerShape(24.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary
+                        )
+                    )
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center
             ) {
-                items(recentBooks) { book ->
-                    Card(modifier = Modifier.width(120.dp).height(180.dp).clickable {
+                Text(
+                    text = "🚀 New Updates Available",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Check the latest features, announcements, study updates, and upcoming tools.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        val url = "https://auralearningwebsite.netlify.app"
+                        val builder = CustomTabsIntent.Builder()
+                        val customTabsIntent = builder.build()
+                        customTabsIntent.launchUrl(context, Uri.parse(url))
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("🌐 Visit Website")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SectionExploreCategories(selectedGrade: String, onGradeSelected: (String) -> Unit) {
+    val categories = listOf("All Grades", "Mathematics", "Science", "English", "Hindi", "SST", "Computer", "Biology", "Chemistry", "Physics")
+    
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(categories) { category ->
+            FilterChip(
+                selected = selectedGrade == category || (selectedGrade == "All Grades" && category == "All Grades"),
+                onClick = { onGradeSelected(category) },
+                label = { Text(category) },
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun QuickActionsSection(navController: NavController, rootNavController: NavController) {
+    val actions = listOf(
+        Pair("Books", Icons.Filled.MenuBook),
+        Pair("Videos", Icons.Filled.PlayCircle),
+        Pair("Notes", Icons.Filled.Notes),
+        Pair("PYQs", Icons.Filled.HistoryEdu),
+        Pair("Mock Tests", Icons.Filled.Quiz),
+        Pair("Study Planner", Icons.Filled.Event),
+        Pair("Reminder", Icons.Filled.Alarm),
+        Pair("Progress", Icons.Filled.Analytics)
+    )
+
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(actions) { (label, icon) ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .width(72.dp)
+                    .clickable { 
+                        if (label == "Books") navController.navigate("books")
+                        if (label == "Videos") navController.navigate("videos")
+                    }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavController) {
+    SectionHeader("Continue Learning")
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(savedBooks) { book ->
+            Card(
+                modifier = Modifier
+                    .width(260.dp)
+                    .clickable {
                         if (book.pdfUrl.isNotEmpty()) {
                             val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
                             rootNavController.navigate("pdf_viewer?url=$encodedUrl")
                         }
-                    }) {
-                        Column {
-                            Box {
-                                AsyncImage(
-                                    model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
-                                    contentDescription = book.bookName,
-                                    modifier = Modifier.height(120.dp).fillMaxWidth(),
-                                    contentScale = ContentScale.Crop
-                                )
-                                IconButton(
-                                    onClick = { authViewModel.toggleSaveBook(book.id) },
-                                    modifier = Modifier.align(Alignment.TopEnd).size(32.dp).padding(4.dp)
-                                ) {
-                                    val isSaved = currentUser?.savedBooks?.contains(book.id) == true
-                                    Icon(
-                                        imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                                        contentDescription = "Save Book",
-                                        tint = if (isSaved) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.White,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                            Text(book.bookName, modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-                        }
+                    },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+                        contentDescription = book.bookName,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(book.bookName, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text("${book.className} • ${book.subject}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { 0.4f },
+                            modifier = Modifier.fillMaxWidth().height(4.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Featured Videos
-            Text("Recent Videos", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 16.dp))
-            LazyRow(
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+@Composable
+fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavController, currentUser: User?, authViewModel: AuthViewModel) {
+    SectionHeader("Popular Books")
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(recentBooks) { book ->
+            Card(
+                modifier = Modifier
+                    .width(140.dp)
+                    .clickable {
+                        if (book.pdfUrl.isNotEmpty()) {
+                            val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                        }
+                    },
+                shape = RoundedCornerShape(16.dp)
             ) {
-                items(recentVideos) { video ->
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    Card(modifier = Modifier.width(160.dp).height(120.dp).clickable {
-                        rootNavController.navigate("video_player/${video.id}")
-                    }) {
-                        Box {
-                            AsyncImage(
-                                model = video.thumbnail,
-                                contentDescription = video.title,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                Column {
+                    Box {
+                        AsyncImage(
+                            model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+                            contentDescription = book.bookName,
+                            modifier = Modifier
+                                .height(180.dp)
+                                .fillMaxWidth(),
+                            contentScale = ContentScale.Crop
+                        )
+                        IconButton(
+                            onClick = { authViewModel.toggleSaveBook(book.id) },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp)
+                                .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                                .size(32.dp)
+                        ) {
+                            val isSaved = currentUser?.savedBooks?.contains(book.id) == true
+                            Icon(
+                                imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                contentDescription = "Save Book",
+                                tint = if (isSaved) MaterialTheme.colorScheme.primary else Color.White,
+                                modifier = Modifier.size(18.dp)
                             )
-                            if (video.title.contains("lesson 1", ignoreCase = true)) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(bottomEnd = 8.dp),
-                                    modifier = Modifier.align(Alignment.TopStart)
-                                ) {
-                                    Text(
-                                        text = "Lesson 1",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
+                        }
+                    }
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(book.bookName, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${book.className} • ${book.subject}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { 
+                                if (book.pdfUrl.isNotEmpty()) {
+                                    val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                    rootNavController.navigate("pdf_viewer?url=$encodedUrl")
                                 }
-                            }
-                            Text(video.title, modifier = Modifier.align(Alignment.BottomStart).padding(8.dp), color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelMedium)
+                            },
+                            modifier = Modifier.fillMaxWidth().height(36.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("Read", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -249,3 +440,243 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     }
 }
 
+@Composable
+fun VideoClassesSection(recentVideos: List<Video>, rootNavController: NavController) {
+    SectionHeader("Video Classes")
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(recentVideos) { video ->
+            Card(
+                modifier = Modifier
+                    .width(280.dp)
+                    .clickable { rootNavController.navigate("video_player/${video.id}") },
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column {
+                    Box {
+                        AsyncImage(
+                            model = video.thumbnail.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+                            contentDescription = video.title,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                .size(48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
+                        }
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = video.duration.ifEmpty { "12:30" }, // Placeholder duration
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(video.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${video.subject} • ${video.teacher.ifEmpty { "Instructor" }}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AILearningToolsSection(rootNavController: NavController) {
+    SectionHeader("AI Learning Tools")
+    
+    val tools = listOf(
+        Pair("AI Tutor", Icons.Filled.SmartToy),
+        Pair("Chapter Summary", Icons.Filled.Summarize),
+        Pair("Mind Maps", Icons.Filled.AccountTree),
+        Pair("Flashcards", Icons.Filled.Style),
+        Pair("Notes Generator", Icons.Filled.AutoFixHigh),
+        Pair("Translator", Icons.Filled.Translate),
+        Pair("PDF Reader", Icons.Filled.PictureAsPdf),
+        Pair("MCQ Test", Icons.Filled.Quiz)
+    )
+
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(tools) { (name, icon) ->
+            Card(
+                modifier = Modifier
+                    .width(160.dp)
+                    .clickable { 
+                        if (name == "AI Tutor") rootNavController.navigate("ai_chat")
+                    },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Icon(icon, contentDescription = name, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(32.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("AI Powered", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Icon(Icons.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.align(Alignment.End))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DailyMotivationBanner() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.tertiaryContainer,
+                            MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    )
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "\"Success starts with one page today.\"",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { /* TODO */ },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Text("Start Studying")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RecommendedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootNavController: NavController) {
+    if (recentBooks.isEmpty()) return
+    SectionHeader("Recommended For You")
+    // Simplified mix of content
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(recentBooks.shuffled().take(3)) { book ->
+            Card(
+                modifier = Modifier
+                    .width(140.dp)
+                    .clickable {
+                        if (book.pdfUrl.isNotEmpty()) {
+                            val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                        }
+                    },
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column {
+                    AsyncImage(
+                        model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+                        contentDescription = book.bookName,
+                        modifier = Modifier
+                            .height(140.dp)
+                            .fillMaxWidth(),
+                        contentScale = ContentScale.Crop
+                    )
+                    Text(book.bookName, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RecentlyAddedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootNavController: NavController) {
+    if (recentVideos.isEmpty()) return
+    SectionHeader("Recently Added")
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(recentVideos.take(3)) { video ->
+            Card(
+                modifier = Modifier
+                    .width(200.dp)
+                    .clickable { rootNavController.navigate("video_player/${video.id}") },
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column {
+                    Box {
+                        AsyncImage(
+                            model = video.thumbnail.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+                            contentDescription = video.title,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                        Badge(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp),
+                            containerColor = MaterialTheme.colorScheme.error
+                        ) {
+                            Text("NEW", modifier = Modifier.padding(horizontal = 4.dp))
+                        }
+                    }
+                    Text(video.title, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+    )
+}

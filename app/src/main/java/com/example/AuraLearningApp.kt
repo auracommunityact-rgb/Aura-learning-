@@ -167,14 +167,18 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
     ) { isGranted: Boolean ->
         if (isGranted) {
             // Permission is granted. Can get FCM token.
-            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                if (!task.isSuccessful) {
-                    Log.w("FCM", "Fetching FCM registration token failed", task.exception)
-                    return@addOnCompleteListener
+            try {
+                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                    if (!task.isSuccessful) {
+                        Log.w("FCM", "Fetching FCM registration token failed", task.exception)
+                        return@addOnCompleteListener
+                    }
+                    val token = task.result
+                    Log.d("FCM", "Token: $token")
+                    // Typically you'd send this to your backend if it's the first time
                 }
-                val token = task.result
-                Log.d("FCM", "Token: $token")
-                // Typically you'd send this to your backend if it's the first time
+            } catch (e: Exception) {
+                Log.e("FCM", "Firebase not initialized", e)
             }
         } else {
             // Explain to the user that the feature is unavailable
@@ -185,10 +189,14 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Log.d("FCM", "Token: ${task.result}")
+            try {
+                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.d("FCM", "Token: ${task.result}")
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("FCM", "Firebase not initialized", e)
             }
         }
     }
