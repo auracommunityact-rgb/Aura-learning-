@@ -20,6 +20,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val themeViewModel = ThemeViewModel(this)
         
+        val initialDeepLink = intent.getStringExtra("deep_link")
+        
         setContent {
             val themeMode by themeViewModel.themeMode.collectAsState()
             val useDarkTheme = when (themeMode) {
@@ -33,7 +35,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AuraLearningApp(themeViewModel = themeViewModel)
+                    AuraLearningApp(themeViewModel = themeViewModel, initialDeepLink = initialDeepLink)
                 }
             }
         }

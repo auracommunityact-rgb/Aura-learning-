@@ -107,6 +107,7 @@ dependencies {
   implementation("com.google.mlkit:language-id:17.0.5")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
   implementation(libs.mlkit.text.recognition)
+  implementation(libs.firebase.messaging)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

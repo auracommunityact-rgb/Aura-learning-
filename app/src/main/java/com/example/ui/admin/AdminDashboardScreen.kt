@@ -62,7 +62,7 @@ fun AdminDashboardScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
             when (selectedTab) {
-                "Dashboard" -> DashboardContent(viewModel)
+                "Dashboard" -> DashboardContent(viewModel, navController)
                 "Books" -> BooksManageContent(viewModel)
                 "Videos" -> VideosManageContent(viewModel)
             }
@@ -75,7 +75,7 @@ fun AdminDashboardScreen(
 }
 
 @Composable
-fun DashboardContent(viewModel: AdminViewModel) {
+fun DashboardContent(viewModel: AdminViewModel, navController: NavController) {
     val totalUsers by viewModel.totalUsers.collectAsState()
     val books by viewModel.books.collectAsState()
     val videos by viewModel.videos.collectAsState()
@@ -101,7 +101,7 @@ fun DashboardContent(viewModel: AdminViewModel) {
                 Text("Manage Categories")
             }
             Button(
-                onClick = { android.widget.Toast.makeText(context, "Notifications feature coming soon", android.widget.Toast.LENGTH_SHORT).show() },
+                onClick = { navController.navigate("admin_notifications") },
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Send Notification")

@@ -25,6 +25,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 
+import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.ui.platform.LocalContext
+import com.example.data.repository.notifications.NotificationRepository
 import com.example.ui.auth.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +40,10 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val allBooks by viewModel.allBooks.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val selectedGrade = currentUser?.selectedGrade ?: "All Grades"
+    
+    val context = LocalContext.current
+    val notificationRepository = remember { NotificationRepository(context) }
+    val unreadCount by notificationRepository.getUnreadCount().collectAsState(initial = 0)
 
     LaunchedEffect(selectedGrade) {
         viewModel.setSelectedGrade(selectedGrade)
@@ -50,6 +58,17 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 actions = {
                     IconButton(onClick = { navController.navigate("global_search") }) {
                         Icon(Icons.Filled.Search, contentDescription = "Search")
+                    }
+                    IconButton(onClick = { rootNavController.navigate("notifications") }) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadCount > 0) {
+                                    Badge { Text(unreadCount.toString()) }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
+                        }
                     }
                 }
             )

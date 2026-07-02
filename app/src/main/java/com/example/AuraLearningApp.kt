@@ -1,5 +1,11 @@
 package com.example
 
+import android.os.Build
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.firebase.messaging.FirebaseMessaging
+import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
@@ -66,11 +72,21 @@ val items = listOf(
 )
 
 @Composable
-fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
+fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: String? = null) {
     val rootNavController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory)
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
     val authState by authViewModel.authState.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(initialDeepLink) {
+        initialDeepLink?.let { link ->
+            try {
+                rootNavController.navigate(link)
+            } catch (e: Exception) {
+                // Ignore bad deep links
+            }
+        }
+    }
 
     NavHost(navController = rootNavController, startDestination = "splash") {
         composable("splash") { com.example.ui.splash.SplashScreen(rootNavController) }
@@ -136,14 +152,47 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null) {
         composable("main") {
             MainScreen(authViewModel = authViewModel, rootNavController = rootNavController, themeViewModel = themeViewModel)
         }
+        composable("notifications") { com.example.ui.notifications.NotificationCenterScreen(rootNavController) }
+        composable("notification_settings") { com.example.ui.notifications.NotificationSettingsScreen(rootNavController) }
+        composable("admin_notifications") { com.example.ui.admin.notifications.AdminNotificationManagerScreen(rootNavController) }
     }
 }
 
 @Composable
 fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigation.NavController, themeViewModel: ThemeViewModel? = null) {
     val navController = rememberNavController()
-
     
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Permission is granted. Can get FCM token.
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w("FCM", "Fetching FCM registration token failed", task.exception)
+                    return@addOnCompleteListener
+                }
+                val token = task.result
+                Log.d("FCM", "Token: $token")
+                // Typically you'd send this to your backend if it's the first time
+            }
+        } else {
+            // Explain to the user that the feature is unavailable
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("FCM", "Token: ${task.result}")
+                }
+            }
+        }
+    }
+
     var profileTaps by remember { mutableStateOf(0) }
     var lastProfileTapTime by remember { mutableStateOf(0L) }
     var showAdminLoginDialog by remember { mutableStateOf(false) }
