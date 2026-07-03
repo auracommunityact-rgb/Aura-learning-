@@ -35,6 +35,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.ui.auth.AuthViewModel
 import com.example.ui.theme.ThemeViewModel
+import kotlinx.coroutines.launch
 
 class ProfileViewModelFactory(private val context: android.content.Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -61,14 +62,34 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
     // Use auth user name as fallback if local profile name is empty
     val displayUserName = profileName.ifBlank { currentUser?.name ?: "Guest User" }
 
+    val coroutineScope = rememberCoroutineScope()
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri: Uri? ->
             if (uri != null) {
-                // Ensure we have read permission across reboots
-                val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                context.contentResolver.takePersistableUriPermission(uri, flag)
-                profileViewModel.updateProfilePictureUri(uri.toString())
+                coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        val file = java.io.File(context.filesDir, "profile_picture.jpg")
+                        val outputStream = java.io.FileOutputStream(file)
+                        inputStream?.copyTo(outputStream)
+                        inputStream?.close()
+                        outputStream.close()
+                        
+                        profileViewModel.updateProfilePictureUri(file.absolutePath)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        // Fallback to direct URI if copying fails
+                        try {
+                            val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            context.contentResolver.takePersistableUriPermission(uri, flag)
+                            profileViewModel.updateProfilePictureUri(uri.toString())
+                        } catch (e2: Exception) {
+                            profileViewModel.updateProfilePictureUri(uri.toString())
+                        }
+                    }
+                }
             }
         }
     )

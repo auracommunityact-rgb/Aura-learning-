@@ -2,6 +2,7 @@ package com.example.ui.books
 
 import android.graphics.Bitmap
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -90,6 +91,22 @@ fun PdfViewerScreen(
     var summaryText by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     
+    val context = LocalContext.current
+    val startTime = remember { System.currentTimeMillis() }
+
+    val handleBack = {
+        val timeSpentMillis = System.currentTimeMillis() - startTime
+        val minutes = (timeSpentMillis / 1000) / 60
+        val seconds = (timeSpentMillis / 1000) % 60
+        val timeString = if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"
+        android.widget.Toast.makeText(context, "Time spent reading: $timeString", android.widget.Toast.LENGTH_SHORT).show()
+        navController.popBackStack()
+    }
+
+    BackHandler {
+        handleBack()
+    }
+    
     LaunchedEffect(pdfUrl, bookId) {
         viewModel.loadPdf(pdfUrl, bookId)
     }
@@ -168,7 +185,7 @@ fun PdfViewerScreen(
             TopAppBar(
                 title = { Text("Book Reader") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { handleBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
