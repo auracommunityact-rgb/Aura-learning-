@@ -13,7 +13,30 @@ object AlarmScheduler {
         if (!session.alarmEnabled || session.completedStatus != "PENDING") return
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        
+
+        // Prepare intent, pendingIntent and alarmTime before permission checks so they are available everywhere
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "com.example.ALARM_TRIGGERED"
+            putExtra("SESSION_ID", session.id)
+            putExtra("SUBJECT", session.subject)
+            putExtra("TOPIC", session.topic)
+            putExtra("TIME", session.dateMillis)
+        }
+
+        val requestCode = session.id.toInt() // ensure this conversion is safe for your IDs
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Calculate alarm time: session.dateMillis - alarmOffsetMins * 60000
+        val alarmTime = session.dateMillis - (session.alarmOffsetMins * 60 * 1000L)
+
+        // Don't schedule if it's already in the past
+        if (alarmTime < System.currentTimeMillis()) return
+
         // Check exact alarm permission on Android 12+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
@@ -26,27 +49,6 @@ object AlarmScheduler {
                 return
             }
         }
-
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "com.example.ALARM_TRIGGERED"
-            putExtra("SESSION_ID", session.id)
-            putExtra("SUBJECT", session.subject)
-            putExtra("TOPIC", session.topic)
-            putExtra("TIME", session.dateMillis)
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            session.id.toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Calculate alarm time: session.dateMillis - alarmOffsetMins * 60000
-        val alarmTime = session.dateMillis - (session.alarmOffsetMins * 60 * 1000L)
-
-        // Don't schedule if it's already in the past
-        if (alarmTime < System.currentTimeMillis()) return
 
         try {
             alarmManager.setExactAndAllowWhileIdle(
