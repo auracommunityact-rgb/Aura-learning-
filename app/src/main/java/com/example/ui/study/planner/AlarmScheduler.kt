@@ -17,7 +17,12 @@ object AlarmScheduler {
         // Check exact alarm permission on Android 12+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
-                Log.e("AlarmScheduler", "Cannot schedule exact alarms - permission missing")
+                Log.w("AlarmScheduler", "Cannot schedule exact alarms - using inexact fallback")
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    alarmTime,
+                    pendingIntent
+                )
                 return
             }
         }
@@ -27,6 +32,7 @@ object AlarmScheduler {
             putExtra("SESSION_ID", session.id)
             putExtra("SUBJECT", session.subject)
             putExtra("TOPIC", session.topic)
+            putExtra("TIME", session.dateMillis)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(

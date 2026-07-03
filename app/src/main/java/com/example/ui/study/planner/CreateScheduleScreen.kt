@@ -34,6 +34,8 @@ fun CreateScheduleScreen(navController: NavController) {
     val repo = remember { PlannerRepository(db.studySessionDao()) }
     val coroutineScope = rememberCoroutineScope()
 
+    val defaultOffset = remember { context.getSharedPreferences("planner_settings", android.content.Context.MODE_PRIVATE).getInt("default_reminder_time", 5) }
+
     var subject by remember { mutableStateOf("") }
     var topic by remember { mutableStateOf("") }
     var duration by remember { mutableStateOf("60") }
@@ -155,7 +157,7 @@ fun CreateScheduleScreen(navController: NavController) {
                         notes = "",
                         repeatType = "ONE_TIME",
                         alarmEnabled = alarmEnabled,
-                        alarmOffsetMins = 0,
+                        alarmOffsetMins = defaultOffset,
                         alarmDurationMins = 5,
                         alarmSoundUri = "",
                         completedStatus = "PENDING"

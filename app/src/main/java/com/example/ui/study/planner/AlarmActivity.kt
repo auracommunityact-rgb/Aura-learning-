@@ -129,21 +129,26 @@ class AlarmActivity : ComponentActivity() {
         val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
         ringtone = RingtoneManager.getRingtone(applicationContext, uri)
         ringtone?.play()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibrator = vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        }
         
-        val timings = longArrayOf(0, 500, 500)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createWaveform(timings, 0))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(timings, 0)
+        val sharedPrefs = getSharedPreferences("planner_settings", Context.MODE_PRIVATE)
+        val vibrationEnabled = sharedPrefs.getBoolean("vibration_enabled", true)
+        
+        if (vibrationEnabled) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibrator = vibratorManager.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            }
+            
+            val timings = longArrayOf(0, 500, 500)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createWaveform(timings, 0))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(timings, 0)
+            }
         }
     }
 

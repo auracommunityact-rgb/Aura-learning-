@@ -46,13 +46,17 @@ class AlarmReceiver : BroadcastReceiver() {
                 notificationManager.createNotificationChannel(channel)
             }
 
+            val timeFormat = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+            val timeStr = timeFormat.format(java.util.Date(intent.getLongExtra("TIME", System.currentTimeMillis())))
+
             val notification = NotificationCompat.Builder(context, "study_alarms")
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                .setContentTitle(subject)
-                .setContentText(topic)
+                .setContentTitle("📚 Time to Study!")
+                .setContentText("$subject - $topic starts at $timeStr.")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setFullScreenIntent(pendingIntent, true)
+                .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .build()
 
