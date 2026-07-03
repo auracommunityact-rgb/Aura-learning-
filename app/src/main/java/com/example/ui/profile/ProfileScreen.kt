@@ -1,15 +1,23 @@
 package com.example.ui.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,32 +28,62 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil.compose.AsyncImage
 import com.example.ui.auth.AuthViewModel
+import com.example.ui.theme.ThemeViewModel
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.SettingsBrightness
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.DarkMode
+class ProfileViewModelFactory(private val context: android.content.Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ProfileViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ProfileViewModel(context) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController, themeViewModel: com.example.ui.theme.ThemeViewModel? = null) {
+fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController, themeViewModel: ThemeViewModel? = null) {
     val currentUser by authViewModel.currentUser.collectAsState()
     val context = LocalContext.current
+    val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context.applicationContext))
+    
+    val profileName by profileViewModel.profileName.collectAsState()
+    val profilePictureUri by profileViewModel.profilePictureUri.collectAsState()
 
-    val themeMode = themeViewModel?.themeMode?.collectAsState()?.value ?: 0
+    var showEditNameSheet by remember { mutableStateOf(false) }
+    
+    // Use auth user name as fallback if local profile name is empty
+    val displayUserName = profileName.ifBlank { currentUser?.name ?: "Guest User" }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                // Ensure we have read permission across reboots
+                val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(uri, flag)
+                profileViewModel.updateProfilePictureUri(uri.toString())
+            }
+        }
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (currentUser != null) "Profile Settings" else "Guest Profile", fontWeight = FontWeight.Bold) },
+                title = { Text("Profile", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { rootNavController.navigate("profile_settings") }) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
                 )
             )
         }
@@ -54,318 +92,207 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
             
-            // Appearance Section
-            if (themeViewModel != null) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            // Profile Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Appearance",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("App Theme", style = MaterialTheme.typography.bodyLarge)
-                            Row {
-                                IconButton(
-                                    onClick = { themeViewModel.setThemeMode(0) },
-                                    modifier = Modifier.background(
-                                        if (themeMode == 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
-                                        CircleShape
-                                    )
+                    // Profile Image with Edit Badge
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        AnimatedContent(
+                            targetState = profilePictureUri,
+                            transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(300)) },
+                            label = "profile_image"
+                        ) { uri ->
+                            if (uri.isNotEmpty()) {
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = "User Profile Picture",
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape)
+                                        .border(4.dp, MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .border(4.dp, MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Filled.SettingsBrightness, "System", tint = if (themeMode == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                IconButton(
-                                    onClick = { themeViewModel.setThemeMode(1) },
-                                    modifier = Modifier.background(
-                                        if (themeMode == 1) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
-                                        CircleShape
+                                    Text(
+                                        text = displayUserName.take(1).uppercase(),
+                                        style = MaterialTheme.typography.displayMedium,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Bold
                                     )
-                                ) {
-                                    Icon(Icons.Filled.LightMode, "Light", tint = if (themeMode == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                IconButton(
-                                    onClick = { themeViewModel.setThemeMode(2) },
-                                    modifier = Modifier.background(
-                                        if (themeMode == 2) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
-                                        CircleShape
-                                    )
-                                ) {
-                                    Icon(Icons.Filled.DarkMode, "Dark", tint = if (themeMode == 2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
+                        }
+                        
+                        // Edit Badge
+                        SmallFloatingActionButton(
+                            onClick = {
+                                imagePickerLauncher.launch(
+                                    androidx.activity.result.PickVisualMediaRequest(
+                                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                                    )
+                                )
+                            },
+                            modifier = Modifier.offset(x = 8.dp, y = 8.dp),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Icon(Icons.Filled.CameraAlt, contentDescription = "Edit Picture", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Name and Edit Icon
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = displayUserName,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { showEditNameSheet = true },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Edit Name", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    
+                    if (currentUser != null && currentUser?.email?.isNotEmpty() == true) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = currentUser!!.email,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Additional Sections (like ExamResultCard)
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                ExamResultCard(rootNavController)
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Guest mode prompt
+            if (currentUser == null || currentUser?.id == "guest_user") {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Sign in to sync your progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { rootNavController.navigate("login") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Text("Login / Register")
                         }
                     }
                 }
             }
+        }
+    }
 
-            if (currentUser != null) {
-                val user = currentUser!!
-                
-                // Profile Avatar Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Avatar
-                        if (user.photoUrl.isNotEmpty()) {
-                            AsyncImage(
-                                model = user.photoUrl,
-                                contentDescription = "User Profile Picture",
-                                modifier = Modifier
-                                    .size(96.dp)
-                                    .clip(CircleShape)
-                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            // Fallback initial avatar
-                            Box(
-                                modifier = Modifier
-                                    .size(96.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = user.name.take(1).uppercase(),
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+    if (showEditNameSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showEditNameSheet = false }
+        ) {
+            EditNameContent(
+                initialName = displayUserName,
+                onSave = { newName ->
+                    profileViewModel.updateProfileName(newName)
+                    showEditNameSheet = false
+                },
+                onCancel = { showEditNameSheet = false }
+            )
+        }
+    }
+}
 
-                        Spacer(modifier = Modifier.height(16.dp))
+@Composable
+fun EditNameContent(initialName: String, onSave: (String) -> Unit, onCancel: () -> Unit) {
+    var text by remember { mutableStateOf(initialName) }
+    var isError by remember { mutableStateOf(false) }
 
-                        // User Name
-                        Text(
-                            text = user.name,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // User Email Row
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Email,
-                                contentDescription = "Email Icon",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = user.email,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Stats Row
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("${user.savedBooks.size}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                Text("Saved Books", style = MaterialTheme.typography.labelMedium)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("${user.savedVideos.size}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                Text("Saved Videos", style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Auth Provider Chip
-                        val providerLabel = if (user.provider == "Google") "Google Sign-In" else "Email & Password"
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(providerLabel) },
-                            icon = {
-                                Icon(
-                                    imageVector = if (user.provider == "Google") Icons.Default.Person else Icons.Default.Lock,
-                                    contentDescription = "Provider Icon",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                            )
-                        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        Text("Edit Name", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = text,
+            onValueChange = {
+                if (it.length <= 50) {
+                    text = it
+                    isError = it.trim().isEmpty()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Name") },
+            singleLine = true,
+            isError = isError,
+            supportingText = {
+                if (isError) Text("Name cannot be empty")
+                else Text("${text.length}/50")
+            }
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onCancel) {
+                Text("Cancel")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = {
+                    if (text.trim().isNotEmpty()) {
+                        onSave(text.trim())
+                    } else {
+                        isError = true
                     }
                 }
-
-                // Admin Tools Panel (if user is admin)
-                if (user.role == "admin") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 24.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = "Admin Security Shield",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Administrator Tools",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                            
-                            Button(
-                                onClick = { android.widget.Toast.makeText(context, "Upload book coming soon", android.widget.Toast.LENGTH_SHORT).show() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("Upload New Book PDF")
-                            }
-
-                            Button(
-                                onClick = { android.widget.Toast.makeText(context, "Upload video coming soon", android.widget.Toast.LENGTH_SHORT).show() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("Upload New Lecture Video")
-                            }
-                        }
-                    }
-                }
-
-                ExamResultCard(rootNavController)
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Sign Out Button
-                Button(
-                    onClick = {
-                        authViewModel.logout()
-                        navController.navigate("home") {
-                            popUpTo(navController.graph.findStartDestination().id)
-                            launchSingleTop = true
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    Text(
-                        text = "Sign Out",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.height(32.dp))
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Guest",
-                    modifier = Modifier.size(96.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Welcome, Guest!",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Sign in to sync your progress, bookmarks, certificates, and learning history.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                ExamResultCard(rootNavController)
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                Button(
-                    onClick = { rootNavController.navigate("login") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(50.dp),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    Text("Login")
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(
-                    onClick = { rootNavController.navigate("register") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(50.dp),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    Text("Sign Up")
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                TextButton(
-                    onClick = { /* already guest, do nothing or show toast */ }
-                ) {
-                    Text("Continue as Guest")
-                }
+            ) {
+                Text("Save")
             }
         }
     }
@@ -376,29 +303,23 @@ fun ExamResultCard(rootNavController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp)
-            .clickable {
-                rootNavController.navigate("exam_results")
-            },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        )
+            .clickable { rootNavController.navigate("exam_results") },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(56.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🎓", style = MaterialTheme.typography.headlineSmall)
+                Text("🎓", style = MaterialTheme.typography.headlineMedium)
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {

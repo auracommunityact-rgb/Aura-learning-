@@ -128,7 +128,6 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             com.example.ui.study.FlashcardsScreen(navController = rootNavController, deckId = deckId)
         }
         composable("study_planner") { com.example.ui.study.planner.StudyPlannerScreen(rootNavController) }
-        composable("planner_settings") { com.example.ui.study.planner.PlannerSettingsScreen(rootNavController) }
         composable("create_schedule") { com.example.ui.study.planner.CreateScheduleScreen(rootNavController) }
         composable("notes_translate") { com.example.ui.study.NotesTranslateScreen(rootNavController) }
         composable("ai_chat") { com.example.ui.chat.PuterChatScreen(rootNavController) }
@@ -153,6 +152,10 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("main") {
             MainScreen(authViewModel = authViewModel, rootNavController = rootNavController, themeViewModel = themeViewModel)
         }
+        composable("profile_settings") { com.example.ui.profile.settings.ProfileSettingsScreen(rootNavController, authViewModel, themeViewModel) }
+        composable("about_app") { com.example.ui.profile.settings.AboutAppScreen(rootNavController) }
+        composable("privacy_policy") { com.example.ui.profile.settings.LegalScreen(rootNavController, "Privacy Policy") }
+        composable("terms_of_use") { com.example.ui.profile.settings.LegalScreen(rootNavController, "Terms of Use") }
         composable("notifications") { com.example.ui.notifications.NotificationCenterScreen(rootNavController) }
         composable("notification_settings") { com.example.ui.notifications.NotificationSettingsScreen(rootNavController) }
         composable("admin_notifications") { com.example.ui.admin.notifications.AdminNotificationManagerScreen(rootNavController) }
