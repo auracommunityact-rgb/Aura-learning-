@@ -8,6 +8,8 @@ import com.example.data.models.FlashcardDeck
 import com.example.data.models.Note
 import com.example.data.models.User
 import com.example.data.models.Video
+import com.example.data.models.VideoProgress
+import com.example.data.models.BookProgress
 import com.example.data.supabase.SupabaseService
 import io.github.jan.supabase.postgrest.postgrest
 import java.util.UUID
@@ -399,6 +401,69 @@ class AuraRepository {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    // Progress Tracking
+    suspend fun getVideoProgress(userId: String): List<VideoProgress> {
+        return try {
+            client.postgrest["video_progress"].select {
+                filter { eq("userId", userId) }
+            }.decodeList<VideoProgress>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun updateVideoProgress(progress: VideoProgress) {
+        try {
+            val existing = client.postgrest["video_progress"].select {
+                filter {
+                    eq("userId", progress.userId)
+                    eq("videoId", progress.videoId)
+                }
+            }.decodeList<VideoProgress>().firstOrNull()
+
+            if (existing != null) {
+                client.postgrest["video_progress"].update(progress.copy(id = existing.id, lastWatchedAt = System.currentTimeMillis())) {
+                    filter { eq("id", existing.id) }
+                }
+            } else {
+                client.postgrest["video_progress"].insert(progress.copy(id = UUID.randomUUID().toString(), lastWatchedAt = System.currentTimeMillis()))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun getBookProgress(userId: String): List<BookProgress> {
+        return try {
+            client.postgrest["book_progress"].select {
+                filter { eq("userId", userId) }
+            }.decodeList<BookProgress>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun updateBookProgress(progress: BookProgress) {
+        try {
+            val existing = client.postgrest["book_progress"].select {
+                filter {
+                    eq("userId", progress.userId)
+                    eq("bookId", progress.bookId)
+                }
+            }.decodeList<BookProgress>().firstOrNull()
+
+            if (existing != null) {
+                client.postgrest["book_progress"].update(progress.copy(id = existing.id, lastReadAt = System.currentTimeMillis())) {
+                    filter { eq("id", existing.id) }
+                }
+            } else {
+                client.postgrest["book_progress"].insert(progress.copy(id = UUID.randomUUID().toString(), lastReadAt = System.currentTimeMillis()))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

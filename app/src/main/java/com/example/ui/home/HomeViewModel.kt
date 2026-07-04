@@ -1,6 +1,8 @@
 package com.example.ui.home
 
 import androidx.lifecycle.ViewModel
+import com.example.data.supabase.SupabaseService
+import io.github.jan.supabase.auth.auth
 import androidx.lifecycle.viewModelScope
 import com.example.data.models.Banner
 import com.example.data.models.Book
@@ -20,6 +22,10 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
 
     private val _recentVideos = MutableStateFlow<List<Video>>(emptyList())
     val recentVideos: StateFlow<List<Video>> = _recentVideos.asStateFlow()
+    private val _continueWatching = MutableStateFlow<List<Video>>(emptyList())
+    val continueWatching: StateFlow<List<Video>> = _continueWatching.asStateFlow()
+    private val _continueReading = MutableStateFlow<List<Book>>(emptyList())
+    val continueReading: StateFlow<List<Book>> = _continueReading.asStateFlow()
 
     private val _allBooks = MutableStateFlow<List<Book>>(emptyList())
     val allBooks: StateFlow<List<Book>> = _allBooks.asStateFlow()
@@ -64,6 +70,25 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
             val fetchedVideos = repository.getVideos()
             _allVideos.value = fetchedVideos
             filterContent(_selectedGrade.value)
+            
+            // Load user progress
+            val userId = SupabaseService.client.auth.currentSessionOrNull()?.user?.id
+            if (userId != null) {
+                val videoProgress = repository.getVideoProgress(userId)
+                val bookProgress = repository.getBookProgress(userId)
+                
+                val cVideos = videoProgress
+                    .sortedByDescending { it.lastWatchedAt }
+                    .mapNotNull { vp -> fetchedVideos.find { it.id == vp.videoId } }
+                    .take(5)
+                _continueWatching.value = cVideos
+                
+                val cBooks = bookProgress
+                    .sortedByDescending { it.lastReadAt }
+                    .mapNotNull { bp -> fetchedBooks.find { it.id == bp.bookId } }
+                    .take(5)
+                _continueReading.value = cBooks
+            }
         }
     }
 }

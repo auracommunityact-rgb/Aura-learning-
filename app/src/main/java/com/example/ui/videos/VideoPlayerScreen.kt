@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -184,13 +186,33 @@ fun VideoPlayerScreen(
                         }
                         
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { navController.navigate("quiz/${video!!.id}") },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Take Lesson Quiz")
+                        
+                        val isWatched by viewModel.isWatched.collectAsState()
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { viewModel.markAsWatched() },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isWatched) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(
+                                    if (isWatched) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(if (isWatched) "Watched" else "Mark as Watched")
+                            }
+                            
+                            Button(
+                                onClick = { navController.navigate("quiz/${video!!.id}") },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Take Quiz")
+                            }
                         }
                     }
                 }

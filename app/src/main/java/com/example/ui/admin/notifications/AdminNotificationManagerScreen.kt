@@ -20,11 +20,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import java.util.UUID
 
 @Serializable
 data class NotificationPayload(
-    val id: String,
     val title: String,
     val description: String,
     val image_url: String?,
@@ -139,7 +137,6 @@ fun AdminNotificationManagerScreen(navController: NavController) {
                     coroutineScope.launch {
                         try {
                             val payload = NotificationPayload(
-                                id = UUID.randomUUID().toString(),
                                 title = title,
                                 description = description,
                                 image_url = imageUrl.takeIf { it.isNotBlank() },

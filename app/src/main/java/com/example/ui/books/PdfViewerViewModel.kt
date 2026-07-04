@@ -1,6 +1,10 @@
 package com.example.ui.books
 
 import android.app.Application
+import com.example.data.models.BookProgress
+import com.example.data.repository.AuraRepository
+import com.example.data.supabase.SupabaseService
+import io.github.jan.supabase.auth.auth
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -43,11 +47,13 @@ suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
     }
 }
 
+
 class PdfViewerViewModel(application: Application) : AndroidViewModel(application) {
     private val repo: PdfAnnotationRepository
     private val bookmarkRepo: PdfBookmarkRepository
     private val translationService = TranslationService()
-    
+    private val auraRepo = AuraRepository()
+
     init {
         val db = PlannerDatabase.getDatabase(application)
         repo = PdfAnnotationRepository(db.pdfAnnotationDao())
@@ -68,6 +74,18 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var pdfRenderer: PdfRenderer? = null
     private var fileDescriptor: ParcelFileDescriptor? = null
+
+    fun updateProgress(bookId: String, pageIndex: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val userId = SupabaseService.client.auth.currentSessionOrNull()?.user?.id ?: return@launch
+            val progress = BookProgress(
+                userId = userId,
+                bookId = bookId,
+                lastPage = pageIndex
+            )
+            auraRepo.updateBookProgress(progress)
+        }
+    }
 
     fun loadPdf(url: String, bookId: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -179,6 +197,8 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
                 bookmarkRepo.deleteBookmarkByPage(bookId, pageNumber)
             } else {
                 bookmarkRepo.insertBookmark(com.example.data.local.PdfBookmark(bookId = bookId, pageNumber = pageNumber))
+                // Store progress to Supabase
+                updateProgress(bookId, pageNumber)
             }
         }
     }

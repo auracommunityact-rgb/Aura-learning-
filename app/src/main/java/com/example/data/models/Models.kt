@@ -83,3 +83,21 @@ data class Flashcard(
     val backText: String = "",
     val createdAt: Long = 0L
 )
+
+@Serializable
+data class VideoProgress(
+    val id: String = "",
+    val userId: String = "",
+    val videoId: String = "",
+    val isWatched: Boolean = false,
+    val lastWatchedAt: Long = 0L
+)
+
+@Serializable
+data class BookProgress(
+    val id: String = "",
+    val userId: String = "",
+    val bookId: String = "",
+    val lastPage: Int = 0,
+    val lastReadAt: Long = 0L
+)

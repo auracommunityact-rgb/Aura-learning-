@@ -45,6 +45,8 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val recentBooks by viewModel.recentBooks.collectAsState()
     val recentVideos by viewModel.recentVideos.collectAsState()
     val allBooks by viewModel.allBooks.collectAsState()
+    val continueWatching by viewModel.continueWatching.collectAsState()
+    val continueReading by viewModel.continueReading.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val selectedGrade = currentUser?.selectedGrade ?: "All Grades"
     
@@ -175,10 +177,21 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 QuickActionsSection(navController, rootNavController)
             }
 
-            // Section 2: Continue Learning
-            if (savedBooks.isNotEmpty()) {
+            // Continue Watching
+            if (continueWatching.isNotEmpty()) {
                 item {
-                    ContinueLearningSection(savedBooks, rootNavController, interceptAction)
+                    VideoClassesSection(continueWatching, rootNavController, interceptAction, "Continue Watching")
+                }
+            }
+
+            // Continue Reading
+            if (continueReading.isNotEmpty()) {
+                item {
+                    ContinueLearningSection(continueReading, rootNavController, interceptAction, "Resume Reading")
+                }
+            } else if (savedBooks.isNotEmpty()) {
+                item {
+                    ContinueLearningSection(savedBooks, rootNavController, interceptAction, "Saved Books")
                 }
             }
 
@@ -351,8 +364,8 @@ fun QuickActionsSection(navController: NavController, rootNavController: NavCont
 }
 
 @Composable
-fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit) {
-    SectionHeader("Continue Learning")
+fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit, title: String = "Continue Learning") {
+    SectionHeader(title)
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -475,8 +488,8 @@ fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavControlle
 }
 
 @Composable
-fun VideoClassesSection(recentVideos: List<Video>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit) {
-    SectionHeader("Video Classes")
+fun VideoClassesSection(recentVideos: List<Video>, rootNavController: NavController, interceptAction: (() -> Unit) -> Unit, title: String = "Video Classes") {
+    SectionHeader(title)
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
