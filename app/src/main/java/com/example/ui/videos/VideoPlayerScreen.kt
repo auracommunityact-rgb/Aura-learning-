@@ -132,6 +132,7 @@ fun VideoPlayerScreen(
                         factory = { context ->
                             WebView(context).apply {
                                 settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
                                 settings.mediaPlaybackRequiresUserGesture = false
                                 webChromeClient = WebChromeClient()
                                 webViewClient = WebViewClient()
@@ -156,7 +157,7 @@ fun VideoPlayerScreen(
                                 </body>
                                 </html>
                             """.trimIndent()
-                            view.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                            view.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
