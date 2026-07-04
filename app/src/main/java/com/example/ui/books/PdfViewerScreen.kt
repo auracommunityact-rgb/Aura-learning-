@@ -23,8 +23,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.FormatColorFill
 import androidx.compose.material.icons.filled.FormatUnderlined
-import androidx.compose.material.icons.filled.Redo
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -217,7 +217,7 @@ fun PdfViewerScreen(
                             viewModel.deleteAnnotation(last.id)
                         }
                     }) {
-                        Icon(Icons.Filled.Undo, contentDescription = "Undo")
+                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
                     }
                     IconButton(onClick = {
                         val toRedo = undoStack.lastOrNull()
@@ -226,7 +226,7 @@ fun PdfViewerScreen(
                             viewModel.addAnnotation(toRedo)
                         }
                     }) {
-                        Icon(Icons.Filled.Redo, contentDescription = "Redo")
+                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
                     }
                 }
             )
@@ -289,7 +289,7 @@ fun PdfViewerScreen(
                 }
             } else if (progress!! < 1f) {
                 Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(progress = progress!!)
+                    CircularProgressIndicator(progress = { progress!! })
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Downloading... ${(progress!! * 100).toInt()}%")
                 }

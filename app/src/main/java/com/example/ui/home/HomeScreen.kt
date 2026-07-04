@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -305,9 +306,9 @@ fun SectionExploreCategories(selectedGrade: String, onGradeSelected: (String) ->
 @Composable
 fun QuickActionsSection(navController: NavController, rootNavController: NavController) {
     val actions = listOf(
-        Pair("Books", Icons.Filled.MenuBook),
+        Pair("Books", Icons.AutoMirrored.Filled.MenuBook),
         Pair("Videos", Icons.Filled.PlayCircle),
-        Pair("Notes", Icons.Filled.Notes),
+        Pair("Notes", Icons.AutoMirrored.Filled.Notes),
         Pair("PYQs", Icons.Filled.HistoryEdu),
         Pair("Mock Tests", Icons.Filled.Quiz),
         Pair("Study Planner", Icons.Filled.Event),
@@ -574,7 +575,7 @@ fun AILearningToolsSection(rootNavController: NavController) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("AI Powered", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
                     Spacer(modifier = Modifier.height(8.dp))
-                    Icon(Icons.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.align(Alignment.End))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.align(Alignment.End))
                 }
             }
         }

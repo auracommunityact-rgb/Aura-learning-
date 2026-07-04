@@ -85,7 +85,7 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(16.dp)
                 )
-                Divider()
+                HorizontalDivider()
                 
                 LazyColumn(modifier = Modifier.fillMaxHeight().padding(bottom = 16.dp)) {
                     item {
@@ -119,7 +119,7 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                     }
                     
                     item {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
                             "Subject",
                             style = MaterialTheme.typography.titleMedium,

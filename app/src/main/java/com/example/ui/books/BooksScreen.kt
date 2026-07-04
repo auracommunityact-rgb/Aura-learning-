@@ -110,7 +110,7 @@ fun BooksScreen(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(16.dp)
                 )
-                Divider()
+                HorizontalDivider()
                 
                 LazyColumn(modifier = Modifier.fillMaxHeight().padding(bottom = 16.dp)) {
                     item {
@@ -144,7 +144,7 @@ fun BooksScreen(
                     }
                     
                     item {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
                             "Subject",
                             style = MaterialTheme.typography.titleMedium,
