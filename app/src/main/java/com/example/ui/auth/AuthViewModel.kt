@@ -29,20 +29,30 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
     }
 
     private fun checkUserLoggedIn() {
-        val user = client.auth.currentSessionOrNull()?.user
-        if (user != null) {
-            viewModelScope.launch {
-                val userProfile = repository.getUserProfile(user.id)
-                if (userProfile != null) {
-                    _currentUser.value = userProfile
-                    _authState.value = AuthState.Success
-                } else {
-                    _authState.value = AuthState.Error("Profile not found")
+        viewModelScope.launch {
+            client.auth.sessionStatus.collect { status ->
+                when (status) {
+                    is io.github.jan.supabase.auth.status.SessionStatus.Authenticated -> {
+                        val user = status.session.user
+                        if (user != null) {
+                            val userProfile = repository.getUserProfile(user.id)
+                            if (userProfile != null) {
+                                _currentUser.value = userProfile
+                                _authState.value = AuthState.Success
+                            } else {
+                                _authState.value = AuthState.Error("Profile not found")
+                            }
+                        }
+                    }
+                    is io.github.jan.supabase.auth.status.SessionStatus.NotAuthenticated -> {
+                        if (_currentUser.value?.id != "guest_user") {
+                            _currentUser.value = repository.getGuestProfile()
+                            _authState.value = AuthState.Idle
+                        }
+                    }
+                    else -> {}
                 }
             }
-        } else {
-            _currentUser.value = repository.getGuestProfile()
-            _authState.value = AuthState.Idle
         }
     }
 
