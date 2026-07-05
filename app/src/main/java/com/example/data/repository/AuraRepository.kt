@@ -118,34 +118,22 @@ class AuraRepository {
     }
 
     suspend fun addBook(book: Book) {
-        try {
-            val newBook = if (book.id.isEmpty()) book.copy(id = UUID.randomUUID().toString()) else book
-            client.postgrest["books"].insert(newBook)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        val newBook = if (book.id.isEmpty()) book.copy(id = UUID.randomUUID().toString()) else book
+        client.postgrest["books"].insert(newBook)
     }
     
     suspend fun updateBook(book: Book) {
         if (book.id.isNotEmpty()) {
-            try {
-                client.postgrest["books"].update(book) {
-                    filter { eq("id", book.id) }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            client.postgrest["books"].update(book) {
+                filter { eq("id", book.id) }
             }
         }
     }
     
     suspend fun deleteBook(bookId: String) {
         if (bookId.isNotEmpty()) {
-            try {
-                client.postgrest["books"].delete {
-                    filter { eq("id", bookId) }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            client.postgrest["books"].delete {
+                filter { eq("id", bookId) }
             }
         }
     }
@@ -240,34 +228,22 @@ class AuraRepository {
     }
 
     suspend fun addVideo(video: Video) {
-        try {
-            val newVideo = if (video.id.isEmpty()) video.copy(id = UUID.randomUUID().toString()) else video
-            client.postgrest["videos"].insert(newVideo)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        val newVideo = if (video.id.isEmpty()) video.copy(id = UUID.randomUUID().toString()) else video
+        client.postgrest["videos"].insert(newVideo)
     }
     
     suspend fun updateVideo(video: Video) {
         if (video.id.isNotEmpty()) {
-            try {
-                client.postgrest["videos"].update(video) {
-                    filter { eq("id", video.id) }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            client.postgrest["videos"].update(video) {
+                filter { eq("id", video.id) }
             }
         }
     }
     
     suspend fun deleteVideo(videoId: String) {
         if (videoId.isNotEmpty()) {
-            try {
-                client.postgrest["videos"].delete {
-                    filter { eq("id", videoId) }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            client.postgrest["videos"].delete {
+                filter { eq("id", videoId) }
             }
         }
     }

@@ -40,7 +40,26 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                                 _currentUser.value = userProfile
                                 _authState.value = AuthState.Success
                             } else {
-                                _authState.value = AuthState.Error("Profile not found")
+                                // Create default profile automatically
+                                val newUser = User(
+                                    id = user.id,
+                                    name = user.userMetadata?.get("full_name")?.toString()?.replace("\"", "")
+                                        ?: user.email?.substringBefore("@")?.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                                        ?: "User",
+                                    email = user.email ?: "",
+                                    provider = user.appMetadata?.get("provider")?.toString() ?: "email",
+                                    photoUrl = user.userMetadata?.get("avatar_url")?.toString()?.replace("\"", "") ?: "",
+                                    createdAt = System.currentTimeMillis(),
+                                    role = if (user.email == "auracommunityact@gmail.com") "admin" else "user"
+                                )
+                                try {
+                                    repository.createUserProfile(newUser)
+                                    _currentUser.value = newUser
+                                    _authState.value = AuthState.Success
+                                } catch (e: Exception) {
+                                    android.util.Log.e("Auth", "Failed to create profile", e)
+                                    _authState.value = AuthState.Error("Profile creation failed: ${e.message}")
+                                }
                             }
                         }
                     }

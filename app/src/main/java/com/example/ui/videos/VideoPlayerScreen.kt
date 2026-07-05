@@ -1,5 +1,8 @@
 package com.example.ui.videos
 
+import android.content.Intent
+import android.net.Uri
+import android.content.ActivityNotFoundException
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -13,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
@@ -21,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -109,6 +114,7 @@ fun VideoPlayerScreen(
             ) {
                 // Video Player
                 item {
+                    val context = LocalContext.current
                     val lifecycleOwner = LocalLifecycleOwner.current
                     var webView by remember { mutableStateOf<WebView?>(null) }
                     
@@ -128,41 +134,84 @@ fun VideoPlayerScreen(
                         }
                     }
 
-                    AndroidView(
-                        factory = { context ->
-                            WebView(context).apply {
-                                settings.javaScriptEnabled = true
-                                settings.domStorageEnabled = true
-                                settings.mediaPlaybackRequiresUserGesture = false
-                                webChromeClient = WebChromeClient()
-                                webViewClient = WebViewClient()
-                                webView = this
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        AndroidView(
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    settings.mediaPlaybackRequiresUserGesture = false
+                                    settings.useWideViewPort = true
+                                    settings.loadWithOverviewMode = true
+                                    settings.allowContentAccess = true
+                                    settings.allowFileAccess = true
+                                    webChromeClient = WebChromeClient()
+                                    webViewClient = WebViewClient()
+                                    webView = this
+                                }
+                            },
+                            update = { view ->
+                                val embedUrl = "https://www.youtube.com/embed/${video!!.youtubeVideoId}?autoplay=1&playsinline=1&rel=0&modestbranding=1&origin=https://www.youtube.com"
+                                val html = """
+                                    <!DOCTYPE html>
+                                    <html>
+                                    <head>
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+                                        <style>
+                                            body { margin: 0; padding: 0; background-color: #000; }
+                                            .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; }
+                                            .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+                                        </style>
+                                    </head>
+                                    <body>
+                                        <div class="video-container">
+                                            <iframe src="$embedUrl" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                                        </div>
+                                    </body>
+                                    </html>
+                                """.trimIndent()
+                                view.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                        )
+                        
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Having trouble playing?",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(
+                                onClick = {
+                                    val intentApp = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:${video!!.youtubeVideoId}"))
+                                    val intentBrowser = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=${video!!.youtubeVideoId}"))
+                                    try {
+                                        context.startActivity(intentApp)
+                                    } catch (ex: ActivityNotFoundException) {
+                                        try {
+                                            context.startActivity(intentBrowser)
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Open in YouTube App / Browser", style = MaterialTheme.typography.labelMedium)
                             }
-                        },
-                        update = { view ->
-                            val html = """
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                    <style>
-                                        body { margin: 0; padding: 0; background-color: #000; }
-                                        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; }
-                                        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-                                    </style>
-                                </head>
-                                <body>
-                                    <div class="video-container">
-                                        <iframe src="https://www.youtube.com/embed/${video!!.youtubeVideoId}?autoplay=1&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                    </div>
-                                </body>
-                                </html>
-                            """.trimIndent()
-                            view.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                    )
+                        }
+                    }
                 }
 
                 // Video Details
