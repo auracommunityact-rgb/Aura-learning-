@@ -8,13 +8,14 @@ import androidx.room.RoomDatabase
 import com.example.data.local.notifications.NotificationDao
 import com.example.data.local.notifications.NotificationEntity
 
-@Database(entities = [StudySession::class, PdfAnnotation::class, PdfBookmark::class, OfflineBook::class, NotificationEntity::class], version = 5, exportSchema = false)
+@Database(entities = [StudySession::class, PdfAnnotation::class, PdfBookmark::class, OfflineBook::class, NotificationEntity::class, CalculatorHistoryEntity::class], version = 6, exportSchema = false)
 abstract class PlannerDatabase : RoomDatabase() {
     abstract fun studySessionDao(): StudySessionDao
     abstract fun pdfAnnotationDao(): PdfAnnotationDao
     abstract fun pdfBookmarkDao(): PdfBookmarkDao
     abstract fun offlineBookDao(): OfflineBookDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun calculatorHistoryDao(): CalculatorHistoryDao
 
     companion object {
         @Volatile

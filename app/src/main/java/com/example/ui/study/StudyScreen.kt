@@ -126,6 +126,8 @@ fun StudyScreen(
                             rootNavController.navigate("map_agent")
                         } else if (tool.id == "translate") {
                             rootNavController.navigate("notes_translate")
+                        } else if (tool.id == "calculator") {
+                            rootNavController.navigate("calculator")
                         } else {
                             rootNavController.navigate("tool_viewer/${tool.id}?title=${tool.title}")
                         }
