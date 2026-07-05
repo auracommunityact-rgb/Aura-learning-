@@ -88,7 +88,10 @@ fun ScientificCalculatorScreen(
                 TopAppBar(
                     title = { Text("Scientific Calculator", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                        IconButton(onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            navController.popBackStack()
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
@@ -176,6 +179,7 @@ fun ScientificCalculatorScreen(
                         // Copy / Share buttons
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             IconButton(onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (expression.isNotEmpty()) {
                                     clipboardManager.setText(AnnotatedString(expression))
                                     Toast.makeText(context, "Expression Copied", Toast.LENGTH_SHORT).show()
@@ -184,6 +188,7 @@ fun ScientificCalculatorScreen(
                                 Icon(Icons.Filled.ContentCopy, contentDescription = "Copy Expression", tint = MaterialTheme.colorScheme.primary)
                             }
                             IconButton(onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 val resultToShare = resultPreview.ifEmpty { expression }
                                 if (resultToShare.isNotEmpty()) {
                                     val sendIntent = Intent().apply {
@@ -608,12 +613,17 @@ fun HistoryRow(
     onSelect: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelect() }
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onSelect()
+            }
     ) {
         Row(
             modifier = Modifier
@@ -640,7 +650,10 @@ fun HistoryRow(
                     maxLines = 1
                 )
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDelete()
+            }) {
                 Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
             }
         }
