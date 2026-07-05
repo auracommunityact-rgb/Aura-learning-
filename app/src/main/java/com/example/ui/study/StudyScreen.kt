@@ -45,6 +45,7 @@ val allStudyTools = listOf(
     StudyTool("mock_tests", "Mock Tests", "Practice complete exams", Icons.AutoMirrored.Filled.Assignment),
     StudyTool("result_analysis", "Result Analysis", "Analyze performance", Icons.Filled.Analytics),
     StudyTool("progress", "Progress Tracker", "Track study performance", Icons.AutoMirrored.Filled.TrendingUp),
+    StudyTool("map_agent", "Map Agent", "Information about places & routes", Icons.Filled.Map),
     StudyTool("ai_homework", "AI Homework Helper", "Owner AI: Help solve homework", Icons.Filled.SmartToy, true),
     StudyTool("ai_doubt", "AI Doubt Solver", "Owner AI: Solve student doubts", Icons.Filled.QuestionAnswer, true),
     StudyTool("ai_summarizer", "AI Notes Summarizer", "Owner AI: Create short notes", Icons.Filled.Summarize, true),
@@ -121,6 +122,8 @@ fun StudyScreen(
                             rootNavController.navigate("study_planner")
                         } else if (tool.id == "pdf_reader") {
                             rootNavController.navigate("pdf_tool")
+                        } else if (tool.id == "map_agent") {
+                            rootNavController.navigate("map_agent")
                         } else if (tool.id == "translate") {
                             rootNavController.navigate("notes_translate")
                         } else {

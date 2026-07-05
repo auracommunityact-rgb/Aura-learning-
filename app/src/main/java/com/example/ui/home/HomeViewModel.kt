@@ -36,20 +36,28 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _selectedGrade = MutableStateFlow<String>("All Grades")
     val selectedGrade: StateFlow<String> = _selectedGrade.asStateFlow()
 
+    private val _selectedSubject = MutableStateFlow<String>("All Subjects")
+    val selectedSubject: StateFlow<String> = _selectedSubject.asStateFlow()
+
     init {
         fetchData()
     }
 
     fun setSelectedGrade(grade: String) {
         _selectedGrade.value = grade
-        filterContent(grade)
+        filterContent(_selectedGrade.value, _selectedSubject.value)
     }
 
-    private fun filterContent(grade: String) {
-        if (grade == "All Grades") {
-            _recentBooks.value = _allBooks.value.sortedByDescending { it.createdAt }.take(5)
-            _recentVideos.value = _allVideos.value.sortedByDescending { it.createdAt }.take(5)
-        } else {
+    fun setSelectedSubject(subject: String) {
+        _selectedSubject.value = subject
+        filterContent(_selectedGrade.value, _selectedSubject.value)
+    }
+
+    private fun filterContent(grade: String, subject: String) {
+        var filteredBooks = _allBooks.value
+        var filteredVideos = _allVideos.value
+
+        if (grade != "All Grades") {
             val gradeStr = grade.replace("Grade ", "")
             val className = when (gradeStr) {
                 "1" -> "1st"
@@ -57,9 +65,17 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
                 "3" -> "3rd"
                 else -> "${gradeStr}th"
             }
-            _recentBooks.value = _allBooks.value.filter { it.className == className }.sortedByDescending { it.createdAt }.take(5)
-            _recentVideos.value = _allVideos.value.filter { it.className == className }.sortedByDescending { it.createdAt }.take(5)
+            filteredBooks = filteredBooks.filter { it.className == className }
+            filteredVideos = filteredVideos.filter { it.className == className }
         }
+
+        if (subject != "All Subjects") {
+            filteredBooks = filteredBooks.filter { it.subject.equals(subject, ignoreCase = true) }
+            filteredVideos = filteredVideos.filter { it.subject.equals(subject, ignoreCase = true) }
+        }
+
+        _recentBooks.value = filteredBooks.sortedByDescending { it.createdAt }.take(5)
+        _recentVideos.value = filteredVideos.sortedByDescending { it.createdAt }.take(5)
     }
 
     private fun fetchData() {
@@ -69,7 +85,7 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
             _allBooks.value = fetchedBooks
             val fetchedVideos = repository.getVideos()
             _allVideos.value = fetchedVideos
-            filterContent(_selectedGrade.value)
+            filterContent(_selectedGrade.value, _selectedSubject.value)
             
             // Load user progress
             val userId = SupabaseService.client.auth.currentSessionOrNull()?.user?.id

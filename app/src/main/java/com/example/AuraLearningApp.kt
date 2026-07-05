@@ -47,11 +47,6 @@ import com.example.ui.profile.ProfileScreen
 import com.example.ui.videos.VideosScreen
 import com.example.ui.theme.ThemeViewModel
 
-
-import com.example.ui.admin.AdminLoginDialog
-import com.example.ui.admin.AdminDashboardScreen
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 
@@ -92,7 +87,14 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("splash") { com.example.ui.splash.SplashScreen(rootNavController) }
         composable("login") { LoginScreen(rootNavController, authViewModel) }
         composable("register") { RegisterScreen(rootNavController, authViewModel) }
-        composable("admin_dashboard") { AdminDashboardScreen(rootNavController) }
+        composable("admin_dashboard") { com.example.ui.admin.AdminDashboardScreen(rootNavController, authViewModel) }
+        composable(
+            "admin_upload/{type}",
+            arguments = listOf(androidx.navigation.navArgument("type") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: "book"
+            com.example.ui.admin.AdminContentUploadScreen(rootNavController, isVideo = type == "video")
+        }
         composable("exam_results") { com.example.ui.profile.ExamResultScreen(rootNavController, rootNavController) }
         composable(
             "exam_webview?url={url}&title={title}",
@@ -159,9 +161,11 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("terms_of_use") { com.example.ui.profile.settings.LegalScreen(rootNavController, "Terms of Use") }
         composable("notifications") { com.example.ui.notifications.NotificationCenterScreen(rootNavController) }
         composable("notification_settings") { com.example.ui.notifications.NotificationSettingsScreen(rootNavController) }
-        composable("admin_notifications") { com.example.ui.admin.notifications.AdminNotificationManagerScreen(rootNavController) }
+
         composable("pdf_tool") { com.example.ui.pdf.screens.PdfToolScreen(rootNavController) }
         composable("pdf_builder") { com.example.ui.pdf.screens.PdfBuilderScreen(rootNavController) }
+        composable("map_agent") { com.example.ui.study.map.MapAgentScreen(rootNavController) }
+        composable("courses") { com.example.ui.courses.CourseListingScreen(rootNavController) }
     }
 }
 
@@ -185,24 +189,8 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
         }
     }
 
-    var profileTaps by remember { mutableStateOf(0) }
-    var lastProfileTapTime by remember { mutableStateOf(0L) }
-    var showAdminLoginDialog by remember { mutableStateOf(false) }
-    
-    if (showAdminLoginDialog) {
-        if (authViewModel.isAdmin) {
-            showAdminLoginDialog = false
-            rootNavController.navigate("admin_dashboard")
-        } else {
-            AdminLoginDialog(
-                onDismiss = { showAdminLoginDialog = false },
-                onLoginSuccess = {
-                    showAdminLoginDialog = false
-                    rootNavController.navigate("admin_dashboard")
-                }
-            )
-        }
-    }
+    var profileTaps by remember { androidx.compose.runtime.mutableStateOf(0) }
+    var lastProfileTapTime by remember { androidx.compose.runtime.mutableStateOf(0L) }
 
     Scaffold(
         bottomBar = {
@@ -216,22 +204,6 @@ fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigat
                         label = { Text(screen.title) },
                         selected = currentRoute == screen.route,
                         onClick = {
-                            if (screen == Screen.Profile) {
-                                val currentTime = System.currentTimeMillis()
-                                if (currentTime - lastProfileTapTime < 2000) {
-                                    profileTaps++
-                                    if (profileTaps == 3) {
-                                        showAdminLoginDialog = true
-                                        profileTaps = 0
-                                    }
-                                } else {
-                                    profileTaps = 1
-                                }
-                                lastProfileTapTime = currentTime
-                            } else {
-                                profileTaps = 0
-                            }
-                            
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true

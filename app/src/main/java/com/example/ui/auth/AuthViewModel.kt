@@ -50,7 +50,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                                     provider = user.appMetadata?.get("provider")?.toString() ?: "email",
                                     photoUrl = user.userMetadata?.get("avatar_url")?.toString()?.replace("\"", "") ?: "",
                                     createdAt = System.currentTimeMillis(),
-                                    role = if (user.email == "auracommunityact@gmail.com") "admin" else "user"
+                                    role = "user"
                                 )
                                 try {
                                     repository.createUserProfile(newUser)
@@ -97,7 +97,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                             email = email,
                             provider = "email",
                             createdAt = System.currentTimeMillis(),
-                            role = if (email == "auracommunityact@gmail.com") "admin" else "user"
+                            role = "user"
                         )
                         repository.createUserProfile(newUser)
                         _currentUser.value = newUser
@@ -128,7 +128,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                         email = email,
                         provider = "email",
                         createdAt = System.currentTimeMillis(),
-                        role = if (email == "auracommunityact@gmail.com") "admin" else "user"
+                        role = "user"
                     )
                     repository.createUserProfile(newUser)
                     _currentUser.value = newUser
@@ -165,7 +165,7 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
                             provider = "google",
                             photoUrl = user.userMetadata?.get("avatar_url")?.toString()?.replace("\"", "") ?: "",
                             createdAt = System.currentTimeMillis(),
-                            role = if (user.email == "auracommunityact@gmail.com") "admin" else "user"
+                            role = "user"
                         )
                         repository.createUserProfile(newUser)
                         _currentUser.value = newUser
@@ -185,8 +185,9 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
         register(email.substringBefore("@"), email, "google_sim_password123")
     }
 
+
     val isAdmin: Boolean
-        get() = _currentUser.value?.email == "auracommunityact@gmail.com"
+        get() = _currentUser.value?.email == "shaan1002006@gmail.com"
 
     fun logout() {
         viewModelScope.launch {

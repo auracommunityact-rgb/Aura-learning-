@@ -33,6 +33,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.data.repository.notifications.NotificationRepository
 import com.example.ui.ViewModelFactory
+import kotlinx.coroutines.launch
 import com.example.ui.auth.AuthViewModel
 import com.example.data.models.Book
 import com.example.data.models.Video
@@ -88,45 +89,80 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val savedBooks = allBooks.filter { currentUser?.savedBooks?.contains(it.id) == true }
     var searchQuery by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Good Morning, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"} 👋",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Let's continue learning!",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { rootNavController.navigate("notifications") }) {
-                        BadgedBox(
-                            badge = {
-                                if (unreadCount > 0) {
-                                    Badge { Text(unreadCount.toString()) }
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
-                        }
-                    }
-                    IconButton(onClick = { /* navigate to profile */ }) {
-                        Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val selectedSubject by viewModel.selectedSubject.collectAsState()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Subjects",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleLarge
                 )
-            )
+                Divider()
+                val subjects = listOf("All Subjects", "Mathematics", "Science", "History", "English", "Hindi", "Biology", "Chemistry", "Physics", "Computer Science")
+                subjects.forEach { subject ->
+                    NavigationDrawerItem(
+                        label = { Text(text = subject) },
+                        selected = subject == selectedSubject,
+                        onClick = {
+                            viewModel.setSelectedSubject(subject)
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
+            }
         }
-    ) { padding ->
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "Good Morning, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"} 👋",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (selectedSubject != "All Subjects") "Subject: $selectedSubject" else "Let's continue learning!",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { rootNavController.navigate("notifications") }) {
+                            BadgedBox(
+                                badge = {
+                                    if (unreadCount > 0) {
+                                        Badge { Text(unreadCount.toString()) }
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
+                            }
+                        }
+                        IconButton(onClick = { /* navigate to profile */ }) {
+                            Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            }
+        ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -165,6 +201,10 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
             // Daily Study Goal
             item {
                 DailyStudyGoalCard()
+            }
+
+            item {
+                CoursesSection(rootNavController)
             }
 
             // Section 1: Hero Banner Carousel
@@ -229,6 +269,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 RecentlyAddedSection(recentBooks, recentVideos, rootNavController, interceptAction)
             }
         }
+    }
     }
 }
 
@@ -739,4 +780,71 @@ fun SectionHeader(title: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
     )
+}
+@Composable
+fun CoursesSection(navController: NavController) {
+    val repository = com.example.data.repository.AuraRepository()
+    val viewModel: com.example.ui.courses.CourseViewModel = viewModel(factory = com.example.ui.ViewModelFactory)
+    val courses by viewModel.courses.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { 
+            Text(text = "Courses & Subjects", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            TextButton(onClick = { navController.navigate("courses") }) { Text("See All") } 
+        }
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(courses) { course ->
+                    CourseCardMini(course = course, onClick = { /* TODO */ })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CourseCardMini(course: com.example.data.models.Course, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(200.dp)
+            .height(180.dp),
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column {
+            AsyncImage(
+                model = course.thumbnailUrl,
+                contentDescription = course.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(
+                    text = course.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = course.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
 }

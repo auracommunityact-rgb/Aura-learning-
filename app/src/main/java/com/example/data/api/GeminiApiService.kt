@@ -30,7 +30,14 @@ data class Content(
 @Serializable
 data class Part(
     val text: String? = null,
-    val inlineData: InlineData? = null
+    val inlineData: InlineData? = null,
+    val functionCall: FunctionCall? = null
+)
+
+@Serializable
+data class FunctionCall(
+    val name: String,
+    val args: JsonObject? = null
 )
 
 @Serializable

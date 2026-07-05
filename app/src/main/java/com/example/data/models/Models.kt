@@ -101,3 +101,13 @@ data class BookProgress(
     val lastPage: Int = 0,
     val lastReadAt: Long = 0L
 )
+
+@Serializable
+data class Course(
+    val id: String = "",
+    val subject: String = "",
+    val title: String = "",
+    val description: String = "",
+    val thumbnailUrl: String = "",
+    val createdAt: Long = 0L
+)

@@ -10,6 +10,7 @@ import com.example.data.models.User
 import com.example.data.models.Video
 import com.example.data.models.VideoProgress
 import com.example.data.models.BookProgress
+import com.example.data.models.Course
 import com.example.data.supabase.SupabaseService
 import io.github.jan.supabase.postgrest.postgrest
 import java.util.UUID
@@ -259,6 +260,14 @@ class AuraRepository {
     }
 
     // Banners
+    // Courses
+    suspend fun getCourses(): List<Course> {
+        return try {
+            client.postgrest["courses"].select().decodeList<Course>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
     suspend fun getBanners(): List<Banner> {
         return try {
             client.postgrest["banners"].select().decodeList<Banner>()

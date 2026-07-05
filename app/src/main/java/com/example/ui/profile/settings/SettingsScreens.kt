@@ -126,6 +126,19 @@ fun ProfileSettingsScreen(navController: NavController, authViewModel: AuthViewM
                 )
             }
 
+            if (authViewModel.isAdmin) {
+                Spacer(modifier = Modifier.height(24.dp))
+                SettingsSectionTitle("Admin")
+                SettingsCard {
+                    SettingsItem(
+                        icon = Icons.Filled.AdminPanelSettings,
+                        title = "Admin Panel",
+                        subtitle = "Manage app content",
+                        onClick = { navController.navigate("admin_dashboard") }
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
             
             Button(
