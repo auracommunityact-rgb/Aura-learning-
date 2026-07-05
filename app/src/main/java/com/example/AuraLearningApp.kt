@@ -160,6 +160,8 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("notifications") { com.example.ui.notifications.NotificationCenterScreen(rootNavController) }
         composable("notification_settings") { com.example.ui.notifications.NotificationSettingsScreen(rootNavController) }
         composable("admin_notifications") { com.example.ui.admin.notifications.AdminNotificationManagerScreen(rootNavController) }
+        composable("pdf_tool") { com.example.ui.pdf.screens.PdfToolScreen(rootNavController) }
+        composable("pdf_builder") { com.example.ui.pdf.screens.PdfBuilderScreen(rootNavController) }
     }
 }
 

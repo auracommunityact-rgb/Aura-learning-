@@ -573,7 +573,10 @@ fun AILearningToolsSection(rootNavController: NavController) {
                 modifier = Modifier
                     .width(160.dp)
                     .clickable { 
-                        if (name == "AI Tutor") rootNavController.navigate("ai_chat")
+                        when (name) {
+                            "AI Tutor" -> rootNavController.navigate("ai_chat")
+                            "PDF Reader" -> rootNavController.navigate("pdf_tool")
+                        }
                     },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
