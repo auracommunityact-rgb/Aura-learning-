@@ -39,9 +39,14 @@ import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class BoardResult(
-    val board: String,
-    val website: String
+    val id: String = "",
+    val board: String = "",
+    val website: String = "",
+    val createdAt: Long = 0L
 )
 
 val boardsJson = """
@@ -83,15 +88,28 @@ val boardsJson = """
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExamResultScreen(navController: NavController, rootNavController: NavController) {
-    val boards = remember {
+    val repository = remember { com.example.data.repository.AuraRepository() }
+    var dynamicBoards by remember { mutableStateOf<List<BoardResult>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        com.example.data.repository.AuraRepository.boardsUpdateTrigger.collect {
+            dynamicBoards = repository.getExamBoards()
+        }
+    }
+
+    val staticBoards = remember {
         val type = object : TypeToken<List<BoardResult>>() {}.type
         Gson().fromJson<List<BoardResult>>(boardsJson, type)
     }
 
+    val allCombinedBoards = remember(staticBoards, dynamicBoards) {
+        dynamicBoards + staticBoards
+    }
+
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredBoards = remember(searchQuery) {
-        boards.filter { it.board.contains(searchQuery, ignoreCase = true) }
+    val filteredBoards = remember(searchQuery, allCombinedBoards) {
+        allCombinedBoards.filter { it.board.contains(searchQuery, ignoreCase = true) }
     }
 
     val context = LocalContext.current
@@ -145,7 +163,7 @@ fun ExamResultScreen(navController: NavController, rootNavController: NavControl
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
-                    val recents = boards.filter { recentBoards.contains(it.board) }.sortedBy { recentBoards.indexOf(it.board) }
+                    val recents = allCombinedBoards.filter { recentBoards.contains(it.board) }.sortedBy { recentBoards.indexOf(it.board) }
                     items(recents) { board ->
                         BoardItemCard(board = board, onBoardClick = {
                             val currentRecent = recentBoards.toMutableList()

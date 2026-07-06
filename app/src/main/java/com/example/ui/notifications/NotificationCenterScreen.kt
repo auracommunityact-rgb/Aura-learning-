@@ -44,7 +44,9 @@ class NotificationViewModel(private val repository: NotificationRepository) : Vi
 
     init {
         viewModelScope.launch {
-            repository.syncNotifications()
+            com.example.data.repository.AuraRepository.notificationsUpdateTrigger.collect {
+                repository.syncNotifications()
+            }
         }
     }
 

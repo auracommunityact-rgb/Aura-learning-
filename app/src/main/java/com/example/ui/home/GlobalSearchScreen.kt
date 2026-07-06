@@ -62,13 +62,26 @@ fun GlobalSearchScreen(
         )
     }
 
-    val boards = remember {
+    val repository = remember { com.example.data.repository.AuraRepository() }
+    var dynamicBoards by remember { mutableStateOf<List<BoardResult>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        com.example.data.repository.AuraRepository.boardsUpdateTrigger.collect {
+            dynamicBoards = repository.getExamBoards()
+        }
+    }
+
+    val staticBoards = remember {
         try {
             val type = object : TypeToken<List<BoardResult>>() {}.type
             Gson().fromJson<List<BoardResult>>(boardsJson, type)
         } catch (e: Exception) {
             emptyList<BoardResult>()
         }
+    }
+
+    val boards = remember(staticBoards, dynamicBoards) {
+        dynamicBoards + staticBoards
     }
 
     fun extractGradeKeywords(words: List<String>): List<String> {
@@ -94,7 +107,7 @@ fun GlobalSearchScreen(
     }
 
     // Filtered lists with advanced search scoring
-    val searchResults = remember(searchQuery, allBooks, allVideos) {
+    val searchResults = remember(searchQuery, allBooks, allVideos, boards) {
         if (searchQuery.isBlank()) {
             return@remember SearchResultsWrapper(emptyList(), emptyList(), emptyList(), emptyList())
         }

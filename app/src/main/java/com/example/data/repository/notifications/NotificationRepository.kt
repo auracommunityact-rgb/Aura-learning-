@@ -34,23 +34,32 @@ class NotificationRepository(private val context: Context) {
     suspend fun syncNotifications() = withContext(Dispatchers.IO) {
         try {
             val remoteNotifications = supabase.from("notifications").select().decodeList<SupabaseNotification>()
-            val entities = remoteNotifications.map {
-                NotificationEntity(
-                    id = it.id,
-                    title = it.title,
-                    description = it.description,
-                    imageUrl = it.image_url,
-                    category = it.category,
-                    deepLink = it.deep_link,
-                    timestamp = System.currentTimeMillis(), // We should parse created_at ideally
-                    isRead = false
-                )
+            val remoteIds = remoteNotifications.map { it.id }.toSet()
+            
+            val localNotifications = notificationDao.getNotificationsList()
+            val localMap = localNotifications.associateBy { it.id }
+
+            // Delete local ones that are no longer on Supabase
+            localNotifications.forEach { local ->
+                if (!remoteIds.contains(local.id)) {
+                    notificationDao.deleteNotification(local.id)
+                }
             }
-            // We shouldn't overwrite isRead status if the notification already exists.
-            // But since this is a basic sync, we will just insert.
-            // A better way is to insert ignoring conflicts, or query first.
-            entities.forEach {
-                notificationDao.insertNotification(it)
+
+            // Insert or update remote ones
+            remoteNotifications.forEach { remote ->
+                val local = localMap[remote.id]
+                val entity = NotificationEntity(
+                    id = remote.id,
+                    title = remote.title,
+                    description = remote.description,
+                    imageUrl = remote.image_url,
+                    category = remote.category,
+                    deepLink = remote.deep_link,
+                    timestamp = local?.timestamp ?: System.currentTimeMillis(),
+                    isRead = local?.isRead ?: false
+                )
+                notificationDao.insertNotification(entity)
             }
         } catch (e: Exception) {
             Log.e("NotificationRepo", "Failed to sync notifications", e)

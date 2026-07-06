@@ -30,12 +30,26 @@ class AuraRepository {
         private val _videosUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
         val videosUpdateTrigger = _videosUpdateTrigger.asSharedFlow()
 
+        private val _boardsUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+        val boardsUpdateTrigger = _boardsUpdateTrigger.asSharedFlow()
+
+        private val _notificationsUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+        val notificationsUpdateTrigger = _notificationsUpdateTrigger.asSharedFlow()
+
         suspend fun notifyBooksChanged() {
             _booksUpdateTrigger.emit(Unit)
         }
 
         suspend fun notifyVideosChanged() {
             _videosUpdateTrigger.emit(Unit)
+        }
+
+        suspend fun notifyBoardsChanged() {
+            _boardsUpdateTrigger.emit(Unit)
+        }
+
+        suspend fun notifyNotificationsChanged() {
+            _notificationsUpdateTrigger.emit(Unit)
         }
     }
 
@@ -475,6 +489,65 @@ class AuraRepository {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    // Exam Boards (Exam Results websites)
+    suspend fun getExamBoards(): List<com.example.ui.profile.BoardResult> {
+        return try {
+            client.postgrest["exam_boards"].select().decodeList<com.example.ui.profile.BoardResult>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun addExamBoard(board: com.example.ui.profile.BoardResult) {
+        try {
+            val newBoard = if (board.id.isEmpty()) board.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else board
+            client.postgrest["exam_boards"].insert(newBoard)
+            notifyBoardsChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun updateExamBoard(board: com.example.ui.profile.BoardResult) {
+        try {
+            if (board.id.isNotEmpty()) {
+                client.postgrest["exam_boards"].update(board) {
+                    filter { eq("id", board.id) }
+                }
+                notifyBoardsChanged()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun deleteExamBoard(boardId: String) {
+        try {
+            if (boardId.isNotEmpty()) {
+                client.postgrest["exam_boards"].delete {
+                    filter { eq("id", boardId) }
+                }
+                notifyBoardsChanged()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    // Notifications
+    suspend fun addNotification(notification: com.example.data.repository.notifications.SupabaseNotification) {
+        try {
+            client.postgrest["notifications"].insert(notification)
+            notifyNotificationsChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
         }
     }
 }

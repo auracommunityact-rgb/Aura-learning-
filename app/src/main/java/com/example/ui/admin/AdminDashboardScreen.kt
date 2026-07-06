@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
@@ -53,7 +54,10 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                 navController.navigate("admin_upload/video")
             }
             AdminActionCard("Manage Notifications", "Send and Schedule Notifications", Icons.Filled.Notifications) {
-                // navController.navigate("admin_notifications")
+                navController.navigate("admin_notifications")
+            }
+            AdminActionCard("Manage Exam Results Websites", "Add or edit exam result board websites", Icons.Filled.Language) {
+                navController.navigate("admin_manage_exams")
             }
         }
     }
