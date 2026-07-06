@@ -53,6 +53,9 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
             AdminActionCard("Manage Videos", "Upload, Edit, Delete Videos", Icons.Filled.VideoLibrary) {
                 navController.navigate("admin_upload/video")
             }
+            AdminActionCard("Manage Courses", "Upload and Manage Courses", Icons.Filled.VideoLibrary) {
+                navController.navigate("admin_upload_course")
+            }
             AdminActionCard("Manage Notifications", "Send and Schedule Notifications", Icons.Filled.Notifications) {
                 navController.navigate("admin_notifications")
             }

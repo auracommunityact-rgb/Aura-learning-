@@ -109,5 +109,7 @@ data class Course(
     val title: String = "",
     val description: String = "",
     val thumbnailUrl: String = "",
+    val youtubeUrl: String = "",
+    val contentFileUrl: String = "",
     val createdAt: Long = 0L
 )

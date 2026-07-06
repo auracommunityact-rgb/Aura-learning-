@@ -325,6 +325,17 @@ class AuraRepository {
         }
     }
 
+    suspend fun addCourse(course: Course) {
+        try {
+            val newCourse = if (course.id.isEmpty()) course.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else course
+            client.postgrest["courses"].insert(newCourse)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+
     // Notes
     suspend fun getNotesByUser(userId: String): List<Note> {
         return try {

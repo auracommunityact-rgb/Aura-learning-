@@ -90,6 +90,7 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("admin_dashboard") { com.example.ui.admin.AdminDashboardScreen(rootNavController, authViewModel) }
         composable("admin_manage_exams") { com.example.ui.admin.AdminManageExamsScreen(rootNavController) }
         composable("admin_notifications") { com.example.ui.admin.AdminNotificationsScreen(rootNavController) }
+        composable("admin_upload_course") { com.example.ui.admin.AdminCourseUploadScreen(rootNavController) }
         composable(
             "admin_upload/{type}",
             arguments = listOf(androidx.navigation.navArgument("type") { type = androidx.navigation.NavType.StringType })
