@@ -21,7 +21,11 @@ class VideosViewModel(private val repository: AuraRepository) : ViewModel() {
     val selectedSubject: StateFlow<String?> = _selectedSubject.asStateFlow()
 
     init {
-        fetchVideos()
+        viewModelScope.launch {
+            AuraRepository.videosUpdateTrigger.collect {
+                fetchVideos()
+            }
+        }
     }
 
     private fun fetchVideos() {

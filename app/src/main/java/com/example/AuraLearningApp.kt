@@ -153,8 +153,23 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             val title = backStackEntry.arguments?.getString("title") ?: "Study Tool"
             com.example.ui.study.ToolViewerScreen(navController = rootNavController, toolId = toolId, title = title)
         }
-        composable("main") {
-            MainScreen(authViewModel = authViewModel, rootNavController = rootNavController, themeViewModel = themeViewModel)
+        composable(
+            "main?tab={tab}",
+            arguments = listOf(
+                androidx.navigation.navArgument("tab") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val tab = backStackEntry.arguments?.getString("tab")
+            MainScreen(
+                authViewModel = authViewModel,
+                rootNavController = rootNavController,
+                themeViewModel = themeViewModel,
+                initialTab = tab
+            )
         }
         composable("profile_settings") { com.example.ui.profile.settings.ProfileSettingsScreen(rootNavController, authViewModel, themeViewModel) }
         composable("about_app") { com.example.ui.profile.settings.AboutAppScreen(rootNavController) }
@@ -162,6 +177,7 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("terms_of_use") { com.example.ui.profile.settings.LegalScreen(rootNavController, "Terms of Use") }
         composable("notifications") { com.example.ui.notifications.NotificationCenterScreen(rootNavController) }
         composable("notification_settings") { com.example.ui.notifications.NotificationSettingsScreen(rootNavController) }
+        composable("my_library") { com.example.ui.profile.MyLibraryScreen(rootNavController, authViewModel) }
 
         composable("pdf_tool") { com.example.ui.pdf.screens.PdfToolScreen(rootNavController) }
         composable("pdf_builder") { com.example.ui.pdf.screens.PdfBuilderScreen(rootNavController) }
@@ -171,8 +187,25 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
 }
 
 @Composable
-fun MainScreen(authViewModel: AuthViewModel, rootNavController: androidx.navigation.NavController, themeViewModel: ThemeViewModel? = null) {
+fun MainScreen(
+    authViewModel: AuthViewModel,
+    rootNavController: androidx.navigation.NavController,
+    themeViewModel: ThemeViewModel? = null,
+    initialTab: String? = null
+) {
     val navController = rememberNavController()
+
+    androidx.compose.runtime.LaunchedEffect(initialTab) {
+        if (initialTab != null) {
+            navController.navigate(initialTab) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
     
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()

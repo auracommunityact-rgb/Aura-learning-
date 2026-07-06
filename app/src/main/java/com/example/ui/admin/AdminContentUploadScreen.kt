@@ -1,5 +1,6 @@
 package com.example.ui.admin
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,16 +18,43 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.data.models.Book
 import com.example.data.models.Video
+import com.example.data.repository.AuraRepository
+import kotlinx.coroutines.launch
+
+fun extractYoutubeVideoId(url: String): String {
+    if (url.isEmpty()) return ""
+    if (url.length == 11) return url // likely already an ID
+    val patterns = listOf(
+        "v=",
+        "be/",
+        "embed/"
+    )
+    for (pattern in patterns) {
+        val index = url.indexOf(pattern)
+        if (index != -1) {
+            val start = index + pattern.length
+            val end = url.indexOfAny(charArrayOf('&', '?'), start)
+            return if (end != -1) url.substring(start, end) else url.substring(start)
+        }
+    }
+    return url
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val repository = remember { AuraRepository() }
+    var isUploading by remember { mutableStateOf(false) }
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
@@ -125,12 +153,71 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                 Spacer(modifier = Modifier.width(16.dp))
                 
                 Button(
-                    onClick = { /* TODO finalize upload */ },
+                    onClick = {
+                        if (title.isBlank() || subject.isBlank() || className.isBlank() || contentUrl.isBlank()) {
+                            Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        coroutineScope.launch {
+                            isUploading = true
+                            try {
+                                if (isVideo) {
+                                    val videoId = extractYoutubeVideoId(contentUrl)
+                                    val finalVideoUrl = if (contentUrl.contains("youtube.com") || contentUrl.contains("youtu.be")) {
+                                        contentUrl
+                                    } else {
+                                        "https://www.youtube.com/watch?v=$contentUrl"
+                                    }
+                                    val video = Video(
+                                        title = title,
+                                        description = description,
+                                        className = className,
+                                        subject = subject,
+                                        thumbnail = thumbnailUrl.ifEmpty { "https://images.unsplash.com/photo-1596496050827-8299e0220de1?auto=format&fit=crop&w=300&q=80" },
+                                        videoUrl = finalVideoUrl,
+                                        youtubeVideoId = videoId,
+                                        chapter = title,
+                                        partNumber = 1,
+                                        teacher = teacher.ifEmpty { "Aura Teacher" },
+                                        duration = "15:00",
+                                        createdAt = System.currentTimeMillis()
+                                    )
+                                    repository.addVideo(video)
+                                    Toast.makeText(context, "Video uploaded successfully", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val book = Book(
+                                        bookName = title,
+                                        className = className,
+                                        subject = subject,
+                                        coverImage = thumbnailUrl.ifEmpty { "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop" },
+                                        pdfUrl = contentUrl,
+                                        createdAt = System.currentTimeMillis()
+                                    )
+                                    repository.addBook(book)
+                                    Toast.makeText(context, "Book uploaded successfully", Toast.LENGTH_SHORT).show()
+                                }
+                                navController.popBackStack()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                isUploading = false
+                            }
+                        }
+                    },
+                    enabled = !isUploading,
                     modifier = Modifier.weight(1f).height(50.dp)
                 ) {
-                    Icon(Icons.Filled.Upload, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Finalize Upload")
+                    if (isUploading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Filled.Upload, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Finalize Upload")
+                    }
                 }
             }
         }

@@ -7,6 +7,7 @@ import com.example.ui.auth.AuthViewModel
 import com.example.ui.books.BooksViewModel
 import com.example.ui.home.HomeViewModel
 import com.example.ui.videos.VideosViewModel
+import com.example.ui.profile.MyLibraryViewModel
 
 object ViewModelFactory : ViewModelProvider.Factory {
     private val repository = AuraRepository()
@@ -39,6 +40,10 @@ object ViewModelFactory : ViewModelProvider.Factory {
         if (modelClass.isAssignableFrom(com.example.ui.courses.CourseViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return com.example.ui.courses.CourseViewModel(repository) as T
+        }
+        if (modelClass.isAssignableFrom(MyLibraryViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return MyLibraryViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

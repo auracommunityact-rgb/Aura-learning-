@@ -220,7 +220,11 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel, ro
             Spacer(modifier = Modifier.height(32.dp))
             
             // Additional Sections (like ExamResultCard)
-            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                MyLibraryCard(rootNavController)
                 ExamResultCard(rootNavController)
             }
             
@@ -354,6 +358,47 @@ fun ExamResultCard(rootNavController: NavController) {
                     text = "View your official board exam results.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MyLibraryCard(rootNavController: NavController) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { rootNavController.navigate("my_library") },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("📚", style = MaterialTheme.typography.headlineMedium)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "My Library",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "Access your saved books and video lessons.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
             }
         }

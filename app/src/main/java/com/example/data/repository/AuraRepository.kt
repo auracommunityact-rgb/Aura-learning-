@@ -14,10 +14,30 @@ import com.example.data.models.Course
 import com.example.data.supabase.SupabaseService
 import io.github.jan.supabase.postgrest.postgrest
 import java.util.UUID
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class AuraRepository {
     private val client = SupabaseService.client
     private val prefs by lazy { AppContext.context.getSharedPreferences("guest_prefs", android.content.Context.MODE_PRIVATE) }
+
+    companion object {
+        // Shared update triggers across any instances of the repository
+        private val _booksUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+        val booksUpdateTrigger = _booksUpdateTrigger.asSharedFlow()
+
+        private val _videosUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+        val videosUpdateTrigger = _videosUpdateTrigger.asSharedFlow()
+
+        suspend fun notifyBooksChanged() {
+            _booksUpdateTrigger.emit(Unit)
+        }
+
+        suspend fun notifyVideosChanged() {
+            _videosUpdateTrigger.emit(Unit)
+        }
+    }
 
     fun getGuestProfile(): User {
         val savedBooks = prefs.getStringSet("savedBooks", emptySet())?.toList() ?: emptyList()
@@ -121,6 +141,7 @@ class AuraRepository {
     suspend fun addBook(book: Book) {
         val newBook = if (book.id.isEmpty()) book.copy(id = UUID.randomUUID().toString()) else book
         client.postgrest["books"].insert(newBook)
+        notifyBooksChanged()
     }
     
     suspend fun updateBook(book: Book) {
@@ -128,6 +149,7 @@ class AuraRepository {
             client.postgrest["books"].update(book) {
                 filter { eq("id", book.id) }
             }
+            notifyBooksChanged()
         }
     }
     
@@ -136,6 +158,7 @@ class AuraRepository {
             client.postgrest["books"].delete {
                 filter { eq("id", bookId) }
             }
+            notifyBooksChanged()
         }
     }
 
@@ -231,6 +254,7 @@ class AuraRepository {
     suspend fun addVideo(video: Video) {
         val newVideo = if (video.id.isEmpty()) video.copy(id = UUID.randomUUID().toString()) else video
         client.postgrest["videos"].insert(newVideo)
+        notifyVideosChanged()
     }
     
     suspend fun updateVideo(video: Video) {
@@ -238,6 +262,7 @@ class AuraRepository {
             client.postgrest["videos"].update(video) {
                 filter { eq("id", video.id) }
             }
+            notifyVideosChanged()
         }
     }
     
@@ -246,6 +271,7 @@ class AuraRepository {
             client.postgrest["videos"].delete {
                 filter { eq("id", videoId) }
             }
+            notifyVideosChanged()
         }
     }
     

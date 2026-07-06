@@ -11,6 +11,7 @@ import com.example.data.repository.AuraRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 
 class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
@@ -40,7 +41,14 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     val selectedSubject: StateFlow<String> = _selectedSubject.asStateFlow()
 
     init {
-        fetchData()
+        viewModelScope.launch {
+            merge(
+                AuraRepository.booksUpdateTrigger,
+                AuraRepository.videosUpdateTrigger
+            ).collect {
+                fetchData()
+            }
+        }
     }
 
     fun setSelectedGrade(grade: String) {
