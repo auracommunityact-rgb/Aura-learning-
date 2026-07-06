@@ -18,7 +18,10 @@ import com.example.ui.ViewModelFactory
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.ui.auth.AuthViewModel
 import kotlinx.coroutines.launch
 
@@ -156,6 +159,9 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                 TopAppBar(
                     title = { Text("Video Lessons") },
                     actions = {
+                        IconButton(onClick = { rootNavController.navigate("global_search") }) {
+                            Icon(Icons.Filled.Search, contentDescription = "Search")
+                        }
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Filled.FilterList, contentDescription = "Filter")
                         }
@@ -164,6 +170,34 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    onClick = { rootNavController.navigate("global_search") }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Search videos...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
                 if (videos.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
                         Text("No videos found for selected filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)

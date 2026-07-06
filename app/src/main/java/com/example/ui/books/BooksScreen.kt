@@ -17,7 +17,10 @@ import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.ui.auth.AuthViewModel
 
 import com.example.ui.ViewModelFactory
@@ -181,6 +184,9 @@ fun BooksScreen(
                 TopAppBar(
                     title = { Text("Books") },
                     actions = {
+                        IconButton(onClick = { rootNavController.navigate("global_search") }) {
+                            Icon(Icons.Filled.Search, contentDescription = "Search")
+                        }
                         if (selectedTabIndex == 0) {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                 Icon(Icons.Filled.FilterList, contentDescription = "Filter")
@@ -191,6 +197,34 @@ fun BooksScreen(
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    onClick = { rootNavController.navigate("global_search") }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Search books...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
                 TabRow(selectedTabIndex = selectedTabIndex) {
                     Tab(
                         selected = selectedTabIndex == 0,
