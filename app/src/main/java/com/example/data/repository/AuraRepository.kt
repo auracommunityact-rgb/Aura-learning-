@@ -13,6 +13,7 @@ import com.example.data.models.BookProgress
 import com.example.data.models.Course
 import com.example.data.supabase.SupabaseService
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -559,6 +560,17 @@ class AuraRepository {
         } catch (e: Exception) {
             e.printStackTrace()
             throw e
+        }
+    }
+
+    suspend fun uploadResultImage(imageBytes: ByteArray, fileName: String): String {
+        return try {
+            val bucket = client.storage["results"]
+            bucket.upload(fileName, imageBytes) { upsert = true }
+            bucket.publicUrl(fileName)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
         }
     }
 }
