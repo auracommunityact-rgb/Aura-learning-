@@ -132,6 +132,7 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             com.example.ui.study.FlashcardsScreen(navController = rootNavController, deckId = deckId)
         }
         composable("study_planner") { com.example.ui.study.planner.StudyPlannerScreen(rootNavController) }
+        composable("exam_countdown") { com.example.ui.study.ExamCountdownScreen(rootNavController) }
         composable("create_schedule") { com.example.ui.study.planner.CreateScheduleScreen(rootNavController) }
         composable("planner_settings") { com.example.ui.study.planner.PlannerSettingsScreen(rootNavController) }
         composable("notes_translate") { com.example.ui.study.NotesTranslateScreen(rootNavController) }

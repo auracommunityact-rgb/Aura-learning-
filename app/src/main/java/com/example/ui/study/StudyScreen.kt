@@ -120,6 +120,8 @@ fun StudyScreen(
                     ToolCard(tool = tool) {
                         if (tool.id == "planner") {
                             rootNavController.navigate("study_planner")
+                        } else if (tool.id == "countdown") {
+                            rootNavController.navigate("exam_countdown")
                         } else if (tool.id == "pdf_reader") {
                             rootNavController.navigate("pdf_tool")
                         } else if (tool.id == "map_agent") {

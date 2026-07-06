@@ -40,6 +40,9 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _selectedSubject = MutableStateFlow<String>("All Subjects")
     val selectedSubject: StateFlow<String> = _selectedSubject.asStateFlow()
 
+    private val _activeExamSubject = MutableStateFlow<String?>(null)
+    val activeExamSubject: StateFlow<String?> = _activeExamSubject.asStateFlow()
+
     init {
         viewModelScope.launch {
             merge(
@@ -61,6 +64,11 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
         filterContent(_selectedGrade.value, _selectedSubject.value)
     }
 
+    fun setActiveExamSubject(subject: String?) {
+        _activeExamSubject.value = subject
+        filterContent(_selectedGrade.value, _selectedSubject.value)
+    }
+
     private fun filterContent(grade: String, subject: String) {
         var filteredBooks = _allBooks.value
         var filteredVideos = _allVideos.value
@@ -77,7 +85,11 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
             filteredVideos = filteredVideos.filter { it.className == className }
         }
 
-        if (subject != "All Subjects") {
+        val activeExam = _activeExamSubject.value
+        if (!activeExam.isNullOrBlank()) {
+            filteredBooks = filteredBooks.filter { it.subject.equals(activeExam, ignoreCase = true) }
+            filteredVideos = filteredVideos.filter { it.subject.equals(activeExam, ignoreCase = true) }
+        } else if (subject != "All Subjects") {
             filteredBooks = filteredBooks.filter { it.subject.equals(subject, ignoreCase = true) }
             filteredVideos = filteredVideos.filter { it.subject.equals(subject, ignoreCase = true) }
         }

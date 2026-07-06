@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -52,6 +53,25 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val selectedGrade = currentUser?.selectedGrade ?: "All Grades"
     
     val context = LocalContext.current
+    val db = remember { com.example.data.local.PlannerDatabase.getDatabase(context) }
+    val examList by db.examDateSheetDao().getAllExamsFlow().collectAsState(initial = emptyList())
+    var currentTick by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTick = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1000L)
+        }
+    }
+
+    val nextExam = remember(examList, currentTick) {
+        examList.firstOrNull { it.timestamp > currentTick }
+    }
+
+    LaunchedEffect(nextExam) {
+        viewModel.setActiveExamSubject(nextExam?.subject)
+    }
+
     val notificationRepository = remember { NotificationRepository(context) }
     val unreadCount by notificationRepository.getUnreadCount().collectAsState(initial = 0)
 
@@ -196,6 +216,73 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
+                    }
+                }
+            }
+
+            // Exam Countdown Timer (Earliest upcoming exam)
+            if (nextExam != null) {
+                item {
+                    val diff = nextExam.timestamp - currentTick
+                    val days = diff / (24 * 60 * 60 * 1000L)
+                    val hours = (diff / (60 * 60 * 1000L)) % 24
+                    val minutes = (diff / (60 * 1000L)) % 60
+                    val seconds = (diff / 1000L) % 60
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .clickable { rootNavController.navigate("exam_countdown") },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E3A8A)), // Premium Navy Blue
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Timer,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Exam Countdown: ${nextExam.subject}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Grade ${nextExam.grade} • ${nextExam.examDate} (${nextExam.examDay})",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                HomeCountdownUnit(value = days.toString().padStart(2, '0'), label = "Days")
+                                Text(":", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                HomeCountdownUnit(value = hours.toString().padStart(2, '0'), label = "Hrs")
+                                Text(":", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                HomeCountdownUnit(value = minutes.toString().padStart(2, '0'), label = "Mins")
+                                Text(":", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                HomeCountdownUnit(value = seconds.toString().padStart(2, '0'), label = "Secs")
+                            }
+                        }
                     }
                 }
             }
@@ -855,5 +942,30 @@ fun CourseCardMini(course: com.example.data.models.Course, onClick: () -> Unit) 
                 )
             }
         }
+    }
+}
+
+@Composable
+fun HomeCountdownUnit(value: String, label: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(52.dp)
+            .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+            .padding(vertical = 6.dp)
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 9.sp
+        )
     }
 }
