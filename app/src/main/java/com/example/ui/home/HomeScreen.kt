@@ -173,7 +173,15 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                                 Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
                             }
                         }
-                        IconButton(onClick = { /* navigate to profile */ }) {
+                        IconButton(onClick = { 
+                            navController.navigate("profile") {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }) {
                             Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
                         }
                     },
