@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
@@ -22,12 +25,34 @@ android {
   }
 
   signingConfigs {
-    create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+    val keystorePropertiesFile = rootProject.file("key.properties")
+    val keystoreProperties = Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    }
+
+    val storeFileVar = keystoreProperties.getProperty("storeFile") ?: System.getenv("KEYSTORE_PATH")
+    val storePasswordVar = keystoreProperties.getProperty("storePassword") ?: System.getenv("STORE_PASSWORD")
+    val keyAliasVar = keystoreProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
+    val keyPasswordVar = keystoreProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
+
+    if (storeFileVar != null && storePasswordVar != null) {
+        create("release") {
+            storeFile = rootProject.file(storeFileVar)
+            storePassword = storePasswordVar
+            keyAlias = keyAliasVar
+            keyPassword = keyPasswordVar
+        }
+        getByName("debug") {
+            storeFile = rootProject.file(storeFileVar)
+            storePassword = storePasswordVar
+            keyAlias = keyAliasVar
+            keyPassword = keyPasswordVar
+        }
+    } else {
+        create("release") {
+            // Placeholder for local builds without keys
+        }
     }
   }
 
@@ -36,9 +61,10 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      signingConfig = signingConfigs.findByName("release")
     }
     debug {
+      signingConfig = signingConfigs.findByName("debug")
     }
   }
   compileOptions {
