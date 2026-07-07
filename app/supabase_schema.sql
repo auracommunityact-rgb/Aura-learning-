@@ -103,22 +103,34 @@ DROP POLICY IF EXISTS "Users can manage own notes" ON public.notes;
 DROP POLICY IF EXISTS "Users can manage own flashcard decks" ON public.flashcard_decks;
 DROP POLICY IF EXISTS "Users can manage own flashcards" ON public.flashcards;
 
+-- Create Admin check function
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+DECLARE
+  is_admin boolean;
+BEGIN
+  SELECT (role = 'admin') INTO is_admin FROM public.users WHERE id = auth.uid();
+  RETURN COALESCE(is_admin, false);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Users policies
 CREATE POLICY "Users can view and manage their own profile" ON public.users FOR ALL USING (auth.uid() = id);
--- Simplified admin policy (assuming admin sets their role manually in DB to 'admin')
-CREATE POLICY "Admin can manage all users" ON public.users FOR ALL USING ( (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin' );
+
+-- Simplified admin policy
+CREATE POLICY "Admin can manage all users" ON public.users FOR ALL USING ( public.is_admin() );
 
 -- Books policies
 CREATE POLICY "Authenticated read access for books" ON public.books FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admin write access for books" ON public.books FOR ALL USING ( (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admin write access for books" ON public.books FOR ALL USING ( public.is_admin() );
 
 -- Videos policies
 CREATE POLICY "Authenticated read access for videos" ON public.videos FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admin write access for videos" ON public.videos FOR ALL USING ( (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admin write access for videos" ON public.videos FOR ALL USING ( public.is_admin() );
 
 -- Banners policies
 CREATE POLICY "Public read access for banners" ON public.banners FOR SELECT USING (true);
-CREATE POLICY "Admin write access for banners" ON public.banners FOR ALL USING ( (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admin write access for banners" ON public.banners FOR ALL USING ( public.is_admin() );
 
 -- Notes policies
 CREATE POLICY "Users can manage own notes" ON public.notes FOR ALL USING (auth.uid()::text = "userId");
