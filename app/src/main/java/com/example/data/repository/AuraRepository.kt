@@ -573,4 +573,15 @@ class AuraRepository {
             ""
         }
     }
+
+    suspend fun uploadCoverImage(imageBytes: ByteArray, fileName: String): String {
+        return try {
+            val bucket = client.storage["covers"]
+            bucket.upload(fileName, imageBytes) { upsert = true }
+            bucket.publicUrl(fileName)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
+    }
 }

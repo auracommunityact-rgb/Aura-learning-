@@ -1,13 +1,18 @@
 package com.example.ui.admin
 
 import android.widget.Toast
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Preview
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Bookmark
@@ -27,6 +32,7 @@ import com.example.data.models.Book
 import com.example.data.models.Video
 import com.example.data.repository.AuraRepository
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 fun extractYoutubeVideoId(url: String): String {
     if (url.isEmpty()) return ""
@@ -60,10 +66,17 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
     var subject by remember { mutableStateOf("") }
     var className by remember { mutableStateOf("") }
     var thumbnailUrl by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var contentUrl by remember { mutableStateOf("") } // PDF URL or YouTube URL
     var teacher by remember { mutableStateOf("") } // For videos
 
     var showPreviewDialog by remember { mutableStateOf(false) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
 
     Scaffold(
         topBar = {
@@ -124,12 +137,39 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                 )
             }
             
-            OutlinedTextField(
-                value = thumbnailUrl,
-                onValueChange = { thumbnailUrl = it },
-                label = { Text(if (isVideo) "Thumbnail URL" else "Cover Image URL") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Text(if (isVideo) "Thumbnail Image" else "Cover Image", style = MaterialTheme.typography.titleMedium)
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { photoPickerLauncher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (selectedImageUri != null) {
+                    AsyncImage(
+                        model = selectedImageUri,
+                        contentDescription = "Selected Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (thumbnailUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = "Selected Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Tap to select image", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
             
             OutlinedTextField(
                 value = contentUrl,
@@ -161,6 +201,24 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                         coroutineScope.launch {
                             isUploading = true
                             try {
+                                var finalImageUrl = thumbnailUrl
+                                if (selectedImageUri != null) {
+                                    val inputStream = context.contentResolver.openInputStream(selectedImageUri!!)
+                                    val bytes = inputStream?.readBytes()
+                                    inputStream?.close()
+                                    if (bytes != null) {
+                                        val ext = context.contentResolver.getType(selectedImageUri!!)?.split("/")?.lastOrNull() ?: "jpg"
+                                        val fileName = "${UUID.randomUUID()}.$ext"
+                                        val uploadedUrl = repository.uploadCoverImage(bytes, fileName)
+                                        if (uploadedUrl.isNotEmpty()) {
+                                            finalImageUrl = uploadedUrl
+                                            thumbnailUrl = finalImageUrl // Update the text field state
+                                        } else {
+                                            Toast.makeText(context, "Failed to upload image", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+
                                 if (isVideo) {
                                     val videoId = extractYoutubeVideoId(contentUrl)
                                     val finalVideoUrl = if (contentUrl.contains("youtube.com") || contentUrl.contains("youtu.be")) {
@@ -173,7 +231,7 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                                         description = description,
                                         className = className,
                                         subject = subject,
-                                        thumbnail = thumbnailUrl.ifEmpty { "https://images.unsplash.com/photo-1596496050827-8299e0220de1?auto=format&fit=crop&w=300&q=80" },
+                                        thumbnail = finalImageUrl.ifEmpty { "https://images.unsplash.com/photo-1596496050827-8299e0220de1?auto=format&fit=crop&w=300&q=80" },
                                         videoUrl = finalVideoUrl,
                                         youtubeVideoId = videoId,
                                         chapter = title,
@@ -189,7 +247,7 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                                         bookName = title,
                                         className = className,
                                         subject = subject,
-                                        coverImage = thumbnailUrl.ifEmpty { "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop" },
+                                        coverImage = finalImageUrl.ifEmpty { "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop" },
                                         pdfUrl = contentUrl,
                                         createdAt = System.currentTimeMillis()
                                     )
