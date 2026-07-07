@@ -2,13 +2,11 @@ package com.example.ui.study.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.BuildConfig
-import com.example.data.api.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.*
 
 data class ChatMessage(val text: String, val isUser: Boolean, val isLoading: Boolean = false)
 
@@ -57,84 +55,37 @@ class MapAgentViewModel : ViewModel() {
     }
 
     private suspend fun generateContent(prompt: String): AgentResponse {
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        
-        val historyContents = _messages.value.filter { !it.isLoading }.map { msg ->
-            Content(
-                role = if (msg.isUser) "user" else "model",
-                parts = listOf(Part(text = msg.text))
-            )
-        }.toMutableList()
-
-        // Replace the last message from user with the prompt, as we just added it to history
-        // Wait, the prompt is already in the history as the last user message before the loading message.
-        // But history also has the first greeting which is from model.
-
-        val tools = listOf(
-            buildJsonObject {
-                putJsonArray("functionDeclarations") {
-                    addJsonObject {
-                        put("name", "openGoogleMaps")
-                        put("description", "Open Google Maps to show a place, route, or directions")
-                        putJsonObject("parameters") {
-                            put("type", "OBJECT")
-                            putJsonObject("properties") {
-                                putJsonObject("query") {
-                                    put("type", "STRING")
-                                    put("description", "The place name or destination address to search for.")
-                                }
-                                putJsonObject("mode") {
-                                    put("type", "STRING")
-                                    put("description", "The mode of maps. Use 'search' for looking up a place, or 'directions' for routing.")
-                                }
-                                putJsonObject("origin") {
-                                    put("type", "STRING")
-                                    put("description", "Optional. The starting location for directions. Only used if mode is 'directions'.")
-                                }
-                            }
-                            putJsonArray("required") { add("query"); add("mode") }
-                        }
-                    }
-                }
-            }
-        )
-
-        val request = GenerateContentRequest(
-            contents = historyContents,
-            tools = tools,
-            systemInstruction = Content(
-                parts = listOf(Part(text = "You are a helpful Map Agent. Your job is to help users find places, routes, or directions. You can provide information about places, and if they ask for directions or want to see a place on a map, use the openGoogleMaps function."))
-            )
-        )
-
-        val response = RetrofitClient.service.generateContent(apiKey, request)
-        val firstCandidate = response.candidates?.firstOrNull()
-        val parts = firstCandidate?.content?.parts
-
+        val lowerPrompt = prompt.lowercase()
         var responseText: String? = null
         var action: MapAction? = null
 
-        parts?.forEach { part ->
-            if (part.text != null) {
-                responseText = part.text
+        if (lowerPrompt.contains("directions to") || lowerPrompt.contains("route to") || lowerPrompt.contains("navigate to")) {
+            val keyword = listOf("directions to", "route to", "navigate to").find { lowerPrompt.contains(it) }!!
+            val afterKeyword = prompt.substring(lowerPrompt.indexOf(keyword) + keyword.length).trim()
+            
+            // Check for "from"
+            val fromIndex = afterKeyword.indexOf(" from ", ignoreCase = true)
+            if (fromIndex != -1) {
+                val destination = afterKeyword.substring(0, fromIndex).trim()
+                val origin = afterKeyword.substring(fromIndex + 6).trim()
+                action = MapAction.OpenMapDirections(destination, origin)
+                responseText = "Getting directions to $destination from $origin..."
+            } else {
+                val destination = afterKeyword
+                action = MapAction.OpenMapDirections(destination, null)
+                responseText = "Getting directions to $destination..."
             }
-            if (part.functionCall != null) {
-                val args = part.functionCall.args
-                val query = args?.get("query")?.jsonPrimitive?.content ?: ""
-                val mode = args?.get("mode")?.jsonPrimitive?.content ?: "search"
-                val origin = args?.get("origin")?.jsonPrimitive?.content
-                
-                action = if (mode == "directions") {
-                    MapAction.OpenMapDirections(query, origin)
-                } else {
-                    MapAction.OpenMapSearch(query)
-                }
-                
-                if (responseText == null) {
-                    responseText = "Opening Google Maps for '$query'..."
-                }
-            }
+        } else if (lowerPrompt.contains("where is") || lowerPrompt.contains("find") || lowerPrompt.contains("search for") || lowerPrompt.contains("show me")) {
+            val keyword = listOf("where is", "search for", "show me", "find").find { lowerPrompt.contains(it) }!!
+            val destination = prompt.substring(lowerPrompt.indexOf(keyword) + keyword.length).trim().removeSuffix("?")
+            action = MapAction.OpenMapSearch(destination)
+            responseText = "Searching for $destination..."
+        } else {
+            responseText = "I'm a simple Map Agent. Try asking me:\n- 'directions to [place]'\n- 'directions to [place] from [place]'\n- 'where is [place]'\n- 'search for [place]'"
         }
+
+        // Add a slight delay to simulate processing
+        delay(600)
         
         return AgentResponse(responseText, action)
     }
