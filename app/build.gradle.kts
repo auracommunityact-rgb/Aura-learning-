@@ -15,7 +15,7 @@ android {
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "com.aistudio.auralearning.aura"
+    applicationId = "com.auracommunityact.auralearning"
     minSdk = 24
     targetSdk = 35
     versionCode = 1
@@ -32,7 +32,7 @@ android {
     }
 
     val storeFileVar = keystoreProperties.getProperty("storeFile") ?: System.getenv("KEYSTORE_PATH")
-    val storePasswordVar = keystoreProperties.getProperty("storePassword") ?: System.getenv("STORE_PASSWORD")
+    val storePasswordVar = keystoreProperties.getProperty("storePassword") ?: System.getenv("KEYSTORE_PASSWORD")
     val keyAliasVar = keystoreProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
     val keyPasswordVar = keystoreProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
 

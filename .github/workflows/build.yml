@@ -8,6 +8,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_PATH: ${{ github.workspace }}/keystore.jks
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     steps:
       - name: Checkout source
@@ -19,31 +24,19 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # 1. Build Release APK (unsigned first)
-      - name: Build Release APK
-        run: gradle assembleRelease --stacktrace
-
-      # 2. Sign APK with your permanent keystore from GitHub Secrets
-      - name: Sign App
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          singleOp: true
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
+      # Build Signed Release APK (Gradle handles signing via env vars configured in build.gradle.kts)
+      - name: Build Signed Release APK
+        run: ./gradlew assembleRelease --stacktrace
 
       # 3. Upload signed Release APK as artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AuraLearning-Signed.apk
-          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          name: AuraLearning-Signed-APK
+          path: app/build/outputs/apk/release/app-release.apk
