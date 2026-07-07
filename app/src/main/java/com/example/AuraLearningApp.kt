@@ -139,6 +139,8 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("notes_translate") { com.example.ui.study.NotesTranslateScreen(rootNavController) }
         composable("calculator") { com.example.ui.study.calculator.ScientificCalculatorScreen(rootNavController) }
         composable("result_analysis") { com.example.ui.study.ResultAnalysisScreen(rootNavController) }
+        composable("progress") { com.example.ui.study.ProgressTrackerScreen(rootNavController) }
+        composable("weekly_report") { com.example.ui.study.WeeklyReportScreen(rootNavController) }
         composable("ai_chat") { com.example.ui.chat.PuterChatScreen(rootNavController) }
         composable(
             "quiz/{lessonId}",

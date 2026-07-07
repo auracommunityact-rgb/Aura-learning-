@@ -132,6 +132,10 @@ fun StudyScreen(
                             rootNavController.navigate("calculator")
                         } else if (tool.id == "result_analysis") {
                             rootNavController.navigate("result_analysis")
+                        } else if (tool.id == "progress") {
+                            rootNavController.navigate("progress")
+                        } else if (tool.id == "weekly_report") {
+                            rootNavController.navigate("weekly_report")
                         } else {
                             rootNavController.navigate("tool_viewer/${tool.id}?title=${tool.title}")
                         }
