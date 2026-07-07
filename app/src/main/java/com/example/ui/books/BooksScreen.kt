@@ -27,7 +27,8 @@ import com.example.ui.ViewModelFactory
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +89,10 @@ fun BooksScreen(
     val subjects = listOf("Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science")
     
     val booksBySubject = books.groupBy { it.subject.ifEmpty { "Other" } }
+    
+    val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
+    val newBooks = books.filter { it.createdAt >= sevenDaysAgo }
+    
     val offlineBooksList = offlineBooks.map { 
         com.example.data.models.Book(
             id = it.id,
@@ -95,7 +100,8 @@ fun BooksScreen(
             className = it.className,
             subject = it.subject,
             coverImage = it.coverImage,
-            pdfUrl = "file://" + it.localPdfPath
+            pdfUrl = "file://" + it.localPdfPath,
+            createdAt = it.downloadedAt
         )
     }
     val offlineBooksBySubject = offlineBooksList.groupBy { it.subject.ifEmpty { "Other" } }
@@ -133,7 +139,7 @@ fun BooksScreen(
                             modifier = Modifier.padding(horizontal = 12.dp)
                         )
                     }
-                    lazyItems(classes) { cls ->
+                    items(classes) { cls ->
                         NavigationDrawerItem(
                             label = { Text(cls) },
                             selected = selectedClass == cls,
@@ -164,7 +170,7 @@ fun BooksScreen(
                         )
                     }
                     
-                    lazyItems(subjects) { subject ->
+                    items(subjects) { subject ->
                         NavigationDrawerItem(
                             label = { Text(subject) },
                             selected = selectedSubject == subject,
@@ -245,36 +251,35 @@ fun BooksScreen(
                         }
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
+                            if (newBooks.isNotEmpty()) {
+                                item {
+                                    Text("New Books", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp))
+                                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        items(newBooks) { book ->
+                                            PlayStoreBookItem(book = book, onBookClick = {
+                                                val urlToOpen = offlineBooks.find { it.id == book.id }?.let { "file://" + it.localPdfPath } ?: book.pdfUrl
+                                                val encodedUrl = java.net.URLEncoder.encode(urlToOpen, "UTF-8")
+                                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                            })
+                                        }
+                                    }
+                                }
+                            }
                             booksBySubject.forEach { (subject, subjectBooks) ->
                                 item {
                                     Text(
                                         text = subject,
                                         style = MaterialTheme.typography.titleLarge,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 16.dp, top = if (subject == booksBySubject.keys.first()) 16.dp else 24.dp, bottom = 8.dp)
+                                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
                                     )
-                                    DigitalBookshelf(
-                                        books = subjectBooks,
-                                        savedBookIds = currentUser?.savedBooks ?: emptyList(),
-                                        offlineBookIds = offlineBooks.map { it.id },
-                                        downloadProgress = downloadProgress,
-                                        onBookClick = { book ->
-                                            if (book.pdfUrl.isNotEmpty()) {
-                                                val urlToOpen = offlineBooks.find { it.id == book.id }?.let { "file://" + it.localPdfPath } ?: book.pdfUrl
-                                                val encodedUrl = java.net.URLEncoder.encode(urlToOpen, "UTF-8")
-                                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                                            }
-                                        },
-                                        onToggleSave = { bookId ->
-                                            if (currentUser == null) {
-                                                showLoginPrompt = true
-                                            } else {
-                                                authViewModel.toggleSaveBook(bookId)
-                                            }
-                                        },
-                                        onDownloadBook = { book -> offlineBooksViewModel.downloadBook(book) },
-                                        onDeleteOfflineBook = { bookId -> offlineBooksViewModel.deleteOfflineBook(bookId) }
-                                    )
+                                }
+                                items(subjectBooks) { book ->
+                                    PlayStoreBookListItem(book = book, onBookClick = {
+                                        val urlToOpen = offlineBooks.find { it.id == book.id }?.let { "file://" + it.localPdfPath } ?: book.pdfUrl
+                                        val encodedUrl = java.net.URLEncoder.encode(urlToOpen, "UTF-8")
+                                        rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                    })
                                 }
                             }
                         }
@@ -292,27 +297,14 @@ fun BooksScreen(
                                         text = subject,
                                         style = MaterialTheme.typography.titleLarge,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 16.dp, top = if (subject == offlineBooksBySubject.keys.first()) 16.dp else 24.dp, bottom = 8.dp)
+                                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
                                     )
-                                    DigitalBookshelf(
-                                        books = subjectBooks,
-                                        savedBookIds = currentUser?.savedBooks ?: emptyList(),
-                                        offlineBookIds = offlineBooks.map { it.id },
-                                        downloadProgress = downloadProgress,
-                                        onBookClick = { book ->
-                                            val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                                        },
-                                        onToggleSave = { bookId ->
-                                            if (currentUser == null) {
-                                                showLoginPrompt = true
-                                            } else {
-                                                authViewModel.toggleSaveBook(bookId)
-                                            }
-                                        },
-                                        onDownloadBook = { book -> offlineBooksViewModel.downloadBook(book) },
-                                        onDeleteOfflineBook = { bookId -> offlineBooksViewModel.deleteOfflineBook(bookId) }
-                                    )
+                                }
+                                items(subjectBooks) { book ->
+                                    PlayStoreBookListItem(book = book, onBookClick = {
+                                        val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                        rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                    })
                                 }
                             }
                         }

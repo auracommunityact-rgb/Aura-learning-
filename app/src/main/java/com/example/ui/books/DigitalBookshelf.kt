@@ -15,38 +15,54 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.data.models.Book
 
 @Composable
-fun DigitalBookshelf(
-    books: List<Book>,
-    savedBookIds: List<String>,
-    offlineBookIds: List<String>,
-    downloadProgress: Map<String, Int>,
-    onBookClick: (Book) -> Unit,
-    onToggleSave: (String) -> Unit,
-    onDownloadBook: (Book) -> Unit,
-    onDeleteOfflineBook: (String) -> Unit
-) {
-    // Group books in chunks of 3 for each shelf
-    val shelves = books.chunked(3)
-
+fun PlayStoreBookItem(book: Book, onBookClick: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+        modifier = Modifier
+            .width(120.dp)
+            .clickable(onClick = onBookClick),
+        horizontalAlignment = Alignment.Start
     ) {
-        shelves.forEach { shelfBooks ->
-            ShelfRow(
-                books = shelfBooks,
-                savedBookIds = savedBookIds,
-                offlineBookIds = offlineBookIds,
-                downloadProgress = downloadProgress,
-                onBookClick = onBookClick,
-                onToggleSave = onToggleSave,
-                onDownloadBook = onDownloadBook,
-                onDeleteOfflineBook = onDeleteOfflineBook
-            )
+        AsyncImage(
+            model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+            contentDescription = book.bookName,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.7f)
+                .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = book.bookName, style = MaterialTheme.typography.bodyMedium, maxLines = 2, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun PlayStoreBookListItem(book: Book, onBookClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onBookClick),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+            contentDescription = book.bookName,
+            modifier = Modifier
+                .size(60.dp)
+                .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.small),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(text = book.bookName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(text = book.subject, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
