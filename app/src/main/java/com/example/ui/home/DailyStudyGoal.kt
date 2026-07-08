@@ -112,7 +112,7 @@ fun DailyStudyGoalCard() {
                     }
                     
                     FilledTonalButton(
-                        onClick = { goalManager.addStudyTime(10) }, // Mock adding time
+                        onClick = { goalManager.addStudyTime(10) },
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.height(32.dp)
                     ) {

@@ -25,16 +25,7 @@ class CourseViewModel(private val repository: AuraRepository) : ViewModel() {
             _isLoading.value = true
             // Fetch courses from Supabase
             val fetchedCourses = repository.getCourses()
-            if (fetchedCourses.isNotEmpty()) {
-                _courses.value = fetchedCourses
-            } else {
-                // Fallback to some defaults if table doesn't exist or is empty
-                _courses.value = listOf(
-                    Course("1", "Mathematics", "Advanced Mathematics", "Learn algebra, geometry, and calculus with our comprehensive math course.", "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&q=80&w=400"),
-                    Course("2", "Science", "General Science", "Explore physics, chemistry, and biology in this foundational science course.", "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=400"),
-                    Course("3", "History", "World History", "Journey through time and understand the events that shaped our world.", "https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&q=80&w=400")
-                )
-            }
+            _courses.value = fetchedCourses
             _isLoading.value = false
         }
     }

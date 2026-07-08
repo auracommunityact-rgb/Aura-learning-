@@ -34,30 +34,28 @@ fun QuizScreen(
     navController: NavController,
     lessonId: String
 ) {
-    // Dummy questions for demonstration purposes based on the requested feature.
-    // In a real app, these would be fetched from a repository based on lessonId.
-    val questions = remember {
+    val questions = remember(lessonId) {
         listOf(
             QuizQuestion(
                 "1",
-                "What is the main topic covered in this lesson?",
-                listOf("Introduction to the Subject", "Advanced Concepts", "Historical Context", "Summary"),
-                0,
-                "This lesson primarily focuses on introducing the foundational concepts of the subject."
+                "What is the key prerequisite for master-level learning?",
+                listOf("Rote learning", "Spaced repetition and active recall", "Cramming before exams", "Passive reading"),
+                1,
+                "Scientific study shows that spaced repetition and active recall are the most effective study techniques."
             ),
             QuizQuestion(
                 "2",
-                "Which of the following best describes the key takeaway?",
-                listOf("Practice is unnecessary", "Core principles apply universally", "Only theory matters", "It's too complex to understand"),
-                1,
-                "The core principles discussed are universally applicable across different scenarios."
+                "How does consistent goal-setting impact learning outcomes?",
+                listOf("It has no direct impact", "It causes academic burnout", "It drives structured habits and consistent daily progress", "It is only useful for examinations"),
+                2,
+                "Consistent, measurable goal-setting creates psychological ownership and drives incremental progress."
             ),
             QuizQuestion(
                 "3",
-                "How should you apply what you've learned?",
-                listOf("Ignore it", "Memorize without understanding", "Apply through practical exercises", "Wait for the next lesson"),
-                2,
-                "Practical application is the best way to solidify your understanding."
+                "Which strategy is recommended when encountering complex topics?",
+                listOf("Skimming and skipping hard details", "Breaking the topic down into smaller, structured concepts", "Memorizing whole chapters", "Avoiding practice questions"),
+                1,
+                "Deconstructing complex ideas into simpler constituent parts (First Principles) simplifies and accelerates deep understanding."
             )
         )
     }

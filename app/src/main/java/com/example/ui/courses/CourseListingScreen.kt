@@ -29,6 +29,7 @@ fun CourseListingScreen(navController: NavController) {
     val viewModel: CourseViewModel = viewModel(factory = ViewModelFactory)
     val courses by viewModel.courses.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    var selectedCourse by remember { mutableStateOf<Course?>(null) }
 
     Scaffold(
         topBar = {
@@ -42,25 +43,84 @@ fun CourseListingScreen(navController: NavController) {
             )
         }
     ) { padding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 160.dp),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                items(courses) { course ->
-                    CourseCard(course = course) {
-                        // TODO: Navigate to course details
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    items(courses) { course ->
+                        CourseCard(course = course) {
+                            selectedCourse = course
+                        }
                     }
                 }
+            }
+
+            selectedCourse?.let { course ->
+                AlertDialog(
+                    onDismissRequest = { selectedCourse = null },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                selectedCourse = null
+                                navController.navigate("main?tab=study") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        ) {
+                            Text("Explore Material")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { selectedCourse = null }) {
+                            Text("Close")
+                        }
+                    },
+                    title = {
+                        Text(
+                            text = course.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = {
+                        Column {
+                            AsyncImage(
+                                model = course.thumbnailUrl,
+                                contentDescription = course.title,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Subject: ${course.subject}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = course.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(24.dp)
+                )
             }
         }
     }

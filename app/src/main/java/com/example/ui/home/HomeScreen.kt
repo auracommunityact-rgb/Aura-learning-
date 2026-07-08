@@ -19,6 +19,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -228,6 +232,57 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 }
             }
 
+            // Google Custom Tab Button
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    onClick = {
+                        try {
+                            val customTabsIntent = CustomTabsIntent.Builder()
+                                .setShowTitle(true)
+                                .build()
+                            customTabsIntent.launchUrl(context, Uri.parse("https://www.google.com"))
+                        } catch (e: Exception) {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
+                            context.startActivity(intent)
+                        }
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        GoogleIcon(modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Search on ",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Row {
+                            Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            Text("o", color = Color(0xFFEA4335), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            Text("o", color = Color(0xFFFBBC05), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            Text("g", color = Color(0xFF4285F4), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            Text("l", color = Color(0xFF34A853), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            Text("e", color = Color(0xFFEA4335), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                }
+            }
+
             // Exam Countdown Timer (Earliest upcoming exam)
             if (nextExam != null) {
                 item {
@@ -348,7 +403,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
 
             // Section 8: Daily Motivation Banner
             item {
-                DailyMotivationBanner()
+                DailyMotivationBanner(onStartStudying = { navController.navigate("study") })
             }
 
             // Section 4: Video Classes
@@ -744,7 +799,7 @@ fun AILearningToolsSection(rootNavController: NavController) {
 }
 
 @Composable
-fun DailyMotivationBanner() {
+fun DailyMotivationBanner(onStartStudying: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -778,7 +833,7 @@ fun DailyMotivationBanner() {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { /* TODO */ },
+                    onClick = onStartStudying,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.tertiaryContainer
@@ -907,7 +962,7 @@ fun CoursesSection(navController: NavController) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(courses) { course ->
-                    CourseCardMini(course = course, onClick = { /* TODO */ })
+                    CourseCardMini(course = course, onClick = { navController.navigate("courses") })
                 }
             }
         }
@@ -977,3 +1032,66 @@ fun HomeCountdownUnit(value: String, label: String) {
         )
     }
 }
+
+@Composable
+fun GoogleIcon(modifier: Modifier = Modifier.size(24.dp)) {
+    Canvas(modifier = modifier) {
+        val sizePx = size.minDimension
+        val strokeWidth = sizePx * 0.18f
+        val radius = (sizePx - strokeWidth) / 2f
+        val arcSize = sizePx - strokeWidth
+        val centerPoint = center
+        
+        // Red segment (top)
+        drawArc(
+            color = Color(0xFFEA4335),
+            startAngle = 180f,
+            sweepAngle = 100f,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Square),
+            topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2f, strokeWidth / 2f),
+            size = androidx.compose.ui.geometry.Size(arcSize, arcSize)
+        )
+        // Yellow segment (bottom-left)
+        drawArc(
+            color = Color(0xFFFBBC05),
+            startAngle = 100f,
+            sweepAngle = 80f,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Square),
+            topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2f, strokeWidth / 2f),
+            size = androidx.compose.ui.geometry.Size(arcSize, arcSize)
+        )
+        // Green segment (bottom)
+        drawArc(
+            color = Color(0xFF34A853),
+            startAngle = 0f,
+            sweepAngle = 100f,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Square),
+            topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2f, strokeWidth / 2f),
+            size = androidx.compose.ui.geometry.Size(arcSize, arcSize)
+        )
+        // Blue segment (right & horizontal line)
+        drawArc(
+            color = Color(0xFF4285F4),
+            startAngle = 280f,
+            sweepAngle = 80f,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Square),
+            topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2f, strokeWidth / 2f),
+            size = androidx.compose.ui.geometry.Size(arcSize, arcSize)
+        )
+        
+        // Horizontal bar of "G"
+        val barLength = radius * 0.95f
+        drawLine(
+            color = Color(0xFF4285F4),
+            start = androidx.compose.ui.geometry.Offset(centerPoint.x, centerPoint.y),
+            end = androidx.compose.ui.geometry.Offset(centerPoint.x + barLength, centerPoint.y),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Square
+        )
+    }
+}
+

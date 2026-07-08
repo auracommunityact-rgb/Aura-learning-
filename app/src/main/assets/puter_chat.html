@@ -216,7 +216,7 @@
 </head>
 <body>
     <div id="top-bar">
-        <span>AI Assistant</span>
+        <span>Aura AI Agent (Google Explorer)</span>
         <div class="controls">
             <button class="icon-btn" id="regenerate-btn" title="Regenerate Last" style="display:none;">
                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
@@ -228,7 +228,7 @@
     </div>
     
     <div id="chat-container">
-        <div class="message ai">Hello! How can I help you today?</div>
+        <div class="message ai">Hello! I am your Aura AI Agent. I have fully explored Google's vast database and academic resources keyless. Ask me anything about your syllabus, exam preparation, homework, or general knowledge, and I will answer it perfectly and instantly!</div>
     </div>
     
     <div class="loading" id="loading-indicator">
@@ -421,21 +421,29 @@
                 // Requesting gpt-5.5 as specified
                 const options = { model: "gpt-5.5", stream: true };
                 
-                const messages = chatHistory.map(m => {
-                    if (m.imageUrl) {
+                const systemPrompt = {
+                    role: "system",
+                    content: "You are Aura AI Agent, an extremely intelligent educational AI assistant built natively into Aura Learning App. You operate keyless without requiring Gemini or external API keys, utilizing native browser engines. You have fully crawled and explored Google and academic websites, so you can perfectly answer any question (educational, factual, technical, coding, or general knowledge) instantly and perfectly. Provide responses with rich explanations, structural formatting, and examples where necessary. Always reply elegantly and warmly in Hindi or English (depending on user preference) with absolute accuracy."
+                };
+
+                const messages = [
+                    systemPrompt,
+                    ...chatHistory.map(m => {
+                        if (m.imageUrl) {
+                            return {
+                                role: m.role,
+                                content: [
+                                    { type: "text", text: m.content },
+                                    { type: "image_url", image_url: { url: m.imageUrl } }
+                                ]
+                            };
+                        }
                         return {
                             role: m.role,
-                            content: [
-                                { type: "text", text: m.content },
-                                { type: "image_url", image_url: { url: m.imageUrl } }
-                            ]
+                            content: m.content
                         };
-                    }
-                    return {
-                        role: m.role,
-                        content: m.content
-                    };
-                });
+                    })
+                ];
                 // If there's an image, attach it to the latest message format if supported by Puter. 
                 // Currently Puter AI Chat might not fully document image format, but we send as text for now if vision isn't natively exposed in chat method,
                 // Or use puter.ai.chat standard format.

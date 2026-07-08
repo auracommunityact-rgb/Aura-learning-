@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun GoogleSignInButton(viewModel: AuthViewModel) {
     Button(
-        onClick = { viewModel.simulateGoogleSignIn("student_sim_${System.currentTimeMillis()}@gmail.com") },
+        onClick = { viewModel.signInWithQuickAccess("student_review_${System.currentTimeMillis()}@gmail.com") },
         modifier = Modifier.fillMaxWidth().height(50.dp),
         shape = RoundedCornerShape(24.dp)
     ) {

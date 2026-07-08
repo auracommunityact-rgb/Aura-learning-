@@ -98,58 +98,20 @@ class AuraRepository {
 
     // Books
     suspend fun getBooks(): List<Book> {
-        val kartikBook = Book(
-            id = "kartik_10th",
-            bookName = "Kartika",
-            className = "10th",
-            subject = "Hindi",
-            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/31GDpJrSb3L._AC_UF1000,1000_QL80_.jpg",
-            pdfUrl = "https://drive.google.com/file/d/1QXmCcR1XyEMjEdTWw1I4KsSNTTROgGMY/preview",
-            createdAt = System.currentTimeMillis()
-        )
-        val mathsBook = Book(
-            id = "maths_10th",
-            bookName = "Maths",
-            className = "10th",
-            subject = "Mathematics",
-            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            pdfUrl = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/sign/Book/kemh1a1-combined.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81NzhhNWYwOS03YzdjLTQ0MWMtODBmNy1jYjk2MTFiODQwYWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJCb29rL2tlbWgxYTEtY29tYmluZWQucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4Mjc2NzYzMiwiZXhwIjoxODE0MzAzNjMyfQ.Ci44hWuaNvjT7MVqlTOZ77pHliyIbewHQQpHnVTTKp0",
-            createdAt = System.currentTimeMillis()
-        )
         return try {
-            val books = client.postgrest["books"].select().decodeList<Book>()
-            listOf(kartikBook, mathsBook) + books
+            client.postgrest["books"].select().decodeList<Book>()
         } catch (e: Exception) {
-            listOf(kartikBook, mathsBook)
+            emptyList()
         }
     }
 
     suspend fun getBooksByClass(className: String): List<Book> {
-        val kartikBook = Book(
-            id = "kartik_10th",
-            bookName = "Kartika",
-            className = "10th",
-            subject = "Hindi",
-            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/31GDpJrSb3L._AC_UF1000,1000_QL80_.jpg",
-            pdfUrl = "https://drive.google.com/file/d/1QXmCcR1XyEMjEdTWw1I4KsSNTTROgGMY/preview",
-            createdAt = System.currentTimeMillis()
-        )
-        val mathsBook = Book(
-            id = "maths_10th",
-            bookName = "Maths",
-            className = "10th",
-            subject = "Mathematics",
-            coverImage = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            pdfUrl = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/sign/Book/kemh1a1-combined.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81NzhhNWYwOS03YzdjLTQ0MWMtODBmNy1jYjk2MTFiODQwYWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJCb29rL2tlbWgxYTEtY29tYmluZWQucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4Mjc2NzYzMiwiZXhwIjoxODE0MzAzNjMyfQ.Ci44hWuaNvjT7MVqlTOZ77pHliyIbewHQQpHnVTTKp0",
-            createdAt = System.currentTimeMillis()
-        )
         return try {
-            val books = client.postgrest["books"].select {
+            client.postgrest["books"].select {
                 filter { eq("className", className) }
             }.decodeList<Book>()
-            if (className == "10th") listOf(kartikBook, mathsBook) + books else books
         } catch (e: Exception) {
-            if (className == "10th") listOf(kartikBook, mathsBook) else emptyList()
+            emptyList()
         }
     }
 
@@ -179,85 +141,20 @@ class AuraRepository {
 
     // Videos
     suspend fun getVideos(): List<Video> {
-        val mathsLesson1 = Video(
-            id = "maths_lesson_1",
-            title = "Maths Class 10th - Part 1",
-            description = "Maths Class 10th - Part 1",
-            className = "10th",
-            subject = "Maths",
-            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            videoUrl = "https://youtu.be/SyZQP15qwaQ?si=1wKUi6W4YUHKds8h",
-            youtubeVideoId = "SyZQP15qwaQ",
-            chapter = "Maths Class 10th",
-            partNumber = 1,
-            teacher = "Aura Teacher",
-            duration = "45:00",
-            relatedBooks = listOf("maths_10th"),
-            createdAt = System.currentTimeMillis()
-        )
-        val mathsLesson2 = Video(
-            id = "maths_lesson_2",
-            title = "Maths Class 10th - Part 2",
-            description = "Maths Class 10th - Part 2",
-            className = "10th",
-            subject = "Maths",
-            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            videoUrl = "https://youtu.be/YUscmq5Pr1Q?si=NkpgdUUXzIh62pTX",
-            youtubeVideoId = "YUscmq5Pr1Q",
-            chapter = "Maths Class 10th",
-            partNumber = 2,
-            teacher = "Aura Teacher",
-            duration = "45:00",
-            relatedBooks = listOf("maths_10th"),
-            createdAt = System.currentTimeMillis()
-        )
         return try {
-            listOf(mathsLesson1, mathsLesson2) + client.postgrest["videos"].select().decodeList<Video>()
+            client.postgrest["videos"].select().decodeList<Video>()
         } catch (e: Exception) {
-            listOf(mathsLesson1, mathsLesson2)
+            emptyList()
         }
     }
 
     suspend fun getVideosByClass(className: String): List<Video> {
-        val mathsLesson1 = Video(
-            id = "maths_lesson_1",
-            title = "Maths Class 10th - Part 1",
-            description = "Maths Class 10th - Part 1",
-            className = "10th",
-            subject = "Maths",
-            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            videoUrl = "https://youtu.be/SyZQP15qwaQ?si=1wKUi6W4YUHKds8h",
-            youtubeVideoId = "SyZQP15qwaQ",
-            chapter = "Maths Class 10th",
-            partNumber = 1,
-            teacher = "Aura Teacher",
-            duration = "45:00",
-            relatedBooks = listOf("maths_10th"),
-            createdAt = System.currentTimeMillis()
-        )
-        val mathsLesson2 = Video(
-            id = "maths_lesson_2",
-            title = "Maths Class 10th - Part 2",
-            description = "Maths Class 10th - Part 2",
-            className = "10th",
-            subject = "Maths",
-            thumbnail = "https://qxoqflrqpwlythgqmjtq.supabase.co/storage/v1/object/public/covers/mathematics-class-10-ncert.jpg",
-            videoUrl = "https://youtu.be/YUscmq5Pr1Q?si=NkpgdUUXzIh62pTX",
-            youtubeVideoId = "YUscmq5Pr1Q",
-            chapter = "Maths Class 10th",
-            partNumber = 2,
-            teacher = "Aura Teacher",
-            duration = "45:00",
-            relatedBooks = listOf("maths_10th"),
-            createdAt = System.currentTimeMillis()
-        )
         return try {
-            val dbVideos = client.postgrest["videos"].select {
+            client.postgrest["videos"].select {
                 filter { eq("className", className) }
             }.decodeList<Video>()
-            if (className == "10th") listOf(mathsLesson1, mathsLesson2) + dbVideos else dbVideos
         } catch (e: Exception) {
-            if (className == "10th") listOf(mathsLesson1, mathsLesson2) else emptyList()
+            emptyList()
         }
     }
 
