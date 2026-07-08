@@ -262,14 +262,25 @@ fun ResultWebViewScreen(navController: NavController, url: String, title: String
     var isError by remember { mutableStateOf(false) }
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var showMenu by remember { mutableStateOf(false) }
+    var canGoBack by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    androidx.activity.compose.BackHandler(enabled = canGoBack) {
+        webViewInstance?.goBack()
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(title, maxLines = 1) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        if (canGoBack) {
+                            webViewInstance?.goBack()
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -353,11 +364,13 @@ fun ResultWebViewScreen(navController: NavController, url: String, title: String
                                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                     super.onPageStarted(view, url, favicon)
                                     isLoading = true
+                                    canGoBack = view?.canGoBack() == true
                                 }
 
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
                                     isLoading = false
+                                    canGoBack = view?.canGoBack() == true
                                 }
 
                                 override fun onReceivedError(

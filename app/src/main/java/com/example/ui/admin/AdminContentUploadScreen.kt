@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Preview
 import androidx.compose.material.icons.filled.Upload
@@ -63,12 +64,18 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf("") }
-    var className by remember { mutableStateOf("") }
+    var subject by remember { mutableStateOf("Science") }
+    var className by remember { mutableStateOf("10th") }
     var thumbnailUrl by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var contentUrl by remember { mutableStateOf("") } // PDF URL or YouTube URL
     var teacher by remember { mutableStateOf("") } // For videos
+
+    var showSubjectDropdown by remember { mutableStateOf(false) }
+    var showClassDropdown by remember { mutableStateOf(false) }
+
+    val classes = listOf("1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th")
+    val subjects = listOf("Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science")
 
     var showPreviewDialog by remember { mutableStateOf(false) }
 
@@ -113,19 +120,79 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                 minLines = 3
             )
             
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
-                    value = subject,
-                    onValueChange = { subject = it },
-                    label = { Text("Subject") },
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = className,
-                    onValueChange = { className = it },
-                    label = { Text("Class / Grade") },
-                    modifier = Modifier.weight(1f)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = subject,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Subject") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { showSubjectDropdown = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
+                            }
+                        }
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showSubjectDropdown = true }
+                    )
+                }
+                
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = className,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Class / Grade") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { showClassDropdown = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Class")
+                            }
+                        }
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showClassDropdown = true }
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = showSubjectDropdown,
+                    onDismissRequest = { showSubjectDropdown = false }
+                ) {
+                    subjects.forEach { sub ->
+                        DropdownMenuItem(
+                            text = { Text(sub) },
+                            onClick = {
+                                subject = sub
+                                showSubjectDropdown = false
+                            }
+                        )
+                    }
+                }
+                
+                DropdownMenu(
+                    expanded = showClassDropdown,
+                    onDismissRequest = { showClassDropdown = false }
+                ) {
+                    classes.forEach { cls ->
+                        DropdownMenuItem(
+                            text = { Text(cls) },
+                            onClick = {
+                                className = cls
+                                showClassDropdown = false
+                            }
+                        )
+                    }
+                }
             }
             
             if (isVideo) {

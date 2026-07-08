@@ -18,6 +18,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Initialize AdMob Mobile Ads SDK optimally on startup
+        com.example.utils.AdMobManager.initialize(this)
+        
         val themeViewModel = ThemeViewModel(this)
         
         val initialDeepLink = intent.getStringExtra("deep_link")

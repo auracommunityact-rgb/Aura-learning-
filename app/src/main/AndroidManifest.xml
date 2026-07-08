@@ -20,6 +20,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AuraLearningApp">
+
+        <!-- Google AdMob Application ID Metadata -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-2424129289119816~2594641222"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

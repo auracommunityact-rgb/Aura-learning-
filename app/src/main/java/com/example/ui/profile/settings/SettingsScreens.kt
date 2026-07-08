@@ -319,10 +319,83 @@ fun LegalScreen(navController: NavController, title: String) {
                 .padding(24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = "This is a placeholder for $title. Please update this with actual content in a production environment.",
-                style = MaterialTheme.typography.bodyLarge
-            )
+            if (title.equals("Privacy Policy", ignoreCase = true)) {
+                Text(
+                    text = "Last updated: July 2026",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("1. Information Collection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Your privacy is our priority. Aura Learning stores your personal data locally on your device. We do not transmit your local profile data to our servers unless explicitly requested by you via our sync features.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("2. Data Usage", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "The information collected locally is used solely to enhance your personalized learning experience and track your progress within the app.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("3. Data Retention", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Your local data stays entirely on your device until you delete the app or manually clear your application data.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    "For any questions regarding these terms, please contact us at auralearning.help@gmail.com",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "Last updated: July 2026",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("1. Acceptance of Terms", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "By downloading or using the Aura Learning app, you agree to be bound by these Terms of Use. If you disagree with any part of the terms, you may not access the service.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("2. Use License", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Permission is granted to temporarily download one copy of the materials (information or software) on Aura Learning for personal, non-commercial transitory viewing only.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("3. Disclaimer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "The materials within Aura Learning are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    "For any questions regarding these terms, please contact us at auralearning.help@gmail.com",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

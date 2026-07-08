@@ -37,11 +37,17 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
         val grade = currentUser?.selectedGrade ?: "All Grades"
         val initialClass = if (grade == "All Grades") null else {
             val gradeStr = grade.replace("Grade ", "")
-            when (gradeStr) {
-                "1" -> "1st"
-                "2" -> "2nd"
-                "3" -> "3rd"
-                else -> "${gradeStr}th"
+            val isNumeric = gradeStr.any { it.isDigit() }
+            if (isNumeric && gradeStr.isNotEmpty()) {
+                val cleanGrade = gradeStr.filter { it.isDigit() }
+                when (cleanGrade) {
+                    "1" -> "1st"
+                    "2" -> "2nd"
+                    "3" -> "3rd"
+                    else -> "${cleanGrade}th"
+                }
+            } else {
+                null
             }
         }
         viewModel.setFilters(initialClass, selectedSubject)

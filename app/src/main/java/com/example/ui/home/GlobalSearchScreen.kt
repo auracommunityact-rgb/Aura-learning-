@@ -24,6 +24,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.ui.ViewModelFactory
 import java.net.URLEncoder
+import kotlinx.coroutines.delay
 
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -46,11 +47,20 @@ fun GlobalSearchScreen(
     rootNavController: NavController,
     viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)
 ) {
+    val aiSearchResults by viewModel.aiSearchResults.collectAsState()
+
     val allBooks by viewModel.allBooks.collectAsState()
     val allVideos by viewModel.allVideos.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.length > 2) {
+            delay(500)
+            viewModel.fetchAiSearchResults(searchQuery)
+        }
+    }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -253,6 +263,26 @@ fun GlobalSearchScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.padding(padding).fillMaxSize()
             ) {
+                // AI Search Results Section
+                if (!aiSearchResults.isNullOrBlank()) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("AI Search Results", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = aiSearchResults!!,
+                                modifier = Modifier.padding(16.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+                
                 // Books Results Section
                 if (searchResults.books.isNotEmpty()) {
                     item {

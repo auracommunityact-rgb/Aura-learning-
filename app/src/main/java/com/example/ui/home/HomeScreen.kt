@@ -232,52 +232,84 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 }
             }
 
-            // Google Custom Tab Button
+            // Google Custom Tab & Aura AI Buttons side-by-side
             item {
-                Card(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    onClick = {
-                        try {
-                            val customTabsIntent = CustomTabsIntent.Builder()
-                                .setShowTitle(true)
-                                .build()
-                            customTabsIntent.launchUrl(context, Uri.parse("https://www.google.com"))
-                        } catch (e: Exception) {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
-                            context.startActivity(intent)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Google Custom Tab Card
+                    Card(
+                        modifier = Modifier
+                            .weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        onClick = {
+                            val encodedUrl = android.net.Uri.encode("https://www.google.com")
+                            rootNavController.navigate("exam_webview?url=$encodedUrl&title=Search")
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            GoogleIcon(modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Row {
+                                Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text("o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text("o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text("g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text("l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text("e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                            }
                         }
                     }
-                ) {
-                    Row(
+
+                    // Aura AI Agent Card
+                    Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                            .weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ),
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                        onClick = {
+                            rootNavController.navigate("ai_chat")
+                        }
                     ) {
-                        GoogleIcon(modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Search on ",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Row {
-                            Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                            Text("o", color = Color(0xFFEA4335), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                            Text("o", color = Color(0xFFFBBC05), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                            Text("g", color = Color(0xFF4285F4), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                            Text("l", color = Color(0xFF34A853), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                            Text("e", color = Color(0xFFEA4335), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "Aura AI",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Aura AI Agent",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
                     }
                 }
@@ -352,8 +384,8 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
 
             // Section 10: Explore Categories (Moved up for better UX or keep as requested)
             item {
-                SectionExploreCategories(selectedGrade) { newGrade ->
-                    authViewModel.updateSelectedGrade(newGrade)
+                SectionExploreCategories(selectedSubject) { newSubject ->
+                    viewModel.setSelectedSubject(newSubject)
                 }
             }
 
@@ -498,8 +530,8 @@ fun HeroBannerCarousel(context: android.content.Context) {
 }
 
 @Composable
-fun SectionExploreCategories(selectedGrade: String, onGradeSelected: (String) -> Unit) {
-    val categories = listOf("All Grades", "Mathematics", "Science", "English", "Hindi", "SST", "Computer", "Biology", "Chemistry", "Physics")
+fun SectionExploreCategories(selectedSubject: String, onSubjectSelected: (String) -> Unit) {
+    val categories = listOf("All Subjects", "Mathematics", "Science", "English", "Hindi", "SST", "Computer", "Biology", "Chemistry", "Physics")
     
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -507,8 +539,8 @@ fun SectionExploreCategories(selectedGrade: String, onGradeSelected: (String) ->
     ) {
         items(categories) { category ->
             FilterChip(
-                selected = selectedGrade == category || (selectedGrade == "All Grades" && category == "All Grades"),
-                onClick = { onGradeSelected(category) },
+                selected = selectedSubject.equals(category, ignoreCase = true) || (selectedSubject == "All Subjects" && category == "All Subjects"),
+                onClick = { onSubjectSelected(category) },
                 label = { Text(category) },
                 shape = RoundedCornerShape(16.dp)
             )

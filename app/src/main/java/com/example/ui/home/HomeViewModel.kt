@@ -13,6 +13,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
+import com.example.BuildConfig
+import com.example.data.api.Content
+import com.example.data.api.GenerateContentRequest
+import com.example.data.api.Part
+import com.example.data.api.RetrofitClient
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.putJsonObject
 
 class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _banners = MutableStateFlow<List<Banner>>(emptyList())
@@ -39,6 +46,32 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
 
     private val _selectedSubject = MutableStateFlow<String>("All Subjects")
     val selectedSubject: StateFlow<String> = _selectedSubject.asStateFlow()
+
+    private val _aiSearchResults = MutableStateFlow<String?>(null)
+    val aiSearchResults: StateFlow<String?> = _aiSearchResults.asStateFlow()
+
+    fun fetchAiSearchResults(query: String) {
+        viewModelScope.launch {
+            try {
+                // Need to use the API key from BuildConfig
+                val apiKey = BuildConfig.GEMINI_API_KEY
+                val request = GenerateContentRequest(
+                    contents = listOf(Content(parts = listOf(Part(text = query)))),
+                    tools = listOf(
+                        // Create the google_search tool object
+                        // Based on Gemini API docs, this is typically {"google_search": {}}
+                        buildJsonObject {
+                            putJsonObject("google_search") {}
+                        }
+                    )
+                )
+                val response = RetrofitClient.service.generateContent(apiKey, request)
+                _aiSearchResults.value = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+            } catch (e: Exception) {
+                _aiSearchResults.value = "Error fetching AI results: ${e.message}"
+            }
+        }
+    }
 
     private val _activeExamSubject = MutableStateFlow<String?>(null)
     val activeExamSubject: StateFlow<String?> = _activeExamSubject.asStateFlow()
@@ -75,23 +108,32 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
 
         if (grade != "All Grades") {
             val gradeStr = grade.replace("Grade ", "")
-            val className = when (gradeStr) {
-                "1" -> "1st"
-                "2" -> "2nd"
-                "3" -> "3rd"
-                else -> "${gradeStr}th"
+            val isNumeric = gradeStr.any { it.isDigit() }
+            if (isNumeric && gradeStr.isNotEmpty()) {
+                val cleanGrade = gradeStr.filter { it.isDigit() }
+                val className = when (cleanGrade) {
+                    "1" -> "1st"
+                    "2" -> "2nd"
+                    "3" -> "3rd"
+                    else -> "${cleanGrade}th"
+                }
+                filteredBooks = filteredBooks.filter { it.className.equals(className, ignoreCase = true) }
+                filteredVideos = filteredVideos.filter { it.className.equals(className, ignoreCase = true) }
             }
-            filteredBooks = filteredBooks.filter { it.className == className }
-            filteredVideos = filteredVideos.filter { it.className == className }
         }
 
         val activeExam = _activeExamSubject.value
         if (!activeExam.isNullOrBlank()) {
             filteredBooks = filteredBooks.filter { it.subject.equals(activeExam, ignoreCase = true) }
             filteredVideos = filteredVideos.filter { it.subject.equals(activeExam, ignoreCase = true) }
-        } else if (subject != "All Subjects") {
-            filteredBooks = filteredBooks.filter { it.subject.equals(subject, ignoreCase = true) }
-            filteredVideos = filteredVideos.filter { it.subject.equals(subject, ignoreCase = true) }
+        } else if (subject != "All Subjects" && subject.isNotEmpty()) {
+            val mappedSubject = when (subject) {
+                "SST" -> "Social Studies"
+                "Computer" -> "Computer Science"
+                else -> subject
+            }
+            filteredBooks = filteredBooks.filter { it.subject.equals(mappedSubject, ignoreCase = true) }
+            filteredVideos = filteredVideos.filter { it.subject.equals(mappedSubject, ignoreCase = true) }
         }
 
         _recentBooks.value = filteredBooks.sortedByDescending { it.createdAt }.take(5)

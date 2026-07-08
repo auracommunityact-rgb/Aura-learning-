@@ -29,43 +29,20 @@ data class StudyTool(
 )
 
 val allStudyTools = listOf(
-    StudyTool("notes_reader", "Notes Reader", "Read digital notes with beautiful UI", Icons.AutoMirrored.Filled.MenuBook),
-    StudyTool("pdf_reader", "PDF Reader", "Open and read PDF books", Icons.Filled.PictureAsPdf),
-    StudyTool("pdf_highlighter", "PDF Highlighter", "Highlight and annotate PDFs", Icons.Filled.BorderColor),
-    StudyTool("ocr_scanner", "OCR Text Scanner", "Extract text from images", Icons.Filled.DocumentScanner),
-    StudyTool("translate", "Translate Notes", "Translate study material", Icons.Filled.Translate),
-    StudyTool("tts", "Text To Speech", "Listen to your notes aloud", Icons.Filled.RecordVoiceOver),
-    StudyTool("calculator", "Scientific Calculator", "Solve mathematical calculations", Icons.Filled.Calculate),
-    StudyTool("planner", "Study Planner", "Organize your study schedule", Icons.Filled.CalendarMonth),
-    StudyTool("pomodoro", "Pomodoro Timer", "Increase study focus", Icons.Filled.Timer),
-    StudyTool("todo", "To-Do List", "Manage daily study tasks", Icons.Filled.Checklist),
-    StudyTool("countdown", "Exam Countdown", "Track remaining exam days", Icons.Filled.Event),
-    StudyTool("goal_tracker", "Goal Tracker", "Track learning goals", Icons.Filled.TrackChanges),
-    StudyTool("quiz_gen", "Quiz Generator", "Generate quizzes for practice", Icons.Filled.Quiz),
-    StudyTool("mock_tests", "Mock Tests", "Practice complete exams", Icons.AutoMirrored.Filled.Assignment),
-    StudyTool("result_analysis", "Result Analysis", "Analyze performance", Icons.Filled.Analytics),
-    StudyTool("progress", "Progress Tracker", "Track study performance", Icons.AutoMirrored.Filled.TrendingUp),
-    StudyTool("map_agent", "Map Agent", "Information about places & routes", Icons.Filled.Map),
-    StudyTool("ai_homework", "AI Homework Helper", "Owner AI: Help solve homework", Icons.Filled.SmartToy, true),
-    StudyTool("ai_doubt", "AI Doubt Solver", "Owner AI: Solve student doubts", Icons.Filled.QuestionAnswer, true),
-    StudyTool("ai_summarizer", "AI Notes Summarizer", "Owner AI: Create short notes", Icons.Filled.Summarize, true),
-    StudyTool("ai_essay", "AI Essay Writer", "Owner AI: Write essays", Icons.Filled.Description, true),
-    StudyTool("ai_flashcard", "AI Flashcard Gen", "Owner AI: Generate flashcards", Icons.Filled.Style, true),
-    StudyTool("ai_mcq", "AI MCQ Generator", "Owner AI: Generate MCQs", Icons.AutoMirrored.Filled.ListAlt, true),
-    StudyTool("video_lectures", "Video Lectures", "Watch educational videos", Icons.Filled.VideoLibrary),
-    StudyTool("ncert", "NCERT Books", "Read NCERT books online", Icons.AutoMirrored.Filled.LibraryBooks),
-    StudyTool("prev_papers", "Previous Papers", "Practice past exams", Icons.Filled.HistoryEdu),
-    StudyTool("sample_papers", "Sample Papers", "Practice model papers", Icons.Filled.Science),
-    StudyTool("syllabus", "Syllabus Viewer", "View latest syllabus", Icons.AutoMirrored.Filled.Subject),
-    StudyTool("notebook", "Digital Notebook", "Create personal notes", Icons.Filled.NoteAlt),
-    StudyTool("drawing_pad", "Drawing Pad", "Draw diagrams", Icons.Filled.Draw),
-    StudyTool("doc_scanner", "Document Scanner", "Scan documents to PDF", Icons.Filled.Scanner),
-    StudyTool("cloud_backup", "Cloud Backup", "Backup user data securely", Icons.Filled.CloudUpload),
-    StudyTool("download_manager", "Download Manager", "Manage your downloads", Icons.Filled.Download),
-    StudyTool("study_streak", "Study Streak", "Increase consistency", Icons.Filled.LocalFireDepartment),
-    StudyTool("achievements", "Achievements", "Unlock badges & rewards", Icons.Filled.WorkspacePremium),
-    StudyTool("weekly_report", "Weekly Report", "Weekly performance report", Icons.Filled.Assessment),
-    StudyTool("rewards", "Rewards System", "Redeem rewards & coins", Icons.Filled.CardGiftcard)
+    StudyTool("planner", "Study Planner", "Organize your study schedule and goals", Icons.Filled.CalendarMonth),
+    StudyTool("countdown", "Exam Countdown", "Track remaining days for your upcoming exams", Icons.Filled.Event),
+    StudyTool("pdf_reader", "PDF Reader", "Open and read digital PDF books offline", Icons.Filled.PictureAsPdf),
+    StudyTool("translate", "Translate Notes", "Translate study material into multiple languages", Icons.Filled.Translate),
+    StudyTool("calculator", "Scientific Calculator", "Perform complex mathematical calculations", Icons.Filled.Calculate),
+    StudyTool("result_analysis", "Result Analysis", "Analyze school test and exam results", Icons.Filled.Analytics),
+    StudyTool("progress", "Progress Tracker", "Track syllabus and learning statistics", Icons.AutoMirrored.Filled.TrendingUp),
+    StudyTool("weekly_report", "Weekly Report", "Generate weekly study performance reports", Icons.Filled.Assessment),
+    StudyTool("map_agent", "Map Agent", "Explore geographical places and learn history", Icons.Filled.Map),
+    StudyTool("ai_homework", "AI Homework Helper", "Instant answers & step-by-step homework help", Icons.Filled.SmartToy, true),
+    StudyTool("ai_doubt", "AI Doubt Solver", "Clear your doubts on any syllabus topic instantly", Icons.Filled.QuestionAnswer, true),
+    StudyTool("ai_summarizer", "AI Notes Summarizer", "Summarize chapters into key revision bullet-points", Icons.Filled.Summarize, true),
+    StudyTool("ai_essay", "AI Essay Writer", "Write and structure beautiful academic essays", Icons.Filled.Description, true),
+    StudyTool("ai_mcq", "AI MCQ Generator", "Generate personalized practice quizzes & MCQs", Icons.AutoMirrored.Filled.ListAlt, true)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,7 +76,7 @@ fun StudyScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                placeholder = { Text("Search 36+ tools...") },
+                placeholder = { Text("Search premium tools...") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
                 shape = RoundedCornerShape(24.dp),
                 singleLine = true,
@@ -118,26 +95,21 @@ fun StudyScreen(
             ) {
                 items(filteredTools) { tool ->
                     ToolCard(tool = tool) {
-                        if (tool.id == "planner") {
-                            rootNavController.navigate("study_planner")
-                        } else if (tool.id == "countdown") {
-                            navController.navigate("exam_countdown")
-                        } else if (tool.id == "pdf_reader") {
-                            rootNavController.navigate("pdf_tool")
-                        } else if (tool.id == "map_agent") {
-                            rootNavController.navigate("map_agent")
-                        } else if (tool.id == "translate") {
-                            rootNavController.navigate("notes_translate")
-                        } else if (tool.id == "calculator") {
-                            rootNavController.navigate("calculator")
-                        } else if (tool.id == "result_analysis") {
-                            rootNavController.navigate("result_analysis")
-                        } else if (tool.id == "progress") {
-                            rootNavController.navigate("progress")
-                        } else if (tool.id == "weekly_report") {
-                            rootNavController.navigate("weekly_report")
-                        } else {
-                            rootNavController.navigate("tool_viewer/${tool.id}?title=${tool.title}")
+                        when (tool.id) {
+                            "planner" -> rootNavController.navigate("study_planner")
+                            "countdown" -> navController.navigate("exam_countdown")
+                            "pdf_reader" -> rootNavController.navigate("pdf_tool")
+                            "map_agent" -> rootNavController.navigate("map_agent")
+                            "translate" -> rootNavController.navigate("notes_translate")
+                            "calculator" -> rootNavController.navigate("calculator")
+                            "result_analysis" -> rootNavController.navigate("result_analysis")
+                            "progress" -> rootNavController.navigate("progress")
+                            "weekly_report" -> rootNavController.navigate("weekly_report")
+                            "ai_homework" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hey Aura AI! I need help with my homework. Can you help me solve it step-by-step and explain the core concepts clearly?"))
+                            "ai_doubt" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hi Aura AI! I have a specific doubt in my syllabus. Can you clarify it with clean explanations and examples?"))
+                            "ai_summarizer" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hello! Can you help me summarize this educational topic or text into concise, high-yield revision notes?"))
+                            "ai_essay" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hi! Can you guide me in writing or structuring a polished academic essay on my topic?"))
+                            "ai_mcq" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hey Aura! Can you generate a set of practice Multiple Choice Questions (MCQs) on my topic with answers and brief explanations?"))
                         }
                     }
                 }

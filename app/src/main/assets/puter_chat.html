@@ -309,6 +309,19 @@
         }
         renderHistory();
 
+        // Check for URL search parameters to pre-fill input and auto-send
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialPrompt = urlParams.get('prompt');
+        if (initialPrompt) {
+            chatHistory = [];
+            localStorage.removeItem('puterChatHistory');
+            renderHistory();
+            messageInput.value = initialPrompt;
+            setTimeout(() => {
+                sendMessage(false);
+            }, 600);
+        }
+
         function saveHistory() {
             localStorage.setItem('puterChatHistory', JSON.stringify(chatHistory));
             if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'assistant') {

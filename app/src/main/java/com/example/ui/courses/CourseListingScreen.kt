@@ -26,6 +26,9 @@ import com.example.ui.ViewModelFactory
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListingScreen(navController: NavController) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = remember(context) { context as? android.app.Activity }
+    
     val viewModel: CourseViewModel = viewModel(factory = ViewModelFactory)
     val courses by viewModel.courses.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -73,8 +76,16 @@ fun CourseListingScreen(navController: NavController) {
                         Button(
                             onClick = {
                                 selectedCourse = null
-                                navController.navigate("main?tab=study") {
-                                    popUpTo(0) { inclusive = true }
+                                if (activity != null) {
+                                    com.example.utils.AdMobManager.showInterstitial(activity) {
+                                        navController.navigate("main?tab=study") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                } else {
+                                    navController.navigate("main?tab=study") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
                             }
                         ) {

@@ -72,8 +72,26 @@ data class GenerateContentResponse(
 )
 
 @Serializable
+data class GroundingMetadata(
+    val webSearchQueries: List<String>? = null,
+    val groundingChunks: List<GroundingChunk>? = null
+)
+
+@Serializable
+data class GroundingChunk(
+    val web: WebSource? = null
+)
+
+@Serializable
+data class WebSource(
+    val uri: String? = null,
+    val title: String? = null
+)
+
+@Serializable
 data class Candidate(
-    val content: Content
+    val content: Content,
+    val groundingMetadata: GroundingMetadata? = null
 )
 
 interface GeminiApiService {

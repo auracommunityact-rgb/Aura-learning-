@@ -47,10 +47,15 @@ class VideosViewModel(private val repository: AuraRepository) : ViewModel() {
         var filtered = _allVideos.value
 
         if (cls != null) {
-            filtered = filtered.filter { it.className == cls }
+            filtered = filtered.filter { it.className.equals(cls, ignoreCase = true) }
         }
-        if (sub != null) {
-            filtered = filtered.filter { it.subject.equals(sub, ignoreCase = true) }
+        if (sub != null && sub.isNotEmpty()) {
+            val mappedSubject = when (sub) {
+                "SST" -> "Social Studies"
+                "Computer" -> "Computer Science"
+                else -> sub
+            }
+            filtered = filtered.filter { it.subject.equals(mappedSubject, ignoreCase = true) }
         }
 
         _videos.value = filtered

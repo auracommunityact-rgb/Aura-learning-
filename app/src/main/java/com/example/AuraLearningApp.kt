@@ -141,7 +141,19 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("result_analysis") { com.example.ui.study.ResultAnalysisScreen(rootNavController) }
         composable("progress") { com.example.ui.study.ProgressTrackerScreen(rootNavController) }
         composable("weekly_report") { com.example.ui.study.WeeklyReportScreen(rootNavController) }
-        composable("ai_chat") { com.example.ui.chat.PuterChatScreen(rootNavController) }
+        composable(
+            "ai_chat?prompt={prompt}",
+            arguments = listOf(
+                androidx.navigation.navArgument("prompt") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val prompt = backStackEntry.arguments?.getString("prompt")
+            com.example.ui.chat.PuterChatScreen(rootNavController, prompt)
+        }
         composable(
             "quiz/{lessonId}",
             arguments = listOf(androidx.navigation.navArgument("lessonId") { type = androidx.navigation.NavType.StringType })
