@@ -1,4 +1,5 @@
 package com.example.ui.home
+import io.github.jan.supabase.postgrest.from
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.*
@@ -16,8 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.utils.VoiceSearchHelper
+
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -36,6 +42,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
@@ -51,6 +58,15 @@ fun GlobalSearchScreen(
 
     val allBooks by viewModel.allBooks.collectAsState()
     val allVideos by viewModel.allVideos.collectAsState()
+
+    var websites by remember { mutableStateOf<List<com.example.data.models.Website>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        try {
+            websites = com.example.data.supabase.SupabaseService.client.from("websites").select().decodeList<com.example.data.models.Website>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -117,9 +133,9 @@ fun GlobalSearchScreen(
     }
 
     // Filtered lists with advanced search scoring
-    val searchResults = remember(searchQuery, allBooks, allVideos, boards) {
+    val searchResults = remember(searchQuery, allBooks, allVideos, boards, websites) {
         if (searchQuery.isBlank()) {
-            return@remember SearchResultsWrapper(emptyList(), emptyList(), emptyList(), emptyList())
+            return@remember SearchResultsWrapper(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
         }
 
         val lowercaseQuery = searchQuery.lowercase()
@@ -201,7 +217,22 @@ fun GlobalSearchScreen(
             board to score
         }.filter { it.second > 0 }.sortedByDescending { it.second }.map { it.first }
 
-        SearchResultsWrapper(scoredBooks, scoredVideos, scoredTools, scoredBoards)
+        // 5. Score Websites
+        val scoredWebsites = websites.map { website ->
+            var score = 0
+            for (word in activeWords) {
+                if (website.name.contains(word, ignoreCase = true)) score += 15
+                if (website.description.contains(word, ignoreCase = true)) score += 10
+                if (website.url.contains(word, ignoreCase = true)) score += 5
+            }
+            val websiteIntentWords = listOf("website", "site", "portal", "link", "web")
+            if (websiteIntentWords.any { lowercaseQuery.contains(it) }) {
+                score += 8
+            }
+            website to score
+        }.filter { it.second > 0 }.sortedByDescending { it.second }.map { it.first }
+
+        SearchResultsWrapper(scoredBooks, scoredVideos, scoredTools, scoredBoards, scoredWebsites)
     }
 
     Scaffold(
@@ -221,9 +252,33 @@ fun GlobalSearchScreen(
                             unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
                         ),
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Clear")
+                            val context = LocalContext.current
+                            val voiceHelper = remember { VoiceSearchHelper(context) }
+                            val speechResult by voiceHelper.speechResult.collectAsState()
+                            val launcher = rememberLauncherForActivityResult(
+                                ActivityResultContracts.RequestPermission()
+                            ) { isGranted ->
+                                if (isGranted) {
+                                    voiceHelper.startListening()
+                                }
+                            }
+
+                            LaunchedEffect(speechResult) {
+                                if (speechResult.isNotEmpty()) {
+                                    searchQuery = speechResult
+                                }
+                            }
+
+                            Row {
+                                IconButton(onClick = {
+                                    launcher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                }) {
+                                    Icon(Icons.Filled.Mic, contentDescription = "Voice Search")
+                                }
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Filled.Close, contentDescription = "Clear")
+                                    }
                                 }
                             }
                         }
@@ -291,10 +346,7 @@ fun GlobalSearchScreen(
                     items(searchResults.books) { book ->
                         Card(
                             modifier = Modifier.fillMaxWidth().clickable {
-                                if (book.pdfUrl.isNotEmpty()) {
-                                    val encodedUrl = URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                    rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                                }
+                                rootNavController.navigate("book_detail/${book.id}")
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -437,6 +489,60 @@ fun GlobalSearchScreen(
                                 Icon(Icons.Filled.School, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                             }
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+
+                // Uploaded Websites Results Section
+                if (searchResults.websites.isNotEmpty()) {
+                    item {
+                        if (searchResults.books.isNotEmpty() || searchResults.videos.isNotEmpty() || searchResults.tools.isNotEmpty() || searchResults.boards.isNotEmpty()) Spacer(modifier = Modifier.height(8.dp))
+                        Text("Websites", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    items(searchResults.websites) { website ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                val encodedUrl = URLEncoder.encode(website.url, "UTF-8")
+                                val encodedTitle = URLEncoder.encode(website.name, "UTF-8")
+                                rootNavController.navigate("exam_webview?url=${encodedUrl}&title=${encodedTitle}")
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    AsyncImage(
+                                        model = website.logo,
+                                        contentDescription = website.name,
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surface),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(website.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(website.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Icon(Icons.Filled.MoreVert, contentDescription = "More options", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = website.name,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = website.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
@@ -448,5 +554,6 @@ data class SearchResultsWrapper(
     val books: List<com.example.data.models.Book>,
     val videos: List<com.example.data.models.Video>,
     val tools: List<com.example.ui.study.StudyTool>,
-    val boards: List<com.example.ui.profile.BoardResult>
+    val boards: List<com.example.ui.profile.BoardResult>,
+    val websites: List<com.example.data.models.Website>
 )

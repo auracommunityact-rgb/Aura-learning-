@@ -263,9 +263,7 @@ fun BooksScreen(
                                     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                         items(newBooks) { book ->
                                             PlayStoreBookItem(book = book, onBookClick = {
-                                                val urlToOpen = offlineBooks.find { it.id == book.id }?.let { "file://" + it.localPdfPath } ?: book.pdfUrl
-                                                val encodedUrl = java.net.URLEncoder.encode(urlToOpen, "UTF-8")
-                                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                                rootNavController.navigate("book_detail/${book.id}")
                                             })
                                         }
                                     }
@@ -282,9 +280,7 @@ fun BooksScreen(
                                 }
                                 items(subjectBooks) { book ->
                                     PlayStoreBookListItem(book = book, onBookClick = {
-                                        val urlToOpen = offlineBooks.find { it.id == book.id }?.let { "file://" + it.localPdfPath } ?: book.pdfUrl
-                                        val encodedUrl = java.net.URLEncoder.encode(urlToOpen, "UTF-8")
-                                        rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                        rootNavController.navigate("book_detail/${book.id}")
                                     })
                                 }
                             }
@@ -308,8 +304,7 @@ fun BooksScreen(
                                 }
                                 items(subjectBooks) { book ->
                                     PlayStoreBookListItem(book = book, onBookClick = {
-                                        val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                        rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                        rootNavController.navigate("book_detail/${book.id}")
                                     })
                                 }
                             }

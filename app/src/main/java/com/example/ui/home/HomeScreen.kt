@@ -8,6 +8,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -232,19 +235,24 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 }
             }
 
-            // Google Custom Tab & Aura AI Buttons side-by-side
+            // Category Grid
+            item {
+                CategoryGrid(navController)
+            }
+
+            // Google, AI Mode & Gemini AI Buttons side-by-side
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Google Custom Tab Card
                     Card(
                         modifier = Modifier
-                            .weight(1f),
+                            .weight(1.1f),
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface,
@@ -259,56 +267,103 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 14.dp),
+                                .padding(horizontal = 8.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            GoogleIcon(modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            GoogleIcon(modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Row {
-                                Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                                Text("o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                                Text("o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                                Text("g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                                Text("l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                                Text("e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
 
-                    // Aura AI Agent Card
+                    // AI Mode Card (Search with Gemini Sparkles)
                     Card(
                         modifier = Modifier
-                            .weight(1f),
+                            .weight(1.1f),
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ),
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.5f)),
                         onClick = {
-                            rootNavController.navigate("ai_chat")
+                            val encodedUrl = android.net.Uri.encode("https://www.google.com/search?udm=50")
+                            rootNavController.navigate("exam_webview?url=$encodedUrl&title=AI Mode")
                         }
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 14.dp),
+                                .padding(horizontal = 8.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
+                            Box(modifier = Modifier.size(18.dp)) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.align(Alignment.Center).size(16.dp)
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = Color(0xFFEC4899),
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .size(9.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "AI Mode",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    // Gemini AI Card (Icon Only with Premium Gradient)
+                    Card(
+                        modifier = Modifier
+                            .size(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.Transparent
+                        ),
+                        border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.3f)),
+                        onClick = {
+                            rootNavController.navigate("ai_chat")
+                        }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFF3B82F6), // Gemini Blue
+                                            Color(0xFF8B5CF6), // Gemini Purple
+                                            Color(0xFFEC4899)  // Gemini Pink
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "Aura AI",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Aura AI Agent",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                contentDescription = "Gemini AI",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
@@ -465,6 +520,67 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
 }
 
 @Composable
+fun CategoryGrid(navController: NavController) {
+    val categories = listOf(
+        Category("Books", Icons.AutoMirrored.Filled.MenuBook, Color(0xFF1E3A8A), "books"),
+        Category("Video Lessons", Icons.Filled.PlayCircle, Color(0xFF1E3A8A), "videos"),
+        Category("Resources", Icons.Filled.Folder, Color(0xFF1E3A8A), "resources")
+    )
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.height(140.dp)
+    ) {
+        items(categories) { category ->
+            Card(
+                onClick = { navController.navigate(category.route) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = category.icon,
+                        contentDescription = category.title,
+                        tint = category.color,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = category.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E3A8A)
+                    )
+                }
+            }
+        }
+    }
+}
+
+data class Category(
+    val title: String,
+    val icon: ImageVector,
+    val color: Color,
+    val route: String
+)
+
+@Composable
 fun HeroBannerCarousel(context: android.content.Context) {
     Card(
         modifier = Modifier
@@ -608,10 +724,7 @@ fun ContinueLearningSection(savedBooks: List<Book>, rootNavController: NavContro
                     .width(260.dp)
                     .clickable {
                         interceptAction {
-                            if (book.pdfUrl.isNotEmpty()) {
-                                val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                            }
+                            rootNavController.navigate("book_detail/${book.id}")
                         }
                     },
                 shape = RoundedCornerShape(16.dp),
@@ -659,10 +772,7 @@ fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavControlle
                     .width(140.dp)
                     .clickable {
                         interceptAction {
-                            if (book.pdfUrl.isNotEmpty()) {
-                                val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                            }
+                            rootNavController.navigate("book_detail/${book.id}")
                         }
                     },
                 shape = RoundedCornerShape(16.dp)
@@ -701,10 +811,7 @@ fun PopularBooksSection(recentBooks: List<Book>, rootNavController: NavControlle
                         Button(
                             onClick = { 
                                 interceptAction {
-                                    if (book.pdfUrl.isNotEmpty()) {
-                                        val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                        rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                                    }
+                                    rootNavController.navigate("book_detail/${book.id}")
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(36.dp),
@@ -786,7 +893,7 @@ fun AILearningToolsSection(rootNavController: NavController) {
     SectionHeader("AI Learning Tools")
     
     val tools = listOf(
-        Pair("AI Tutor", Icons.Filled.SmartToy),
+        Pair("Gemini AI", Icons.Filled.SmartToy),
         Pair("Chapter Summary", Icons.Filled.Summarize),
         Pair("Mind Maps", Icons.Filled.AccountTree),
         Pair("Flashcards", Icons.Filled.Style),
@@ -806,7 +913,7 @@ fun AILearningToolsSection(rootNavController: NavController) {
                     .width(160.dp)
                     .clickable { 
                         when (name) {
-                            "AI Tutor" -> rootNavController.navigate("ai_chat")
+                            "Gemini AI" -> rootNavController.navigate("ai_chat")
                             "PDF Reader" -> rootNavController.navigate("pdf_tool")
                         }
                     },
@@ -893,10 +1000,7 @@ fun RecommendedSection(recentBooks: List<Book>, recentVideos: List<Video>, rootN
                     .width(140.dp)
                     .clickable {
                         interceptAction {
-                            if (book.pdfUrl.isNotEmpty()) {
-                                val encodedUrl = java.net.URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
-                            }
+                            rootNavController.navigate("book_detail/${book.id}")
                         }
                     },
                 shape = RoundedCornerShape(16.dp)

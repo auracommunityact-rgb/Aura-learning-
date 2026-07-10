@@ -326,7 +326,7 @@ fun VideoPlayerScreen(
                                     Card(
                                         modifier = Modifier
                                             .width(140.dp)
-                                            .clickable { navController.navigate("pdf_viewer?url=${book.pdfUrl}") }
+                                            .clickable { navController.navigate("book_detail/${book.id}") }
                                     ) {
                                         Column {
                                             AsyncImage(

@@ -185,10 +185,7 @@ fun MyLibraryScreen(
                                         SavedBookCard(
                                             book = book,
                                             onBookClick = {
-                                                if (book.pdfUrl.isNotEmpty()) {
-                                                    val encodedUrl = URLEncoder.encode(book.pdfUrl, "UTF-8")
-                                                    navController.navigate("pdf_viewer?url=$encodedUrl")
-                                                }
+                                                navController.navigate("book_detail/${book.id}")
                                             },
                                             onRemoveClick = {
                                                 authViewModel.toggleSaveBook(book.id)

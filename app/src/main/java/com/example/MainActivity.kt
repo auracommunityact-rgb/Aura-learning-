@@ -24,7 +24,31 @@ class MainActivity : ComponentActivity() {
         
         val themeViewModel = ThemeViewModel(this)
         
-        val initialDeepLink = intent.getStringExtra("deep_link")
+        val intentData = intent.data
+        var initialDeepLink = intent.getStringExtra("deep_link")
+        if (intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
+            val path = intentData.path
+            initialDeepLink = when {
+                path == "/ai_chat" || path?.startsWith("/ai_chat") == true -> {
+                    val promptParam = intentData.getQueryParameter("prompt")
+                    if (promptParam != null) "ai_chat?prompt=${android.net.Uri.encode(promptParam)}" else "ai_chat"
+                }
+                path == "/courses" || path?.startsWith("/courses") == true -> "courses"
+                path == "/pdf_tool" || path?.startsWith("/pdf_tool") == true -> "pdf_tool"
+                path?.startsWith("/book_detail/") == true -> {
+                    val bookId = path.substringAfter("/book_detail/")
+                    "book_detail/$bookId"
+                }
+                path?.startsWith("/video_player/") == true -> {
+                    val videoId = path.substringAfter("/video_player/")
+                    "video_player/$videoId"
+                }
+                else -> {
+                    val tabParam = intentData.getQueryParameter("tab")
+                    if (tabParam != null) "main?tab=$tabParam" else "main?tab=home"
+                }
+            }
+        }
         
         setContent {
             val themeMode by themeViewModel.themeMode.collectAsState()
@@ -43,5 +67,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 }

@@ -113,3 +113,13 @@ data class Course(
     val contentFileUrl: String = "",
     val createdAt: Long = 0L
 )
+
+@Serializable
+data class Website(
+    val id: String = "",
+    val name: String = "",
+    val description: String = "",
+    val logo: String = "",
+    val url: String = "",
+    val createdAt: Long = 0L
+)

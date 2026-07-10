@@ -17,5 +17,19 @@ class AuraApplication : Application() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        
+        // Pre-create WebView Code Cache directories to prevent Chromium WebView cache errors
+        try {
+            val webViewCacheJs = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache/js")
+            val webViewCacheWasm = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache/wasm")
+            if (!webViewCacheJs.exists()) {
+                webViewCacheJs.mkdirs()
+            }
+            if (!webViewCacheWasm.exists()) {
+                webViewCacheWasm.mkdirs()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

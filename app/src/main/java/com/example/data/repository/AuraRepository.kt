@@ -105,6 +105,16 @@ class AuraRepository {
         }
     }
 
+    suspend fun getBook(bookId: String): Book? {
+        return try {
+            client.postgrest["books"].select {
+                filter { eq("id", bookId) }
+            }.decodeList<Book>().firstOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     suspend fun getBooksByClass(className: String): List<Book> {
         return try {
             client.postgrest["books"].select {
@@ -227,6 +237,77 @@ class AuraRepository {
         try {
             val newCourse = if (course.id.isEmpty()) course.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else course
             client.postgrest["courses"].insert(newCourse)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+    
+    suspend fun updateCourse(course: Course) {
+        try {
+            if (course.id.isNotEmpty()) {
+                client.postgrest["courses"].update(course) {
+                    filter { eq("id", course.id) }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+    
+    suspend fun deleteCourse(courseId: String) {
+        try {
+            if (courseId.isNotEmpty()) {
+                client.postgrest["courses"].delete {
+                    filter { eq("id", courseId) }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    // Websites
+    suspend fun getWebsites(): List<com.example.data.models.Website> {
+        return try {
+            client.postgrest["websites"].select().decodeList<com.example.data.models.Website>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+    
+    suspend fun addWebsite(website: com.example.data.models.Website) {
+        try {
+            val newWebsite = if (website.id.isEmpty()) website.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else website
+            client.postgrest["websites"].insert(newWebsite)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+    
+    suspend fun updateWebsite(website: com.example.data.models.Website) {
+        try {
+            if (website.id.isNotEmpty()) {
+                client.postgrest["websites"].update(website) {
+                    filter { eq("id", website.id) }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun deleteWebsite(websiteId: String) {
+        try {
+            if (websiteId.isNotEmpty()) {
+                client.postgrest["websites"].delete {
+                    filter { eq("id", websiteId) }
+                }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             throw e

@@ -173,7 +173,7 @@ fun SplashScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 72.dp),
+                .padding(bottom = 110.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
             CircularProgressIndicator(
@@ -190,7 +190,7 @@ fun SplashScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 72.dp, end = 40.dp),
+                .padding(bottom = 110.dp, end = 40.dp),
             contentAlignment = Alignment.BottomEnd
         ) {
             Icon(
@@ -201,6 +201,43 @@ fun SplashScreen(navController: NavController) {
                     .size(28.dp)
                     .alpha(textAlpha.value)
             )
+        }
+
+        // Owned by & Powered by Info
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp)
+                .alpha(textAlpha.value),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            Text(
+                text = "Owned by: Aura Community ACT",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF94A3B8), // Slate 400
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Powered by: ",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFF64748B), // Slate 500
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = "Google",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF38BDF8), // Google Sky Blue
+                    letterSpacing = 0.5.sp
+                )
+            }
         }
     }
 }

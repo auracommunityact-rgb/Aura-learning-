@@ -271,66 +271,27 @@ fun ResultWebViewScreen(navController: NavController, url: String, title: String
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(title, maxLines = 1) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (canGoBack) {
-                            webViewInstance?.goBack()
-                        } else {
-                            navController.popBackStack()
+            if (title != "Search" && title != "AI Mode") {
+                TopAppBar(
+                    title = { Text(title, maxLines = 1) },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            if (canGoBack) {
+                                webViewInstance?.goBack()
+                            } else {
+                                navController.popBackStack()
+                            }
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    },
+                    actions = {
+                        IconButton(onClick = { webViewInstance?.reload() }) {
+                            Icon(Icons.Filled.Refresh, contentDescription = "Reload")
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = { webViewInstance?.reload() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Reload")
-                    }
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "More options")
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Open in External Browser") },
-                            onClick = {
-                                showMenu = false
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                context.startActivity(intent)
-                            },
-                            leadingIcon = { Icon(Icons.Filled.OpenInBrowser, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Copy Link") },
-                            onClick = {
-                                showMenu = false
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                val clip = android.content.ClipData.newPlainText("URL", url)
-                                clipboard.setPrimaryClip(clip)
-                                android.widget.Toast.makeText(context, "Link copied", android.widget.Toast.LENGTH_SHORT).show()
-                            },
-                            leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Share") },
-                            onClick = {
-                                showMenu = false
-                                val shareIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, url)
-                                    type = "text/plain"
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Link"))
-                            },
-                            leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) }
-                        )
-                    }
-                }
-            )
+                )
+            }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {

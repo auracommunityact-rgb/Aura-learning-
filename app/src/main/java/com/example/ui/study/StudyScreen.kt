@@ -105,11 +105,11 @@ fun StudyScreen(
                             "result_analysis" -> rootNavController.navigate("result_analysis")
                             "progress" -> rootNavController.navigate("progress")
                             "weekly_report" -> rootNavController.navigate("weekly_report")
-                            "ai_homework" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hey Aura AI! I need help with my homework. Can you help me solve it step-by-step and explain the core concepts clearly?"))
-                            "ai_doubt" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hi Aura AI! I have a specific doubt in my syllabus. Can you clarify it with clean explanations and examples?"))
+                            "ai_homework" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hey Gemini AI! I need help with my homework. Can you help me solve it step-by-step and explain the core concepts clearly?"))
+                            "ai_doubt" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hi Gemini AI! I have a specific doubt in my syllabus. Can you clarify it with clean explanations and examples?"))
                             "ai_summarizer" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hello! Can you help me summarize this educational topic or text into concise, high-yield revision notes?"))
                             "ai_essay" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hi! Can you guide me in writing or structuring a polished academic essay on my topic?"))
-                            "ai_mcq" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hey Aura! Can you generate a set of practice Multiple Choice Questions (MCQs) on my topic with answers and brief explanations?"))
+                            "ai_mcq" -> rootNavController.navigate("ai_chat?prompt=" + android.net.Uri.encode("Hey Gemini! Can you generate a set of practice Multiple Choice Questions (MCQs) on my topic with answers and brief explanations?"))
                         }
                     }
                 }

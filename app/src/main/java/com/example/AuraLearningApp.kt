@@ -83,6 +83,49 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         }
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.DisposableEffect(context) {
+        val activity = context as? androidx.activity.ComponentActivity
+        val listener = androidx.core.util.Consumer<android.content.Intent> { intent ->
+            val intentData = intent.data
+            var newDeepLink = intent.getStringExtra("deep_link")
+            if (intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
+                val path = intentData.path
+                newDeepLink = when {
+                    path == "/ai_chat" || path?.startsWith("/ai_chat") == true -> {
+                        val promptParam = intentData.getQueryParameter("prompt")
+                        if (promptParam != null) "ai_chat?prompt=${android.net.Uri.encode(promptParam)}" else "ai_chat"
+                    }
+                    path == "/courses" || path?.startsWith("/courses") == true -> "courses"
+                    path == "/pdf_tool" || path?.startsWith("/pdf_tool") == true -> "pdf_tool"
+                    path?.startsWith("/book_detail/") == true -> {
+                        val bookId = path.substringAfter("/book_detail/")
+                        "book_detail/$bookId"
+                    }
+                    path?.startsWith("/video_player/") == true -> {
+                        val videoId = path.substringAfter("/video_player/")
+                        "video_player/$videoId"
+                    }
+                    else -> {
+                        val tabParam = intentData.getQueryParameter("tab")
+                        if (tabParam != null) "main?tab=$tabParam" else "main?tab=home"
+                    }
+                }
+            }
+            newDeepLink?.let { link ->
+                try {
+                    rootNavController.navigate(link)
+                } catch (e: Exception) {
+                    // Ignore bad deep links
+                }
+            }
+        }
+        activity?.addOnNewIntentListener(listener)
+        onDispose {
+            activity?.removeOnNewIntentListener(listener)
+        }
+    }
+
     NavHost(navController = rootNavController, startDestination = "splash") {
         composable("splash") { com.example.ui.splash.SplashScreen(rootNavController) }
         composable("login") { LoginScreen(rootNavController, authViewModel) }
@@ -91,12 +134,41 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("admin_manage_exams") { com.example.ui.admin.AdminManageExamsScreen(rootNavController) }
         composable("admin_notifications") { com.example.ui.admin.AdminNotificationsScreen(rootNavController) }
         composable("admin_upload_course") { com.example.ui.admin.AdminCourseUploadScreen(rootNavController) }
+        composable("admin_upload_websites") { com.example.ui.admin.AdminWebsiteUploadScreen(rootNavController) }
         composable(
             "admin_upload/{type}",
             arguments = listOf(androidx.navigation.navArgument("type") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->
             val type = backStackEntry.arguments?.getString("type") ?: "book"
             com.example.ui.admin.AdminContentUploadScreen(rootNavController, isVideo = type == "video")
+        }
+        composable(
+            "admin_edit_book/{bookId}",
+            arguments = listOf(androidx.navigation.navArgument("bookId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("bookId") ?: ""
+            com.example.ui.admin.AdminEditContentScreen(rootNavController, id = id, isVideo = false)
+        }
+        composable(
+            "admin_edit_video/{videoId}",
+            arguments = listOf(androidx.navigation.navArgument("videoId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("videoId") ?: ""
+            com.example.ui.admin.AdminEditContentScreen(rootNavController, id = id, isVideo = true)
+        }
+        composable(
+            "admin_edit_course/{courseId}",
+            arguments = listOf(androidx.navigation.navArgument("courseId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("courseId") ?: ""
+            com.example.ui.admin.AdminEditCourseScreen(rootNavController, courseId = id)
+        }
+        composable(
+            "admin_edit_website/{websiteId}",
+            arguments = listOf(androidx.navigation.navArgument("websiteId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("websiteId") ?: ""
+            com.example.ui.admin.AdminEditWebsiteScreen(rootNavController, websiteId = id)
         }
         composable("exam_results") { com.example.ui.profile.ExamResultScreen(rootNavController, rootNavController) }
         composable(
@@ -117,6 +189,17 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             val url = backStackEntry.arguments?.getString("url") ?: ""
             val bookId = url.hashCode().toString()
             com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url, bookId = bookId)
+        }
+        composable(
+            "book_detail/{bookId}",
+            arguments = listOf(androidx.navigation.navArgument("bookId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
+            com.example.ui.books.BookDetailScreen(
+                navController = rootNavController,
+                bookId = bookId,
+                authViewModel = authViewModel
+            )
         }
         composable(
             "video_player/{videoId}",

@@ -1,6 +1,6 @@
 {
   "name": "Aura Learning",
   "description": "Educational app with courses, books, and videos",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["file_system_access"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
