@@ -52,7 +52,8 @@ import androidx.compose.ui.draw.clip
 fun GlobalSearchScreen(
     navController: NavController,
     rootNavController: NavController,
-    viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)
+    viewModel: HomeViewModel = viewModel(factory = ViewModelFactory),
+    initialQuery: String = ""
 ) {
     val aiSearchResults by viewModel.aiSearchResults.collectAsState()
 
@@ -68,7 +69,7 @@ fun GlobalSearchScreen(
         }
     }
 
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf(initialQuery) }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(searchQuery) {

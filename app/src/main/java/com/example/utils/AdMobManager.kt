@@ -2,6 +2,7 @@ package com.example.utils
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.LoadAdError
@@ -73,6 +74,20 @@ object AdMobManager {
     /**
      * Safely displays the cached Interstitial ad or executes the UI transition fallback action.
      */
+    fun showInterstitial(context: Context, onAdDismissedOrFailed: () -> Unit) {
+        val activity = context.findActivity()
+        if (activity != null) {
+            showInterstitial(activity, onAdDismissedOrFailed)
+        } else {
+            Log.e(TAG, "Context does not contain an Activity. Executing fallback directly.")
+            preloadInterstitial(context)
+            onAdDismissedOrFailed()
+        }
+    }
+
+    /**
+     * Safely displays the cached Interstitial ad or executes the UI transition fallback action.
+     */
     fun showInterstitial(activity: Activity, onAdDismissedOrFailed: () -> Unit) {
         val ad = mInterstitialAd
         if (ad != null) {
@@ -102,5 +117,14 @@ object AdMobManager {
             preloadInterstitial(activity)
             onAdDismissedOrFailed()
         }
+    }
+
+    private fun Context.findActivity(): Activity? {
+        var context = this
+        while (context is ContextWrapper) {
+            if (context is Activity) return context
+            context = context.baseContext
+        }
+        return null
     }
 }

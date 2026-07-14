@@ -161,11 +161,12 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
         }
     ) {
         Scaffold(
+            modifier = Modifier.statusBarsPadding(),
             topBar = {
                 TopAppBar(
                     title = { Text("Video Lessons") },
                     actions = {
-                        IconButton(onClick = { rootNavController.navigate("global_search") }) {
+                        IconButton(onClick = { navController.navigate("global_search") }) {
                             Icon(Icons.Filled.Search, contentDescription = "Search")
                         }
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -182,7 +183,7 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    onClick = { rootNavController.navigate("global_search") }
+                    onClick = { navController.navigate("global_search") }
                 ) {
                     Row(
                         modifier = Modifier
@@ -227,7 +228,9 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                                 val context = LocalContext.current
                                 Card(
                                     modifier = Modifier.fillMaxWidth().clickable { 
-                                        rootNavController.navigate("video_player/${video.id}")
+                                        com.example.utils.AdMobManager.showInterstitial(context) {
+                                            rootNavController.navigate("video_player/${video.id}")
+                                        }
                                     },
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {

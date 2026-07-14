@@ -1,6 +1,7 @@
 package com.example.data.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class User(
@@ -18,31 +19,53 @@ data class User(
 
 @Serializable
 data class Book(
+    @Serializable(with = StringOrNumericSerializer::class)
     val id: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val bookName: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val className: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val subject: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val coverImage: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val pdfUrl: String = "",
+    @Serializable(with = SafeLongSerializer::class)
     val createdAt: Long = 0L
 )
 
 @Serializable
 data class Video(
+    @Serializable(with = StringOrNumericSerializer::class)
     val id: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val title: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val description: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val className: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val subject: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val thumbnail: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val videoUrl: String = "", // Used as youtubeUrl
+    @Serializable(with = SafeStringSerializer::class)
     val youtubeVideoId: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val chapter: String = "",
+    @Serializable(with = SafeIntSerializer::class)
     val partNumber: Int = 1,
+    @Serializable(with = SafeStringSerializer::class)
     val teacher: String = "",
+    @Serializable(with = SafeStringSerializer::class)
     val duration: String = "",
+    @Serializable(with = SafeIntSerializer::class)
     val order: Int = 0,
+    @Serializable(with = SafeStringListSerializer::class)
     val relatedBooks: List<String> = emptyList(),
+    @Serializable(with = SafeLongSerializer::class)
     val createdAt: Long = 0L
 )
 
@@ -104,6 +127,7 @@ data class BookProgress(
 
 @Serializable
 data class Course(
+    @Serializable(with = StringOrNumericSerializer::class)
     val id: String = "",
     val subject: String = "",
     val title: String = "",
@@ -116,6 +140,7 @@ data class Course(
 
 @Serializable
 data class Website(
+    @Serializable(with = StringOrNumericSerializer::class)
     val id: String = "",
     val name: String = "",
     val description: String = "",

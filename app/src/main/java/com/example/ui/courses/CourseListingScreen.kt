@@ -1,191 +1,118 @@
 package com.example.ui.courses
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.data.models.Course
-import com.example.data.repository.AuraRepository
 import com.example.ui.ViewModelFactory
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CourseListingScreen(navController: NavController) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val activity = remember(context) { context as? android.app.Activity }
-    
-    val viewModel: CourseViewModel = viewModel(factory = ViewModelFactory)
+fun CourseListingScreen(navController: NavController, viewModel: CourseViewModel = viewModel(factory = ViewModelFactory)) {
     val courses by viewModel.courses.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    var selectedCourse by remember { mutableStateOf<Course?>(null) }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Available Courses") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 160.dp),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                ) {
-                    items(courses) { course ->
-                        CourseCard(course = course) {
-                            selectedCourse = course
-                        }
-                    }
-                }
-            }
-
-            selectedCourse?.let { course ->
-                AlertDialog(
-                    onDismissRequest = { selectedCourse = null },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                selectedCourse = null
-                                if (activity != null) {
-                                    com.example.utils.AdMobManager.showInterstitial(activity) {
-                                        navController.navigate("main?tab=study") {
-                                            popUpTo(0) { inclusive = true }
-                                        }
-                                    }
-                                } else {
-                                    navController.navigate("main?tab=study") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                }
+    
+    Surface(
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        color = Color(0xFF0C0D0E)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header
+            Text("Available Courses", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp))
+            
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    ) {
+                        items(courses) { course ->
+                            CourseItemCard(course = course) {
+                                // Navigate to course detail if needed
                             }
-                        ) {
-                            Text("Explore Material")
                         }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { selectedCourse = null }) {
-                            Text("Close")
-                        }
-                    },
-                    title = {
-                        Text(
-                            text = course.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    text = {
-                        Column {
-                            AsyncImage(
-                                model = course.thumbnailUrl,
-                                contentDescription = course.title,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(140.dp)
-                                    .clip(RoundedCornerShape(12.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Subject: ${course.subject}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = course.description,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    shape = RoundedCornerShape(24.dp)
-                )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun CourseCard(course: Course, onClick: () -> Unit) {
-    Card(
+fun CourseItemCard(course: Course, onClick: () -> Unit) {
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(240.dp),
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            .width(128.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.Start
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.68f)
+                .shadow(elevation = 6.dp, shape = RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF2C2C2C))
+        ) {
             AsyncImage(
-                model = course.thumbnailUrl,
+                model = course.thumbnailUrl.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
                 contentDescription = course.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            Column(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = course.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = course.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Text(
-                    text = course.subject,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
         }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = course.title,
+            style = TextStyle(
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(2.dp))
+        
+        Text(
+            text = course.subject,
+            style = TextStyle(
+                color = Color(0xFF9AA0A6),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

@@ -142,8 +142,9 @@ class AuraRepository {
     
     suspend fun deleteBook(bookId: String) {
         if (bookId.isNotEmpty()) {
+            val idValue: Any = bookId.toLongOrNull() ?: bookId
             client.postgrest["books"].delete {
-                filter { eq("id", bookId) }
+                filter { eq("id", idValue) }
             }
             notifyBooksChanged()
         }
@@ -190,8 +191,9 @@ class AuraRepository {
     
     suspend fun deleteVideo(videoId: String) {
         if (videoId.isNotEmpty()) {
+            val idValue: Any = videoId.toLongOrNull() ?: videoId
             client.postgrest["videos"].delete {
-                filter { eq("id", videoId) }
+                filter { eq("id", idValue) }
             }
             notifyVideosChanged()
         }
@@ -259,8 +261,9 @@ class AuraRepository {
     suspend fun deleteCourse(courseId: String) {
         try {
             if (courseId.isNotEmpty()) {
+                val idValue: Any = courseId.toLongOrNull() ?: courseId
                 client.postgrest["courses"].delete {
-                    filter { eq("id", courseId) }
+                    filter { eq("id", idValue) }
                 }
             }
         } catch (e: Exception) {
@@ -304,8 +307,9 @@ class AuraRepository {
     suspend fun deleteWebsite(websiteId: String) {
         try {
             if (websiteId.isNotEmpty()) {
+                val idValue: Any = websiteId.toLongOrNull() ?: websiteId
                 client.postgrest["websites"].delete {
-                    filter { eq("id", websiteId) }
+                    filter { eq("id", idValue) }
                 }
             }
         } catch (e: Exception) {
@@ -560,6 +564,25 @@ class AuraRepository {
         } catch (e: Exception) {
             e.printStackTrace()
             ""
+        }
+    }
+
+    suspend fun uploadBookPdf(pdfBytes: ByteArray, fileName: String): String {
+        return try {
+            val bucket = client.storage["books"]
+            bucket.upload(fileName, pdfBytes) { upsert = true }
+            bucket.publicUrl(fileName)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to "covers" bucket
+            try {
+                val bucket = client.storage["covers"]
+                bucket.upload(fileName, pdfBytes) { upsert = true }
+                bucket.publicUrl(fileName)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                ""
+            }
         }
     }
 }

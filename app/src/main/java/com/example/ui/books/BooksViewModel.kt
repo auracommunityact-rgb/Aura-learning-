@@ -21,6 +21,7 @@ class BooksViewModel(private val repository: AuraRepository) : ViewModel() {
     val selectedSubject: StateFlow<String?> = _selectedSubject.asStateFlow()
 
     init {
+        fetchBooks()
         viewModelScope.launch {
             AuraRepository.booksUpdateTrigger.collect {
                 fetchBooks()

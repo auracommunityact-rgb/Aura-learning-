@@ -1,34 +1,57 @@
 package com.example.ui.books
 
+import android.app.Activity
+import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.shape.RoundedCornerShape
-import com.example.ui.auth.AuthViewModel
-
-import com.example.ui.ViewModelFactory
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.data.models.Book
+import com.example.ui.ViewModelFactory
+import com.example.ui.auth.AuthViewModel
+import com.example.utils.AdMobManager
+import kotlinx.coroutines.launch
+import java.net.URLEncoder
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.utils.VoiceSearchHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +66,30 @@ fun BooksScreen(
     val selectedClass by viewModel.selectedClass.collectAsState()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val offlineBooks by offlineBooksViewModel.offlineBooks.collectAsState()
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val voiceHelper = remember { VoiceSearchHelper(context) }
+    val speechResult by voiceHelper.speechResult.collectAsState()
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            voiceHelper.startListening()
+        }
+    }
+
+    LaunchedEffect(speechResult) {
+        if (speechResult.isNotEmpty()) {
+            val encodedQuery = URLEncoder.encode(speechResult, "UTF-8")
+            voiceHelper.clearSpeechResult()
+            navController.navigate("global_search?query=$encodedQuery")
+        }
+    }
+
+    // Sync selected grade with backend filter
     LaunchedEffect(currentUser?.selectedGrade) {
         val grade = currentUser?.selectedGrade ?: "All Grades"
         val initialClass = if (grade == "All Grades") null else {
@@ -64,250 +110,333 @@ fun BooksScreen(
         viewModel.setFilters(initialClass, selectedSubject)
     }
 
-    val offlineBooks by offlineBooksViewModel.offlineBooks.collectAsState()
-    val downloadProgress by offlineBooksViewModel.downloadProgress.collectAsState()
+    // Categories list based on user request (with Ebooks first, followed by specific subjects)
+    val categories = listOf("Ebooks", "Hindi", "English", "Mathematics", "Science", "Social science", "Sanskrit")
+    var selectedCategory by remember { mutableStateOf("Ebooks") }
 
-    var showLoginPrompt by remember { mutableStateOf(false) }
-    var selectedTabIndex by remember { mutableStateOf(0) }
+    // Helper to determine if a book subject matches the selected category tab
+    fun matchesCategory(bookSubject: String, category: String): Boolean {
+        if (category == "Ebooks") return true
+        val normSubject = bookSubject.lowercase().trim()
+        val normCat = category.lowercase().trim()
+        if (normCat == "social science" && (normSubject.contains("social") || normSubject.contains("studies") || normSubject.contains("history") || normSubject.contains("geography"))) return true
+        return normSubject.contains(normCat) || normCat.contains(normSubject)
+    }
 
-    if (showLoginPrompt) {
+    // Filtered lists containing only database-stored books
+    val recentlyReducedBooks = remember(selectedCategory, books) {
+        books.filter { matchesCategory(it.subject, selectedCategory) }
+    }
+
+    val freePreviewBooks = remember(selectedCategory, books) {
+        books.filter { matchesCategory(it.subject, selectedCategory) }
+    }
+
+    // Modal Sheet or dialog state for grade/class filtering
+    var showGradeFilterDialog by remember { mutableStateOf(false) }
+    val classesList = listOf("All Grades", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th")
+
+    if (showGradeFilterDialog) {
         AlertDialog(
-            onDismissRequest = { showLoginPrompt = false },
-            title = { Text("Sign In Required") },
-            text = { Text("You need to sign in to save books.") },
-            confirmButton = {
-                TextButton(onClick = { 
-                    showLoginPrompt = false
-                    rootNavController.navigate("login") 
-                }) {
-                    Text("Login")
+            onDismissRequest = { showGradeFilterDialog = false },
+            title = { Text("Select Class/Grade") },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth().height(250.dp).verticalScroll(rememberScrollState())) {
+                    classesList.forEach { gradeOption ->
+                        TextButton(
+                            onClick = {
+                                val filterVal = if (gradeOption == "All Grades") null else gradeOption
+                                viewModel.setFilters(filterVal, selectedSubject)
+                                authViewModel.updateSelectedGrade(gradeOption)
+                                showGradeFilterDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = gradeOption,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if ((gradeOption == "All Grades" && selectedClass == null) || (selectedClass == gradeOption)) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+                        }
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showLoginPrompt = false }) {
-                    Text("Cancel")
+            confirmButton = {
+                TextButton(onClick = { showGradeFilterDialog = false }) {
+                    Text("Close")
                 }
             }
         )
     }
 
-    val classes = listOf("1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th")
-    val subjects = listOf("Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science")
-    
-    val booksBySubject = books.groupBy { it.subject.ifEmpty { "Other" } }
-    
-    val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
-    val newBooks = books.filter { it.createdAt >= sevenDaysAgo }
-    
-    val offlineBooksList = offlineBooks.map { 
-        com.example.data.models.Book(
-            id = it.id,
-            bookName = it.bookName,
-            className = it.className,
-            subject = it.subject,
-            coverImage = it.coverImage,
-            pdfUrl = "file://" + it.localPdfPath,
-            createdAt = it.downloadedAt
-        )
-    }
-    val offlineBooksBySubject = offlineBooksList.groupBy { it.subject.ifEmpty { "Other" } }
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text(
-                    "Filters",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(16.dp)
-                )
-                HorizontalDivider()
-                
-                LazyColumn(modifier = Modifier.fillMaxHeight().padding(bottom = 16.dp)) {
-                    item {
-                        Text(
-                            "Grade Level",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
-                        )
-                        NavigationDrawerItem(
-                            label = { Text("All Grades") },
-                            selected = selectedClass == null,
-                            onClick = { 
-                                viewModel.setFilters(null, selectedSubject)
-                                authViewModel.updateSelectedGrade("All Grades")
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                    items(classes) { cls ->
-                        NavigationDrawerItem(
-                            label = { Text(cls) },
-                            selected = selectedClass == cls,
-                            onClick = { 
-                                viewModel.setFilters(cls, selectedSubject)
-                                authViewModel.updateSelectedGrade("Grade ${cls.dropLast(2)}")
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                    
-                    item {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        Text(
-                            "Subject",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                        )
-                        NavigationDrawerItem(
-                            label = { Text("All Subjects") },
-                            selected = selectedSubject == null,
-                            onClick = { 
-                                viewModel.setFilters(selectedClass, null)
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                    
-                    items(subjects) { subject ->
-                        NavigationDrawerItem(
-                            label = { Text(subject) },
-                            selected = selectedSubject == subject,
-                            onClick = { 
-                                viewModel.setFilters(selectedClass, subject)
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                }
-            }
-        }
+    // Enforce full immersive dark theme container to match image_0.png mockup
+    Surface(
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        color = Color(0xFF0C0D0E) // Very premium pitch-black background
     ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Books") },
-                    actions = {
-                        IconButton(onClick = { rootNavController.navigate("global_search") }) {
-                            Icon(Icons.Filled.Search, contentDescription = "Search")
-                        }
-                        if (selectedTabIndex == 0) {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Filled.FilterList, contentDescription = "Filter")
-                            }
-                        }
-                    }
-                )
-            }
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                Surface(
+        Column(modifier = Modifier.fillMaxSize()) {
+            
+            // 1. Premium Search Bar at the top (matches image_0.png)
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Search capsule
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    onClick = { rootNavController.navigate("global_search") }
+                        .weight(1f)
+                        .height(48.dp)
+                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(24.dp))
+                        .background(Color(0xFF202124)) // Sleek dark grey background
+                        .clickable { navController.navigate("global_search") }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = "Search",
+                        tint = Color(0xFF9AA0A6),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Search Books",
+                        style = TextStyle(
+                            color = Color(0xFF9AA0A6),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.Mic,
+                        contentDescription = "Voice Search",
+                        tint = Color(0xFF9AA0A6),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .size(20.dp)
+                            .clickable {
+                                recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                            }
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Custom user profile icon / filter button
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .shadow(2.dp, CircleShape)
+                        .background(Color(0xFF1A73E8), CircleShape)
+                        .clickable { showGradeFilterDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = currentUser?.email?.take(1)?.uppercase() ?: "A",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // 2. Horizontal Navigation Menu (Matches categories request exactly!)
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                items(categories) { category ->
+                    val isSelected = selectedCategory == category
+                    Column(
+                        modifier = Modifier
+                            .clickable {
+                                selectedCategory = category
+                                // Also update DB filters to match
+                                val dbSubject = if (category == "Ebooks") null else category
+                                viewModel.setFilters(selectedClass, dbSubject)
+                            }
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Search books...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            text = category,
+                            style = TextStyle(
+                                color = if (isSelected) Color(0xFF8AB4F8) else Color(0xFF9AA0A6), // Light blue vs light gray
+                                fontSize = 15.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        // Underline indicator
+                        Box(
+                            modifier = Modifier
+                                .height(2.dp)
+                                .width(if (isSelected) 36.dp else 0.dp)
+                                .background(Color(0xFF8AB4F8), RoundedCornerShape(1.dp))
                         )
                     }
                 }
+            }
 
-                TabRow(selectedTabIndex = selectedTabIndex) {
-                    Tab(
-                        selected = selectedTabIndex == 0,
-                        onClick = { selectedTabIndex = 0 },
-                        text = { Text("All Books") }
-                    )
-                    Tab(
-                        selected = selectedTabIndex == 1,
-                        onClick = { selectedTabIndex = 1 },
-                        text = { Text("Downloads") }
-                    )
-                }
+            // Separator line under menu
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(Color(0xFF303030))
+            )
 
-                if (selectedTabIndex == 0) {
-                    if (books.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                            Text("No books found for selected filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
-                            if (newBooks.isNotEmpty()) {
-                                item {
-                                    Text("New Books", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp))
-                                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                        items(newBooks) { book ->
-                                            PlayStoreBookItem(book = book, onBookClick = {
-                                                rootNavController.navigate("book_detail/${book.id}")
-                                            })
+            // 3. Main Scrollable Content Area with Vertically Stacked Carousels
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                
+                // Show offline downloads if any are available
+                if (offlineBooks.isNotEmpty()) {
+                    item {
+                        CarouselHeader(
+                            title = "My Saved Books",
+                            subtitle = "Available offline",
+                            onActionClick = {
+                                Toast.makeText(context, "Showing downloads", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            items(offlineBooks) { offlineBook ->
+                                val bookObj = Book(
+                                    id = offlineBook.id,
+                                    bookName = offlineBook.bookName,
+                                    className = offlineBook.className,
+                                    subject = offlineBook.subject,
+                                    coverImage = offlineBook.coverImage,
+                                    pdfUrl = "file://" + offlineBook.localPdfPath
+                                )
+                                HighFidelityBookCard(
+                                    book = bookObj,
+                                    onBookClick = {
+                                        AdMobManager.showInterstitial(context) {
+                                            val encodedUrl = URLEncoder.encode(bookObj.pdfUrl, "UTF-8")
+                                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
                                         }
                                     }
-                                }
-                            }
-                            booksBySubject.forEach { (subject, subjectBooks) ->
-                                item {
-                                    Text(
-                                        text = subject,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
-                                    )
-                                }
-                                items(subjectBooks) { book ->
-                                    PlayStoreBookListItem(book = book, onBookClick = {
-                                        rootNavController.navigate("book_detail/${book.id}")
-                                    })
-                                }
+                                )
                             }
                         }
                     }
-                } else {
-                    if (offlineBooks.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                            Text("No downloaded books yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                // First Carousel: "Recently reduced ebooks"
+                item {
+                    CarouselHeader(
+                        title = "Recently reduced ebooks",
+                        subtitle = "Our latest offers",
+                        onActionClick = {
+                            Toast.makeText(context, "More offers coming soon!", Toast.LENGTH_SHORT).show()
                         }
+                    )
+                    
+                    if (recentlyReducedBooks.isEmpty()) {
+                        EmptyStatePlaceholder(subjectName = selectedCategory)
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
-                            offlineBooksBySubject.forEach { (subject, subjectBooks) ->
-                                item {
-                                    Text(
-                                        text = subject,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
-                                    )
-                                }
-                                items(subjectBooks) { book ->
-                                    PlayStoreBookListItem(book = book, onBookClick = {
-                                        rootNavController.navigate("book_detail/${book.id}")
-                                    })
-                                }
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            items(recentlyReducedBooks) { book ->
+                                HighFidelityBookCard(
+                                    book = book,
+                                    onBookClick = {
+                                        AdMobManager.showInterstitial(context) {
+                                            rootNavController.navigate("book_detail/${book.id}")
+                                        }
+                                    }
+                                )
                             }
+                        }
+                    }
+                }
+
+                // Second Carousel: "Start your free preview"
+                item {
+                    CarouselHeader(
+                        title = "Start your free preview",
+                        subtitle = "Read sample first buy later",
+                        onActionClick = {
+                            Toast.makeText(context, "Enjoy your free previews!", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    
+                    if (freePreviewBooks.isEmpty()) {
+                        EmptyStatePlaceholder(subjectName = selectedCategory)
+                    } else {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            items(freePreviewBooks) { book ->
+                                HighFidelityBookCard(
+                                    book = book,
+                                    onBookClick = {
+                                        AdMobManager.showInterstitial(context) {
+                                            rootNavController.navigate("book_detail/${book.id}")
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Bottom Brand Banner
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF1E3C72), Color(0xFF2A5298))
+                                )
+                            )
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "AURA PREMIUM LIBRARY",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Read. Learn. Grow.",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal
+                            )
                         }
                     }
                 }
@@ -316,3 +445,140 @@ fun BooksScreen(
     }
 }
 
+@Composable
+fun CarouselHeader(
+    title: String,
+    subtitle: String,
+    onActionClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = TextStyle(
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            )
+            Text(
+                text = subtitle,
+                style = TextStyle(
+                    color = Color(0xFF9AA0A6),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            )
+        }
+        
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color(0xFF202124), CircleShape)
+                .clickable { onActionClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "View More",
+                tint = Color(0xFFE8EAED),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun HighFidelityBookCard(
+    book: Book,
+    onBookClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(128.dp)
+            .clickable(onClick = onBookClick),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.68f)
+                .shadow(elevation = 6.dp, shape = RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF2C2C2C))
+        ) {
+            AsyncImage(
+                model = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
+                contentDescription = book.bookName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = book.bookName,
+            style = TextStyle(
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(2.dp))
+        
+        Text(
+            text = book.className.ifEmpty { "Free book" },
+            style = TextStyle(
+                color = Color(0xFF9AA0A6),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+fun EmptyStatePlaceholder(subjectName: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF1E1F22))
+            .border(1.dp, Color(0xFF2F3033), RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "No books found under '$subjectName'",
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Check other sections or update your class grade level filter.",
+                color = Color(0xFF9AA0A6),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}

@@ -42,6 +42,10 @@ class VoiceSearchHelper(private val context: Context) {
         speechRecognizer.startListening(intent)
     }
 
+    fun clearSpeechResult() {
+        _speechResult.value = ""
+    }
+
     fun destroy() {
         speechRecognizer.destroy()
     }

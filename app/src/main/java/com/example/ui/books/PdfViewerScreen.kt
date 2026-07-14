@@ -11,11 +11,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -76,7 +78,7 @@ fun PdfViewerScreen(
     val annotations by viewModel.annotations.collectAsState()
     val bookmarks by viewModel.bookmarks.collectAsState()
     
-    val listState = rememberLazyListState()
+    val pagerState = rememberPagerState(pageCount = { pageCount })
     var currentTool by remember { mutableStateOf(AnnotationTool.NONE) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
     var strokeWidth by remember { mutableStateOf(5f) }
@@ -89,6 +91,7 @@ fun PdfViewerScreen(
     var showBookmarksDialog by remember { mutableStateOf(false) }
     var isSummarizing by remember { mutableStateOf(false) }
     var summaryText by remember { mutableStateOf("") }
+    var showSummaryMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     
     val context = LocalContext.current
@@ -129,7 +132,7 @@ fun PdfViewerScreen(
                                     .fillMaxWidth()
                                     .clickable {
                                         coroutineScope.launch {
-                                            listState.animateScrollToItem(bookmark.pageNumber)
+                                            pagerState.animateScrollToPage(bookmark.pageNumber)
                                             showBookmarksDialog = false
                                         }
                                     }
@@ -190,7 +193,7 @@ fun PdfViewerScreen(
                     }
                 },
                 actions = {
-                    val currentPageIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+                    val currentPageIndex by remember { derivedStateOf { pagerState.currentPage } }
                     val isBookmarked = bookmarks.any { it.pageNumber == currentPageIndex }
                     IconButton(onClick = { viewModel.toggleBookmark(bookId, currentPageIndex) }) {
                         Icon(if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, contentDescription = "Bookmark Page", tint = MaterialTheme.colorScheme.primary)
@@ -198,17 +201,39 @@ fun PdfViewerScreen(
                     IconButton(onClick = { showBookmarksDialog = true }) {
                         Icon(Icons.Filled.Bookmarks, contentDescription = "View Bookmarks", tint = MaterialTheme.colorScheme.primary)
                     }
-                    IconButton(onClick = {
-                        showSummaryDialog = true
-                        isSummarizing = true
-                        summaryText = ""
-                        coroutineScope.launch {
-                            val pageIndex = listState.firstVisibleItemIndex
-                            summaryText = viewModel.summarizePage(pageIndex, 1080)
-                            isSummarizing = false
+                    Box {
+                        IconButton(onClick = { showSummaryMenu = true }) {
+                            Icon(Icons.Filled.AutoAwesome, contentDescription = "AI Summarizer", tint = MaterialTheme.colorScheme.primary)
                         }
-                    }) {
-                        Icon(Icons.Filled.AutoAwesome, contentDescription = "Summarize Page", tint = MaterialTheme.colorScheme.primary)
+                        DropdownMenu(
+                            expanded = showSummaryMenu,
+                            onDismissRequest = { showSummaryMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Summarize Current Page") },
+                                leadingIcon = { Icon(Icons.Filled.Book, contentDescription = null) },
+                                onClick = {
+                                    showSummaryMenu = false
+                                    showSummaryDialog = true
+                                    isSummarizing = true
+                                    summaryText = ""
+                                    coroutineScope.launch {
+                                        val pageIndex = pagerState.currentPage
+                                        summaryText = viewModel.summarizePage(pageIndex, 1080)
+                                        isSummarizing = false
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Summarize Complete Book (AI)") },
+                                leadingIcon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                onClick = {
+                                    showSummaryMenu = false
+                                    val encodedUrl = java.net.URLEncoder.encode(pdfUrl, "UTF-8")
+                                    navController.navigate("book_summary?url=$encodedUrl&bookId=$bookId")
+                                }
+                            )
+                        }
                     }
                     IconButton(onClick = {
                         val last = annotations.maxByOrNull { it.timestamp }
@@ -294,22 +319,20 @@ fun PdfViewerScreen(
                     Text("Downloading... ${(progress!! * 100).toInt()}%")
                 }
             } else {
-                LazyColumn(
-                    state = listState,
+                HorizontalPager(
+                    state = pagerState,
                     modifier = Modifier.fillMaxSize(),
                     userScrollEnabled = currentTool == AnnotationTool.NONE
-                ) {
-                    items(pageCount) { index ->
+                ) { page ->
                         PdfPage(
-                            pageIndex = index,
+                            pageIndex = page,
                             viewModel = viewModel,
-                            annotations = annotations.filter { it.pageNumber == index },
+                            annotations = annotations.filter { it.pageNumber == page },
                             currentTool = currentTool,
                             selectedColor = selectedColor,
                             strokeWidth = strokeWidth,
                             bookId = bookId
                         )
-                    }
                 }
             }
             

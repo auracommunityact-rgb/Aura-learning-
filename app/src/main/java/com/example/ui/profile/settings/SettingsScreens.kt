@@ -31,6 +31,7 @@ import com.example.ui.theme.ThemeViewModel
 fun ProfileSettingsScreen(navController: NavController, authViewModel: AuthViewModel, themeViewModel: ThemeViewModel?) {
     val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
+    val currentUser by authViewModel.currentUser.collectAsState(initial = null)
 
     Scaffold(
         topBar = {
@@ -70,17 +71,41 @@ fun ProfileSettingsScreen(navController: NavController, authViewModel: AuthViewM
                         ThemeOptionButton(
                             icon = Icons.Filled.SettingsBrightness,
                             selected = themeMode == 0,
-                            onClick = { themeViewModel?.setThemeMode(0) }
+                            onClick = {
+                                themeViewModel?.setThemeMode(0)
+                                com.example.utils.HapticHelper.triggerAndLog(
+                                    context = context,
+                                    eventType = "Theme Toggle",
+                                    details = "Toggled theme to System Default",
+                                    userEmail = currentUser?.email
+                                )
+                            }
                         )
                         ThemeOptionButton(
                             icon = Icons.Filled.LightMode,
                             selected = themeMode == 1,
-                            onClick = { themeViewModel?.setThemeMode(1) }
+                            onClick = {
+                                themeViewModel?.setThemeMode(1)
+                                com.example.utils.HapticHelper.triggerAndLog(
+                                    context = context,
+                                    eventType = "Theme Toggle",
+                                    details = "Toggled theme to Light Mode",
+                                    userEmail = currentUser?.email
+                                )
+                            }
                         )
                         ThemeOptionButton(
                             icon = Icons.Filled.DarkMode,
                             selected = themeMode == 2,
-                            onClick = { themeViewModel?.setThemeMode(2) }
+                            onClick = {
+                                themeViewModel?.setThemeMode(2)
+                                com.example.utils.HapticHelper.triggerAndLog(
+                                    context = context,
+                                    eventType = "Theme Toggle",
+                                    details = "Toggled theme to Dark Mode",
+                                    userEmail = currentUser?.email
+                                )
+                            }
                         )
                     }
                 }

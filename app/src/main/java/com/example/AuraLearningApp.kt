@@ -6,18 +6,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.firebase.messaging.FirebaseMessaging
 import android.util.Log
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.remember
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -30,6 +28,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -52,15 +56,15 @@ import androidx.compose.runtime.getValue
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Filled.Home)
-    object Study : Screen("study", "Study", Icons.Filled.Edit)
+    object Courses : Screen("courses", "Courses", Icons.Filled.MenuBook)
     object Videos : Screen("videos", "Videos", Icons.Filled.PlayCircle)
-    object Books : Screen("books", "Books", Icons.AutoMirrored.Filled.MenuBook)
+    object Books : Screen("books", "Books", Icons.Outlined.Book)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
 val items = listOf(
     Screen.Home,
-    Screen.Study,
+    Screen.Courses,
     Screen.Videos,
     Screen.Books,
     Screen.Profile
@@ -91,7 +95,9 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             var newDeepLink = intent.getStringExtra("deep_link")
             if (intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
                 val path = intentData.path
+                val bookParam = intentData.getQueryParameter("book")
                 newDeepLink = when {
+                    bookParam != null -> "book_detail/$bookParam"
                     path == "/ai_chat" || path?.startsWith("/ai_chat") == true -> {
                         val promptParam = intentData.getQueryParameter("prompt")
                         if (promptParam != null) "ai_chat?prompt=${android.net.Uri.encode(promptParam)}" else "ai_chat"
@@ -191,6 +197,17 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url, bookId = bookId)
         }
         composable(
+            "book_summary?url={url}&bookId={bookId}",
+            arguments = listOf(
+                androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("bookId") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val url = backStackEntry.arguments?.getString("url") ?: ""
+            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
+            com.example.ui.books.BookSummaryScreen(navController = rootNavController, pdfUrl = url, bookId = bookId)
+        }
+        composable(
             "book_detail/{bookId}",
             arguments = listOf(androidx.navigation.navArgument("bookId") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->
@@ -206,7 +223,7 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             arguments = listOf(androidx.navigation.navArgument("videoId") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->
             val videoId = backStackEntry.arguments?.getString("videoId") ?: ""
-            com.example.ui.videos.VideoPlayerScreen(navController = rootNavController, videoId = videoId)
+            com.example.ui.videos.VideoPlayerScreen(navController = rootNavController, videoId = videoId, authViewModel = authViewModel)
         }
         composable(
             "flashcards/{deckId}",
@@ -283,6 +300,7 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
 
         composable("pdf_tool") { com.example.ui.pdf.screens.PdfToolScreen(rootNavController) }
         composable("pdf_builder") { com.example.ui.pdf.screens.PdfBuilderScreen(rootNavController) }
+        composable("images_to_pdf") { com.example.ui.pdf.screens.ImageToPdfScreen() }
         composable("map_agent") { com.example.ui.study.map.MapAgentScreen(rootNavController) }
         composable("courses") { com.example.ui.courses.CourseListingScreen(rootNavController) }
     }
@@ -329,26 +347,41 @@ fun MainScreen(
     var lastProfileTapTime by remember { androidx.compose.runtime.mutableStateOf(0L) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
-            NavigationBar {
-                items.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) },
-                        selected = currentRoute == screen.route,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            // Using Box to ensure the bottom bar floats correctly and allows content behind
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding() // Float above system navigation
+            ) {
+                NavigationBar(
+                    modifier = Modifier
+                        .shadow(16.dp, RoundedCornerShape(32.dp))
+                        .clip(RoundedCornerShape(32.dp)),
+                    windowInsets = WindowInsets(0, 0, 0, 0)
+                ) {
+                    items.forEach { screen ->
+                        NavigationBarItem(
+                            icon = { Icon(screen.icon, contentDescription = screen.title) },
+                            label = { Text(screen.title) },
+                            selected = currentRoute == screen.route,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -356,13 +389,20 @@ fun MainScreen(
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
         ) {
             composable(Screen.Home.route) { HomeScreen(navController, authViewModel, rootNavController) }
-            composable("global_search") { com.example.ui.home.GlobalSearchScreen(navController, rootNavController) }
-            composable(Screen.Study.route) { com.example.ui.study.StudyScreen(navController, authViewModel, rootNavController) }
+            composable(
+                "global_search?query={query}",
+                arguments = listOf(androidx.navigation.navArgument("query") { defaultValue = "" })
+            ) { backStackEntry ->
+                val query = backStackEntry.arguments?.getString("query") ?: ""
+                com.example.ui.home.GlobalSearchScreen(navController, rootNavController, initialQuery = query)
+            }
             composable(Screen.Videos.route) { VideosScreen(navController, authViewModel, rootNavController) }
+            composable(Screen.Courses.route) { com.example.ui.courses.CourseListingScreen(navController) }
             composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
+            composable("resources") { com.example.ui.home.ResourcesScreen(navController, rootNavController) }
             composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel, rootNavController, themeViewModel) }
         }
     }

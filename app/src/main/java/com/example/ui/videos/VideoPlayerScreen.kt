@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import com.example.data.local.PlannerDatabase
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -41,6 +42,7 @@ import com.example.ui.ViewModelFactory
 fun VideoPlayerScreen(
     navController: NavController,
     videoId: String,
+    authViewModel: com.example.ui.auth.AuthViewModel,
     viewModel: VideoPlayerViewModel = viewModel(factory = ViewModelFactory)
 ) {
     val video by viewModel.video.collectAsState()
@@ -48,7 +50,21 @@ fun VideoPlayerScreen(
     val relatedBooks by viewModel.relatedBooks.collectAsState()
     val suggestedVideos by viewModel.suggestedVideos.collectAsState()
 
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val isSaved = currentUser?.savedVideos?.contains(videoId) == true
+
     var showAllParts by remember { mutableStateOf(false) }
+    var showNoteDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val noteDao = PlannerDatabase.getDatabase(context).noteDao()
+    val noteViewModel: com.example.ui.notes.NoteTakingViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return com.example.ui.notes.NoteTakingViewModel(noteDao) as T
+            }
+        }
+    )
 
     LaunchedEffect(videoId) {
         viewModel.loadVideo(videoId)
@@ -100,6 +116,9 @@ fun VideoPlayerScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            com.example.ui.notes.FloatingNoteButton(onNoteClick = { showNoteDialog = true })
         }
     ) { padding ->
         if (video == null) {
@@ -217,7 +236,20 @@ fun VideoPlayerScreen(
                 // Video Details
                 item {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(video!!.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(video!!.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                            IconButton(onClick = { 
+                                authViewModel.toggleSaveVideo(videoId)
+                                val msg = if (isSaved) "Removed from Learning" else "Saved to Learning"
+                                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(
+                                    imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                    contentDescription = "Save to Learning",
+                                    tint = if (isSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Badge { Text(video!!.subject) }
@@ -395,6 +427,13 @@ fun VideoPlayerScreen(
                     Spacer(modifier = Modifier.height(80.dp))
                 }
             }
+        }
+        
+        if (showNoteDialog) {
+            com.example.ui.notes.NoteDialog(
+                onDismiss = { showNoteDialog = false },
+                onSave = { content -> noteViewModel.saveNote(content, "video/$videoId") }
+            )
         }
     }
 }

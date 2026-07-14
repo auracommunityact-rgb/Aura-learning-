@@ -15,6 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Upload
+import android.provider.OpenableColumns
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,10 +62,26 @@ fun AdminEditContentScreen(navController: NavController, id: String, isVideo: Bo
     val classes = listOf("1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th")
     val subjects = listOf("Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science")
 
+    var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedPdfName by remember { mutableStateOf("") }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
+    }
+
+    val pdfPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedPdfUri = uri
+        if (uri != null) {
+            val name = getFileName(context, uri) ?: "Selected PDF"
+            selectedPdfName = name
+            if (title.isBlank()) {
+                title = name.substringBeforeLast(".")
+            }
+        }
     }
 
     // Load initial content
@@ -265,10 +284,90 @@ fun AdminEditContentScreen(navController: NavController, id: String, isVideo: Bo
                     }
                 }
                 
+                if (!isVideo) {
+                    Text("Select PDF Document", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            if (selectedPdfUri != null) {
+                                Icon(
+                                    imageVector = Icons.Filled.Description,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = selectedPdfName,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedButton(
+                                        onClick = { pdfPickerLauncher.launch("application/pdf") },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Change File")
+                                    }
+                                    TextButton(
+                                        onClick = {
+                                            selectedPdfUri = null
+                                            selectedPdfName = ""
+                                        }
+                                    ) {
+                                        Text("Clear", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Filled.Description,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    if (contentUrl.isNotEmpty()) "Using current online PDF URL" else "No PDF file selected",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = { pdfPickerLauncher.launch("application/pdf") }
+                                ) {
+                                    Icon(Icons.Filled.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Choose PDF from Device")
+                                }
+                            }
+                        }
+                    }
+                    
+                    Text(
+                        text = "OR enter PDF URL manually",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                
                 OutlinedTextField(
                     value = contentUrl,
                     onValueChange = { contentUrl = it },
-                    label = { Text(if (isVideo) "YouTube Video ID or URL" else "PDF Document URL") },
+                    label = { Text(if (isVideo) "YouTube Video ID or URL" else "PDF Document URL (Optional if file is chosen)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -276,8 +375,16 @@ fun AdminEditContentScreen(navController: NavController, id: String, isVideo: Bo
                 
                 Button(
                     onClick = {
-                        if (title.isBlank() || subject.isBlank() || className.isBlank() || contentUrl.isBlank()) {
+                        if (title.isBlank() || subject.isBlank() || className.isBlank()) {
                             Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (!isVideo && selectedPdfUri == null && contentUrl.isBlank()) {
+                            Toast.makeText(context, "Please select a PDF file or enter a PDF URL", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (isVideo && contentUrl.isBlank()) {
+                            Toast.makeText(context, "Please enter a YouTube video ID or URL", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         coroutineScope.launch {
@@ -300,12 +407,31 @@ fun AdminEditContentScreen(navController: NavController, id: String, isVideo: Bo
                                     }
                                 }
 
+                                var finalContentUrl = contentUrl
+                                if (!isVideo && selectedPdfUri != null) {
+                                    val inputStream = context.contentResolver.openInputStream(selectedPdfUri!!)
+                                    val bytes = inputStream?.readBytes()
+                                    inputStream?.close()
+                                    if (bytes != null) {
+                                        val ext = "pdf"
+                                        val fileName = "${selectedPdfName.substringBeforeLast(".")}_${UUID.randomUUID().toString().take(6)}.$ext"
+                                        val uploadedUrl = repository.uploadBookPdf(bytes, fileName)
+                                        if (uploadedUrl.isNotEmpty()) {
+                                            finalContentUrl = uploadedUrl
+                                        } else {
+                                            Toast.makeText(context, "Failed to upload PDF", Toast.LENGTH_SHORT).show()
+                                            isSaving = false
+                                            return@launch
+                                        }
+                                    }
+                                }
+
                                 if (isVideo) {
-                                    val videoId = extractYoutubeVideoId(contentUrl)
-                                    val finalVideoUrl = if (contentUrl.contains("youtube.com") || contentUrl.contains("youtu.be")) {
-                                        contentUrl
+                                    val videoId = extractYoutubeVideoId(finalContentUrl)
+                                    val finalVideoUrl = if (finalContentUrl.contains("youtube.com") || finalContentUrl.contains("youtu.be")) {
+                                        finalContentUrl
                                     } else {
-                                        "https://www.youtube.com/watch?v=$contentUrl"
+                                        "https://www.youtube.com/watch?v=$finalContentUrl"
                                     }
                                     val updatedVideo = Video(
                                         id = id,
@@ -331,7 +457,7 @@ fun AdminEditContentScreen(navController: NavController, id: String, isVideo: Bo
                                         className = className,
                                         subject = subject,
                                         coverImage = finalImageUrl,
-                                        pdfUrl = contentUrl,
+                                        pdfUrl = finalContentUrl,
                                         createdAt = System.currentTimeMillis()
                                     )
                                     repository.updateBook(updatedBook)
@@ -363,4 +489,29 @@ fun AdminEditContentScreen(navController: NavController, id: String, isVideo: Bo
             }
         }
     }
+}
+
+private fun getFileName(context: android.content.Context, uri: Uri): String? {
+    var result: String? = null
+    if (uri.scheme == "content") {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index != -1) {
+                    result = cursor.getString(index)
+                }
+            }
+        } finally {
+            cursor?.close()
+        }
+    }
+    if (result == null) {
+        result = uri.path
+        val cut = result?.lastIndexOf('/') ?: -1
+        if (cut != -1) {
+            result = result?.substring(cut + 1)
+        }
+    }
+    return result
 }

@@ -22,13 +22,18 @@ class MainActivity : ComponentActivity() {
         // Initialize AdMob Mobile Ads SDK optimally on startup
         com.example.utils.AdMobManager.initialize(this)
         
+        // Register all notification categories/channels with the Android system
+        com.example.utils.NotificationHelper.registerNotificationChannels(this)
+        
         val themeViewModel = ThemeViewModel(this)
         
         val intentData = intent.data
         var initialDeepLink = intent.getStringExtra("deep_link")
         if (intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
             val path = intentData.path
+            val bookParam = intentData.getQueryParameter("book")
             initialDeepLink = when {
+                bookParam != null -> "book_detail/$bookParam"
                 path == "/ai_chat" || path?.startsWith("/ai_chat") == true -> {
                     val promptParam = intentData.getQueryParameter("prompt")
                     if (promptParam != null) "ai_chat?prompt=${android.net.Uri.encode(promptParam)}" else "ai_chat"

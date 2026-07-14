@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -147,20 +148,24 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
         }
     ) {
         Scaffold(
+            modifier = Modifier.statusBarsPadding(),
             topBar = {
                 TopAppBar(
                     title = {
-                        Column {
-                            Text(
-                                text = "Good Morning, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"} 👋",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (selectedSubject != "All Subjects") "Subject: $selectedSubject" else "Let's continue learning!",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        val isGuest = currentUser == null || currentUser?.id == "guest_user"
+                        if (!isGuest) {
+                            Column {
+                                Text(
+                                    text = "Good Morning, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"} 👋",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (selectedSubject != "All Subjects") "Subject: $selectedSubject" else "Let's continue learning!",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     },
                     navigationIcon = {
@@ -201,8 +206,9 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 80.dp) // Add padding for bottom nav if needed
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp) // Add padding for bottom nav if needed
         ) {
             // Search Bar
             item {
@@ -233,11 +239,6 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                         )
                     }
                 }
-            }
-
-            // Category Grid
-            item {
-                CategoryGrid(navController)
             }
 
             // Google, AI Mode & Gemini AI Buttons side-by-side
@@ -520,67 +521,6 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
 }
 
 @Composable
-fun CategoryGrid(navController: NavController) {
-    val categories = listOf(
-        Category("Books", Icons.AutoMirrored.Filled.MenuBook, Color(0xFF1E3A8A), "books"),
-        Category("Video Lessons", Icons.Filled.PlayCircle, Color(0xFF1E3A8A), "videos"),
-        Category("Resources", Icons.Filled.Folder, Color(0xFF1E3A8A), "resources")
-    )
-
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.height(140.dp)
-    ) {
-        items(categories) { category ->
-            Card(
-                onClick = { navController.navigate(category.route) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = category.icon,
-                        contentDescription = category.title,
-                        tint = category.color,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = category.title,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A8A)
-                    )
-                }
-            }
-        }
-    }
-}
-
-data class Category(
-    val title: String,
-    val icon: ImageVector,
-    val color: Color,
-    val route: String
-)
-
-@Composable
 fun HeroBannerCarousel(context: android.content.Context) {
     Card(
         modifier = Modifier
@@ -667,7 +607,7 @@ fun SectionExploreCategories(selectedSubject: String, onSubjectSelected: (String
 @Composable
 fun QuickActionsSection(navController: NavController, rootNavController: NavController) {
     val actions = listOf(
-        Pair("Books", Icons.AutoMirrored.Filled.MenuBook),
+        Pair("Books", Icons.Outlined.Book),
         Pair("Videos", Icons.Filled.PlayCircle),
         Pair("Notes", Icons.AutoMirrored.Filled.Notes),
         Pair("PYQs", Icons.Filled.HistoryEdu),

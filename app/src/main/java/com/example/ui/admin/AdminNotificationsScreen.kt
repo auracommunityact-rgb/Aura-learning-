@@ -306,8 +306,9 @@ fun AdminNotificationsScreen(navController: NavController) {
                                             coroutineScope.launch {
                                                 try {
                                                     withContext(Dispatchers.IO) {
+                                                        val idValue: Any = notif.id.toLongOrNull() ?: notif.id
                                                         supabase.from("notifications").delete {
-                                                            filter { eq("id", notif.id) }
+                                                            filter { eq("id", idValue) }
                                                         }
                                                     }
                                                     Toast.makeText(context, "Deleted from server", Toast.LENGTH_SHORT).show()

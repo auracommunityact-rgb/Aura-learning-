@@ -1,6 +1,7 @@
 package com.example.ui.admin
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -28,9 +29,46 @@ fun AdminCourseUploadScreen(navController: NavController) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
+    
     var thumbnailUrl by remember { mutableStateOf("") }
     var youtubeUrl by remember { mutableStateOf("") }
     var contentFileUrl by remember { mutableStateOf("") }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                isUploading = true
+                try {
+                    val bytes = context.contentResolver.openInputStream(it)?.readBytes()
+                    bytes?.let { b ->
+                        thumbnailUrl = repository.uploadCoverImage(b, "course_cover_${System.currentTimeMillis()}.jpg")
+                    }
+                } finally {
+                    isUploading = false
+                }
+            }
+        }
+    }
+
+    val filePicker = rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                isUploading = true
+                try {
+                    val bytes = context.contentResolver.openInputStream(it)?.readBytes()
+                    bytes?.let { b ->
+                        contentFileUrl = repository.uploadBookPdf(b, "course_file_${System.currentTimeMillis()}.pdf")
+                    }
+                } finally {
+                    isUploading = false
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -74,12 +112,14 @@ fun AdminCourseUploadScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
             
-            OutlinedTextField(
-                value = thumbnailUrl,
-                onValueChange = { thumbnailUrl = it },
-                label = { Text("Cover Image URL") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { imagePicker.launch("image/*") }, modifier = Modifier.weight(1f)) {
+                    Text(if (thumbnailUrl.isEmpty()) "Pick Cover Image" else "Image Picked")
+                }
+                if (thumbnailUrl.isNotEmpty()) {
+                    Text("Image Uploaded", modifier = Modifier.align(androidx.compose.ui.Alignment.CenterVertically))
+                }
+            }
             
             OutlinedTextField(
                 value = youtubeUrl,
@@ -88,12 +128,14 @@ fun AdminCourseUploadScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
             
-            OutlinedTextField(
-                value = contentFileUrl,
-                onValueChange = { contentFileUrl = it },
-                label = { Text("Content File URL (PDF/Other)") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { filePicker.launch("application/pdf") }, modifier = Modifier.weight(1f)) {
+                    Text(if (contentFileUrl.isEmpty()) "Pick Content File (PDF)" else "File Picked")
+                }
+                if (contentFileUrl.isNotEmpty()) {
+                    Text("File Uploaded", modifier = Modifier.align(androidx.compose.ui.Alignment.CenterVertically))
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
             

@@ -95,7 +95,7 @@ fun MyLibraryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Library", fontWeight = FontWeight.Bold) },
+                title = { Text("My Learning", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

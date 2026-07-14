@@ -37,7 +37,9 @@ fun PdfBuilderScreen(navController: NavController) {
                 
                 val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "GeneratedPDF_${System.currentTimeMillis()}.pdf")
                 try {
-                    pdfDocument.writeTo(FileOutputStream(file))
+                    FileOutputStream(file).use { out ->
+                        pdfDocument.writeTo(out)
+                    }
                     Toast.makeText(context, "Saved to ${file.absolutePath}", Toast.LENGTH_LONG).show()
                 } catch (e: Exception) {
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()

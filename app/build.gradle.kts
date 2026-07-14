@@ -38,13 +38,13 @@ android {
 
     if (storeFileVar != null && storePasswordVar != null) {
         create("release") {
-            storeFile = rootProject.file(storeFileVar)
+            storeFile = file(storeFileVar)
             storePassword = storePasswordVar
             keyAlias = keyAliasVar
             keyPassword = keyPasswordVar
         }
         getByName("debug") {
-            storeFile = rootProject.file(storeFileVar)
+            storeFile = file(storeFileVar)
             storePassword = storePasswordVar
             keyAlias = keyAliasVar
             keyPassword = keyPasswordVar

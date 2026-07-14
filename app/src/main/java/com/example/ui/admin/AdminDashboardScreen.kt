@@ -44,6 +44,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +68,7 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
     var coursesList by remember { mutableStateOf<List<Course>>(emptyList()) }
     var websitesList by remember { mutableStateOf<List<com.example.data.models.Website>>(emptyList()) }
     var notificationsList by remember { mutableStateOf<List<SupabaseNotification>>(emptyList()) }
+    var hapticLogsList by remember { mutableStateOf<List<com.example.data.models.HapticLog>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -78,6 +83,13 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                 notificationsList = SupabaseService.client.from("notifications")
                     .select().decodeList<SupabaseNotification>()
                     .sortedByDescending { it.created_at }
+                try {
+                    hapticLogsList = SupabaseService.client.from("haptic_logs")
+                        .select().decodeList<com.example.data.models.HapticLog>()
+                        .sortedByDescending { it.created_at }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(context, "Error loading admin content: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -231,6 +243,11 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                     onClick = { selectedTab = 4 },
                     text = { Text("Websites (${websitesList.size})", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                 )
+                Tab(
+                    selected = selectedTab == 5,
+                    onClick = { selectedTab = 5 },
+                    text = { Text("Haptic Logs (${hapticLogsList.size})", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                )
             }
 
             if (isLoading) {
@@ -296,9 +313,7 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                     CourseAdminItem(course = course, onDelete = {
                                         coroutineScope.launch {
                                             try {
-                                                SupabaseService.client.from("courses").delete {
-                                                    filter { eq("id", course.id) }
-                                                }
+                                                repository.deleteCourse(course.id)
                                                 Toast.makeText(context, "Course deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
                                             } catch (e: Exception) {
@@ -319,8 +334,9 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                     NotificationAdminItem(notification = notification, onDelete = {
                                         coroutineScope.launch {
                                             try {
+                                                val idValue: Any = notification.id.toLongOrNull() ?: notification.id
                                                 SupabaseService.client.from("notifications").delete {
-                                                    filter { eq("id", notification.id) }
+                                                    filter { eq("id", idValue) }
                                                 }
                                                 Toast.makeText(context, "Notification deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
@@ -349,6 +365,72 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                         }
                                     }, onEdit = {
                                         navController.navigate("admin_edit_website/${website.id}")
+                                    })
+                                }
+                            }
+                        }
+                        5 -> { // Haptic Logs
+                            if (hapticLogsList.isEmpty()) {
+                                item {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        EmptyStateView("No haptic logs found")
+                                        Text(
+                                            "Make sure you have created the 'haptic_logs' table in Supabase.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            } else {
+                                item {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Logged interactions stored in Supabase",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        TextButton(
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    try {
+                                                        SupabaseService.client.from("haptic_logs").delete {
+                                                            filter { neq("id", "") }
+                                                        }
+                                                        Toast.makeText(context, "All logs cleared", Toast.LENGTH_SHORT).show()
+                                                        loadAllContent()
+                                                    } catch (e: Exception) {
+                                                        Toast.makeText(context, "Failed to clear: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Clear Logs")
+                                        }
+                                    }
+                                }
+                                items(hapticLogsList) { log ->
+                                    HapticLogAdminItem(log = log, onDelete = {
+                                        coroutineScope.launch {
+                                            try {
+                                                SupabaseService.client.from("haptic_logs").delete {
+                                                    filter { eq("id", log.id) }
+                                                }
+                                                Toast.makeText(context, "Log deleted", Toast.LENGTH_SHORT).show()
+                                                loadAllContent()
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
                                     })
                                 }
                             }
@@ -713,6 +795,125 @@ fun WebsiteAdminItem(website: com.example.data.models.Website, onDelete: () -> U
             onDismissRequest = { showConfirm = false },
             title = { Text("Delete Website") },
             text = { Text("Are you sure you want to delete '${website.name}'?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirm = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun HapticLogAdminItem(log: com.example.data.models.HapticLog, onDelete: () -> Unit) {
+    var showConfirm by remember { mutableStateOf(false) }
+    val formattedDate = remember(log.created_at) {
+        try {
+            val date = java.util.Date(log.created_at)
+            val outputFormat = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+            outputFormat.format(date)
+        } catch (e: Exception) {
+            log.created_at.toString()
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        when (log.event_type) {
+                            "Bookmark Book" -> MaterialTheme.colorScheme.primaryContainer
+                            "Read Now Click" -> MaterialTheme.colorScheme.secondaryContainer
+                            else -> MaterialTheme.colorScheme.tertiaryContainer
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when (log.event_type) {
+                        "Bookmark Book" -> Icons.Default.Bookmark
+                        "Read Now Click" -> Icons.AutoMirrored.Filled.MenuBook
+                        else -> Icons.Default.Palette
+                    },
+                    contentDescription = null,
+                    tint = when (log.event_type) {
+                        "Bookmark Book" -> MaterialTheme.colorScheme.onPrimaryContainer
+                        "Read Now Click" -> MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onTertiaryContainer
+                    },
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = log.event_type,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = log.details,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = log.user_email,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = formattedDate,
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            }
+            IconButton(onClick = { showConfirm = true }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete LogEntry",
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text("Delete Log Entry") },
+            text = { Text("Are you sure you want to delete this log entry?") },
             confirmButton = {
                 Button(
                     onClick = {

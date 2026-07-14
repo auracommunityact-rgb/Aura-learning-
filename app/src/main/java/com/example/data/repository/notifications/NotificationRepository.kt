@@ -17,9 +17,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import com.example.data.models.StringOrNumericSerializer
 
 @Serializable
 data class SupabaseNotification(
+    @Serializable(with = StringOrNumericSerializer::class)
     val id: String,
     val title: String,
     val description: String,
@@ -69,7 +71,7 @@ class NotificationRepository(private val context: Context) {
                 
                 // If it's a new notification, trigger local push
                 if (local == null) {
-                    sendLocalNotification(remote.title, remote.description, remote.id.hashCode())
+                    sendLocalNotification(remote.title, remote.description, remote.id.hashCode(), remote.category)
                 }
             }
         } catch (e: Exception) {
@@ -77,17 +79,17 @@ class NotificationRepository(private val context: Context) {
         }
     }
 
-    private fun sendLocalNotification(title: String, message: String, id: Int) {
+    private fun sendLocalNotification(title: String, message: String, id: Int, category: String = "") {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "app_notifications",
-                "App Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Notifications from Aura Learning"
-            }
-            notificationManager.createNotificationChannel(channel)
+        
+        val channelId = when (category.lowercase().trim()) {
+            "books", "new books", "new_books" -> "new_books"
+            "videos", "new videos", "new_videos" -> "new_videos"
+            "tools", "new tools", "new_tools" -> "new_tools"
+            "updates", "app updates", "app_updates" -> "app_updates"
+            "announcements", "announcement" -> "announcements"
+            "system" -> "system"
+            else -> "announcements" // default fallback
         }
 
         val mainIntent = Intent(context, Class.forName("com.example.MainActivity")).apply {
@@ -100,7 +102,7 @@ class NotificationRepository(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, "app_notifications")
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(message)

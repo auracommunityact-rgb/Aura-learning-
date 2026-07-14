@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.local.PlannerDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -112,6 +113,17 @@ fun HorizontalPdfReader(
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
+    var showNoteDialog by remember { mutableStateOf(false) }
+    
+    // Note taking setup
+    val noteDao = PlannerDatabase.getDatabase(context).noteDao()
+    val noteViewModel: com.example.ui.notes.NoteTakingViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return com.example.ui.notes.NoteTakingViewModel(noteDao) as T
+            }
+        }
+    )
 
     LaunchedEffect(uri) {
         viewModel.openPdf(context, uri)
@@ -173,7 +185,20 @@ fun HorizontalPdfReader(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
+
+                // Floating Note Button
+                com.example.ui.notes.FloatingNoteButton(
+                    onNoteClick = { showNoteDialog = true },
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                )
             }
+        }
+        
+        if (showNoteDialog) {
+            com.example.ui.notes.NoteDialog(
+                onDismiss = { showNoteDialog = false },
+                onSave = { content -> noteViewModel.saveNote(content, uri.toString()) }
+            )
         }
     }
 }
