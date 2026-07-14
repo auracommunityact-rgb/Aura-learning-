@@ -32,18 +32,16 @@ class AuraApplication : Application() {
         // Register Notification Channels
         com.example.utils.NotificationHelper.registerNotificationChannels(this)
         
-        // Clean up WebView Code Cache directories if they were created as directories, letting Chromium handle them
+        
+        // Clean up WebView Code Cache directories recursively
         try {
-            val webViewCacheJs = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache/js")
-            val webViewCacheWasm = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache/wasm")
-            if (webViewCacheJs.exists() && webViewCacheJs.isDirectory) {
-                webViewCacheJs.delete()
-            }
-            if (webViewCacheWasm.exists() && webViewCacheWasm.isDirectory) {
-                webViewCacheWasm.delete()
+            val codeCacheDir = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache")
+            if (codeCacheDir.exists()) {
+                codeCacheDir.deleteRecursively()
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
     }
 }

@@ -18,3 +18,4 @@ local.properties
 debug.keystore
 *.jks
 key.properties
+upload_release.keystore

@@ -63,6 +63,9 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
     private val _downloadProgress = MutableStateFlow<Float?>(null)
     val downloadProgress: StateFlow<Float?> = _downloadProgress
 
+        private val _initialPage = MutableStateFlow(0)
+    val initialPage: StateFlow<Int> = _initialPage
+
     private val _pdfPageCount = MutableStateFlow(0)
     val pdfPageCount: StateFlow<Int> = _pdfPageCount
 
@@ -101,6 +104,15 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
                 launch {
                     bookmarkRepo.getBookmarksForBook(bookId).collect {
                         _bookmarks.value = it
+                    }
+                }
+
+                                val userId = SupabaseService.client.auth.currentSessionOrNull()?.user?.id
+                if (userId != null) {
+                    val progressList = auraRepo.getBookProgress(userId)
+                    val progress = progressList.find { it.bookId == bookId }
+                    if (progress != null) {
+                        _initialPage.value = progress.lastPage
                     }
                 }
 

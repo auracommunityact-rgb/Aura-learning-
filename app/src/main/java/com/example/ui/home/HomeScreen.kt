@@ -241,7 +241,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 }
             }
 
-            // Google, AI Mode & Gemini AI Buttons side-by-side
+            // Google & AI Mode Buttons side-by-side
             item {
                 Row(
                     modifier = Modifier
@@ -333,41 +333,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                         }
                     }
 
-                    // Gemini AI Card (Icon Only with Premium Gradient)
-                    Card(
-                        modifier = Modifier
-                            .size(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.Transparent
-                        ),
-                        border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.3f)),
-                        onClick = {
-                            rootNavController.navigate("ai_chat")
-                        }
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                                        colors = listOf(
-                                            Color(0xFF3B82F6), // Gemini Blue
-                                            Color(0xFF8B5CF6), // Gemini Purple
-                                            Color(0xFFEC4899)  // Gemini Pink
-                                        )
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "Gemini AI",
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
+
                 }
             }
 
@@ -443,11 +409,6 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
                 SectionExploreCategories(selectedSubject) { newSubject ->
                     viewModel.setSelectedSubject(newSubject)
                 }
-            }
-
-            // Daily Study Goal
-            item {
-                DailyStudyGoalCard()
             }
 
             item {
@@ -833,7 +794,6 @@ fun AILearningToolsSection(rootNavController: NavController) {
     SectionHeader("AI Learning Tools")
     
     val tools = listOf(
-        Pair("Gemini AI", Icons.Filled.SmartToy),
         Pair("Chapter Summary", Icons.Filled.Summarize),
         Pair("Mind Maps", Icons.Filled.AccountTree),
         Pair("Flashcards", Icons.Filled.Style),
@@ -853,7 +813,6 @@ fun AILearningToolsSection(rootNavController: NavController) {
                     .width(160.dp)
                     .clickable { 
                         when (name) {
-                            "Gemini AI" -> rootNavController.navigate("ai_chat")
                             "PDF Reader" -> rootNavController.navigate("pdf_tool")
                         }
                     },

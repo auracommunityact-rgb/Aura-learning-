@@ -1,3 +1,4 @@
+import java.util.Base64
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -12,49 +13,55 @@ plugins {
 
 android {
   namespace = "com.example"
-  compileSdk = 35
+  compileSdk = 36
 
   defaultConfig {
     applicationId = "com.auracommunityact.auralearning"
     minSdk = 24
-    targetSdk = 35
+    targetSdk = 36
     versionCode = 1
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  signingConfigs {
-    val keystorePropertiesFile = rootProject.file("key.properties")
-    val keystoreProperties = Properties()
-    if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-    }
+    signingConfigs {
+    create("release") {
+        val storeFileVar = System.getenv("KEYSTORE_FILE") ?: System.getenv("KEYSTORE_PATH")
+        val storePasswordVar = System.getenv("KEYSTORE_PASSWORD")
+        val keyAliasVar = System.getenv("KEY_ALIAS")
+        val keyPasswordVar = System.getenv("KEY_PASSWORD")
+        val keystoreBase64 = System.getenv("KEYSTORE_BASE64")
 
-    val storeFileVar = keystoreProperties.getProperty("storeFile") ?: System.getenv("KEYSTORE_PATH")
-    val storePasswordVar = keystoreProperties.getProperty("storePassword") ?: System.getenv("KEYSTORE_PASSWORD")
-    val keyAliasVar = keystoreProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
-    val keyPasswordVar = keystoreProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
+        var keystoreFile: java.io.File? = null
+        if (storeFileVar != null) {
+            keystoreFile = rootProject.file(storeFileVar)
+        } else if (keystoreBase64 != null && keystoreBase64.isNotEmpty()) {
+            val decodedBytes = Base64.getDecoder().decode(keystoreBase64)
+            keystoreFile = rootProject.file("upload_release.keystore")
+            keystoreFile.writeBytes(decodedBytes)
+        }
 
-    if (storeFileVar != null && storePasswordVar != null) {
-        create("release") {
-            storeFile = file(storeFileVar)
-            storePassword = storePasswordVar
-            keyAlias = keyAliasVar
-            keyPassword = keyPasswordVar
+        if (keystoreFile == null || !keystoreFile.exists()) {
+            throw GradleException("Release keystore file not found! Please set KEYSTORE_FILE or KEYSTORE_BASE64 in Secrets.")
         }
-        getByName("debug") {
-            storeFile = file(storeFileVar)
-            storePassword = storePasswordVar
-            keyAlias = keyAliasVar
-            keyPassword = keyPasswordVar
+        if (storePasswordVar.isNullOrEmpty()) {
+            throw GradleException("KEYSTORE_PASSWORD not set in Secrets!")
         }
-    } else {
-        create("release") {
-            // Placeholder for local builds without keys
+        if (keyAliasVar.isNullOrEmpty()) {
+            throw GradleException("KEY_ALIAS not set in Secrets!")
         }
+        if (keyPasswordVar.isNullOrEmpty()) {
+            throw GradleException("KEY_PASSWORD not set in Secrets!")
+        }
+
+        storeFile = keystoreFile
+        storePassword = storePasswordVar
+        keyAlias = keyAliasVar
+        keyPassword = keyPasswordVar
     }
   }
+
 
   buildTypes {
     release {
@@ -64,7 +71,7 @@ android {
       signingConfig = signingConfigs.findByName("release")
     }
     debug {
-      signingConfig = signingConfigs.findByName("debug")
+      
     }
   }
   compileOptions {
