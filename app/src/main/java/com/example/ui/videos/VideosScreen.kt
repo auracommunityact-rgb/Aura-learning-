@@ -14,6 +14,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.ui.ViewModelFactory
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
@@ -176,7 +179,15 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                 )
             }
         ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            val isLoading by viewModel.isLoading.collectAsState()
+            PullToRefreshBox(
+                isRefreshing = isLoading,
+                onRefresh = { viewModel.fetchVideos() },
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -206,7 +217,12 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
                 }
 
                 if (videos.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
                         Text("No videos found for selected filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
@@ -290,5 +306,6 @@ fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, roo
             }
         }
     }
+}
 }
 

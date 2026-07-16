@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.example.data.models.Book
 import com.example.ui.ViewModelFactory
 import com.example.ui.auth.AuthViewModel
@@ -63,6 +64,7 @@ fun BooksScreen(
     offlineBooksViewModel: OfflineBooksViewModel = viewModel()
 ) {
     val books by viewModel.books.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     val selectedClass by viewModel.selectedClass.collectAsState()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -178,7 +180,12 @@ fun BooksScreen(
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
         color = Color(0xFF0C0D0E) // Very premium pitch-black background
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = { viewModel.fetchBooks() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
             
             // 1. Premium Search Bar at the top (matches image_0.png)
             Spacer(modifier = Modifier.height(16.dp))
@@ -443,6 +450,7 @@ fun BooksScreen(
             }
         }
     }
+}
 }
 
 @Composable

@@ -120,6 +120,10 @@ class NotificationRepository(private val context: Context) {
 
     suspend fun deleteNotification(id: String) = notificationDao.deleteNotification(id)
 
+    fun sendTestNotification(title: String, message: String) {
+        sendLocalNotification(title, message, System.currentTimeMillis().toInt(), "system")
+    }
+
     suspend fun saveNotificationLocally(notification: NotificationEntity) {
         notificationDao.insertNotification(notification)
     }

@@ -1,11 +1,6 @@
 package com.example.data.repository
 
 import com.example.BuildConfig
-import com.example.data.api.Content
-import com.example.data.api.GenerateContentRequest
-import com.example.data.api.GenerationConfig
-import com.example.data.api.Part
-import com.example.data.api.RetrofitClient
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.nl.translate.TranslateLanguage

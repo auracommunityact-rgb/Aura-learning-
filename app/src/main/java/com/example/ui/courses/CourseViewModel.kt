@@ -16,17 +16,31 @@ class CourseViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
     init {
         fetchCourses()
+        repository.subscribeToCourses {
+            fetchCourses()
+        }
     }
 
-    private fun fetchCourses() {
+    fun fetchCourses() {
         viewModelScope.launch {
             _isLoading.value = true
-            // Fetch courses from Supabase
-            val fetchedCourses = repository.getCourses()
-            _courses.value = fetchedCourses
-            _isLoading.value = false
+            _error.value = null
+            try {
+                // Fetch courses from Supabase
+                val fetchedCourses = repository.getCourses()
+                _courses.value = fetchedCourses
+            } catch (e: Exception) {
+                e.printStackTrace()
+                android.util.Log.e("CourseViewModel", "Error in fetchCourses", e)
+                _error.value = e.localizedMessage ?: e.message ?: "Failed to fetch courses. Please check your connection."
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 }

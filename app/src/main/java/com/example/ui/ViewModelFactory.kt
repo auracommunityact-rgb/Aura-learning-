@@ -45,6 +45,10 @@ object ViewModelFactory : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             return MyLibraryViewModel(repository) as T
         }
+        if (modelClass.isAssignableFrom(com.example.ui.chat.ChatViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return com.example.ui.chat.ChatViewModel() as T
+        }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

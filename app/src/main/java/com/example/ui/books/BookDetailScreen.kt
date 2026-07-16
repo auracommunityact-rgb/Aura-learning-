@@ -172,26 +172,12 @@ fun BookDetailScreen(
                         // Share Button
                         IconButton(
                             onClick = {
-                                val bookSlug = currentBook.bookName.toSlug()
-                                val shareUrl = "https://aura.auralearning.workers.dev/?book=$bookSlug"
-                                val shareMessage = """
-                                    📚 Check out this book on Aura Learning!
-                                    
-                                    Book: ${currentBook.bookName}
-                                    
-                                    Read here:
-                                    $shareUrl
-                                    
-                                    Download Aura Learning for the best reading experience.
-                                """.trimIndent()
-                                
-                                val sendIntent = android.content.Intent().apply {
-                                    action = android.content.Intent.ACTION_SEND
-                                    putExtra(android.content.Intent.EXTRA_TEXT, shareMessage)
-                                    type = "text/plain"
-                                }
-                                val shareIntent = android.content.Intent.createChooser(sendIntent, "Share Book")
-                                context.startActivity(shareIntent)
+                                com.example.utils.ShareHelper.shareContent(
+                                    context = context,
+                                    title = currentBook.bookName,
+                                    contentType = "book",
+                                    idOrTitle = currentBook.bookName
+                                )
                             },
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)

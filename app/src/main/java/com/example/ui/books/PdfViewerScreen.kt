@@ -81,6 +81,7 @@ fun PdfViewerScreen(
     navController: NavController,
     pdfUrl: String,
     bookId: String = "default_book",
+    initialPageArg: Int = -1,
     viewModel: PdfViewerViewModel = viewModel()
 ) {
     val progress by viewModel.downloadProgress.collectAsState()
@@ -90,8 +91,11 @@ fun PdfViewerScreen(
     val initialPage by viewModel.initialPage.collectAsState()
     val pagerState = rememberPagerState(pageCount = { pageCount })
     LaunchedEffect(initialPage, pageCount) {
-        if (pageCount > 0 && initialPage > 0 && initialPage < pageCount) {
-            pagerState.scrollToPage(initialPage)
+        if (pageCount > 0) {
+            val targetPage = if (initialPageArg >= 0) initialPageArg else initialPage
+            if (targetPage in 0 until pageCount) {
+                pagerState.scrollToPage(targetPage)
+            }
         }
     }
     LaunchedEffect(pagerState.currentPage) {

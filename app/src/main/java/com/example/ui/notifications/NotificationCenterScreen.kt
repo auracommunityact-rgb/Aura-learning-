@@ -91,9 +91,6 @@ fun NotificationCenterScreen(navController: NavController) {
                             Icon(Icons.Filled.DoneAll, contentDescription = "Mark all as read")
                         }
                     }
-                    IconButton(onClick = { navController.navigate("notification_settings") }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
-                    }
                 }
             )
         }

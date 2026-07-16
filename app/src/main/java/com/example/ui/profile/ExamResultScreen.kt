@@ -286,6 +286,16 @@ fun ResultWebViewScreen(navController: NavController, url: String, title: String
                         }
                     },
                     actions = {
+                        IconButton(onClick = {
+                            com.example.utils.ShareHelper.shareContent(
+                                context = context,
+                                title = title,
+                                contentType = "page",
+                                idOrTitle = title
+                            )
+                        }) {
+                            Icon(Icons.Filled.Share, contentDescription = "Share Page")
+                        }
                         IconButton(onClick = { webViewInstance?.reload() }) {
                             Icon(Icons.Filled.Refresh, contentDescription = "Reload")
                         }

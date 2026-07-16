@@ -12,14 +12,22 @@ import com.example.BuildConfig
 import kotlinx.coroutines.delay
 import java.io.IOException
 
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.realtime.realtime
+
 object SupabaseService {
     val client = createSupabaseClient(
         supabaseUrl = BuildConfig.SUPABASE_URL,
         supabaseKey = BuildConfig.SUPABASE_ANON_KEY
     ) {
+        defaultSerializer = io.github.jan.supabase.serializer.KotlinXSerializer(kotlinx.serialization.json.Json {
+            ignoreUnknownKeys = true
+            coerceInputValues = true
+        })
         install(Postgrest)
         install(Auth)
         install(Storage)
+        install(Realtime)
     }
 
     suspend fun <T> retryWithExponentialBackoff(

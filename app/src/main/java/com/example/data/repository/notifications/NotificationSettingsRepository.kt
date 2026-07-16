@@ -30,6 +30,10 @@ class NotificationSettingsRepository(context: Context) {
         get() = prefs.getBoolean("announcements", true)
         set(value) = prefs.edit().putBoolean("announcements", value).apply()
         
+    var studyRemindersEnabled: Boolean
+        get() = prefs.getBoolean("study_reminders", true)
+        set(value) = prefs.edit().putBoolean("study_reminders", value).apply()
+
     var soundEnabled: Boolean
         get() = prefs.getBoolean("sound_enabled", true)
         set(value) = prefs.edit().putBoolean("sound_enabled", value).apply()
@@ -40,12 +44,13 @@ class NotificationSettingsRepository(context: Context) {
 
     fun isCategoryEnabled(category: String): Boolean {
         if (!allNotificationsEnabled) return false
-        return when (category) {
-            "New Books" -> newBooksEnabled
-            "New Videos" -> newVideosEnabled
-            "New Tools" -> newToolsEnabled
-            "App Updates" -> updatesEnabled
-            "Announcements" -> announcementsEnabled
+        return when (category.lowercase().trim()) {
+            "books", "new books", "new_books" -> newBooksEnabled
+            "videos", "new videos", "new_videos" -> newVideosEnabled
+            "tools", "new tools", "new_tools" -> newToolsEnabled
+            "updates", "app updates", "app_updates" -> updatesEnabled
+            "announcements", "announcement" -> announcementsEnabled
+            "study_reminders", "study reminders", "study alarms", "study_alarms" -> studyRemindersEnabled
             else -> true
         }
     }

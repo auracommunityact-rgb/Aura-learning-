@@ -20,6 +20,9 @@ class BooksViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _selectedSubject = MutableStateFlow<String?>(null)
     val selectedSubject: StateFlow<String?> = _selectedSubject.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         fetchBooks()
         viewModelScope.launch {
@@ -29,10 +32,17 @@ class BooksViewModel(private val repository: AuraRepository) : ViewModel() {
         }
     }
 
-    private fun fetchBooks() {
+    fun fetchBooks() {
         viewModelScope.launch {
-            _allBooks.value = repository.getBooks()
-            applyFilters()
+            _isLoading.value = true
+            try {
+                _allBooks.value = repository.getBooks()
+                applyFilters()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 

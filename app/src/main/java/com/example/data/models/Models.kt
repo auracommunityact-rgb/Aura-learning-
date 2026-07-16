@@ -9,12 +9,63 @@ data class User(
     val name: String = "",
     val email: String = "",
     val photoUrl: String = "",
+    val bannerUrl: String = "",
     val provider: String = "",
     val createdAt: Long = 0L,
     val role: String = "user",
     val savedBooks: List<String> = emptyList(),
     val savedVideos: List<String> = emptyList(),
-    val selectedGrade: String = "All Grades"
+    val selectedGrade: String = "All Grades",
+    
+    // Academic Information
+    val studentId: String = "",
+    val isVerified: Boolean = false,
+    val schoolName: String = "",
+    val className: String = "",
+    val section: String = "",
+    val rollNumber: String = "",
+    val admissionNumber: String = "",
+    val board: String = "",
+    val medium: String = "",
+    val academicSession: String = "",
+
+    // Personal Information
+    val gender: String = "",
+    val dob: String = "",
+    val age: Int = 0,
+    val bloodGroup: String = "",
+    val nationality: String = "",
+    val category: String = "",
+
+    // Contact Information
+    val mobileNumber: String = "",
+    val parentName: String = "",
+    val parentMobileNumber: String = "",
+
+    // Address
+    val country: String = "",
+    val state: String = "",
+    val district: String = "",
+    val city: String = "",
+    val pinCode: String = "",
+
+    // Learning Information
+    val currentCourses: List<String> = emptyList(),
+    val certificatesEarned: List<String> = emptyList(),
+    val studyStreak: Int = 0,
+    val totalStudyTime: Int = 0,
+    val completedLessons: Int = 0,
+
+    // Achievements
+    val badges: List<String> = emptyList(),
+    val rank: String = "Bronze Starter",
+    val points: Int = 100,
+    val level: Int = 1,
+    val attendancePercentage: Double = 95.0,
+
+    // Account Information
+    val lastLogin: Long = 0L,
+    val accountStatus: String = "Active"
 )
 
 @Serializable

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
@@ -113,6 +114,20 @@ fun VideoPlayerScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    video?.let { v ->
+                        IconButton(onClick = {
+                            com.example.utils.ShareHelper.shareContent(
+                                context = context,
+                                title = v.title,
+                                contentType = "video",
+                                idOrTitle = v.title
+                            )
+                        }) {
+                            Icon(imageVector = androidx.compose.material.icons.Icons.Filled.Share, contentDescription = "Share Video")
+                        }
                     }
                 }
             )

@@ -33,7 +33,23 @@ class MainActivity : ComponentActivity() {
             val path = intentData.path
             val bookParam = intentData.getQueryParameter("book")
             initialDeepLink = when {
-                bookParam != null -> "book_detail/$bookParam"
+                bookParam != null -> "deeplink_loader?type=book&slug=${android.net.Uri.encode(bookParam)}"
+                path?.startsWith("/course/") == true -> {
+                    val slug = path.substringAfter("/course/")
+                    "deeplink_loader?type=course&slug=${android.net.Uri.encode(slug)}"
+                }
+                path?.startsWith("/video/") == true -> {
+                    val slug = path.substringAfter("/video/")
+                    "deeplink_loader?type=video&slug=${android.net.Uri.encode(slug)}"
+                }
+                path?.startsWith("/book/") == true -> {
+                    val slug = path.substringAfter("/book/")
+                    "deeplink_loader?type=book&slug=${android.net.Uri.encode(slug)}"
+                }
+                path?.startsWith("/page/") == true -> {
+                    val slug = path.substringAfter("/page/")
+                    "deeplink_loader?type=page&slug=${android.net.Uri.encode(slug)}"
+                }
                 path == "/ai_chat" || path?.startsWith("/ai_chat") == true -> {
                     val promptParam = intentData.getQueryParameter("prompt")
                     if (promptParam != null) "ai_chat?prompt=${android.net.Uri.encode(promptParam)}" else "ai_chat"
@@ -74,6 +90,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        com.example.ui.chat.UserPresenceManager.setOnline()
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        com.example.ui.chat.UserPresenceManager.setOffline()
+    }
+    
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

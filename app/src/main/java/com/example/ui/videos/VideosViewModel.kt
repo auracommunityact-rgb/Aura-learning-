@@ -20,6 +20,9 @@ class VideosViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _selectedSubject = MutableStateFlow<String?>(null)
     val selectedSubject: StateFlow<String?> = _selectedSubject.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         fetchVideos()
         viewModelScope.launch {
@@ -29,10 +32,17 @@ class VideosViewModel(private val repository: AuraRepository) : ViewModel() {
         }
     }
 
-    private fun fetchVideos() {
+    fun fetchVideos() {
         viewModelScope.launch {
-            _allVideos.value = repository.getVideos()
-            applyFilters()
+            _isLoading.value = true
+            try {
+                _allVideos.value = repository.getVideos()
+                applyFilters()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 

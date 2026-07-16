@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Icon
@@ -41,6 +42,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import com.example.ui.ViewModelFactory
 import com.example.ui.auth.AuthViewModel
 import com.example.ui.auth.LoginScreen
@@ -59,6 +62,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Courses : Screen("courses", "Courses", Icons.Filled.MenuBook)
     object Videos : Screen("videos", "Videos", Icons.Filled.PlayCircle)
     object Books : Screen("books", "Books", Icons.Outlined.Book)
+    object Chat : Screen("chat_list", "Chat", Icons.Filled.Chat)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
@@ -67,6 +71,7 @@ val items = listOf(
     Screen.Courses,
     Screen.Videos,
     Screen.Books,
+    Screen.Chat,
     Screen.Profile
 )
 
@@ -97,7 +102,23 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
                 val path = intentData.path
                 val bookParam = intentData.getQueryParameter("book")
                 newDeepLink = when {
-                    bookParam != null -> "book_detail/$bookParam"
+                    bookParam != null -> "deeplink_loader?type=book&slug=${android.net.Uri.encode(bookParam)}"
+                    path?.startsWith("/course/") == true -> {
+                        val slug = path.substringAfter("/course/")
+                        "deeplink_loader?type=course&slug=${android.net.Uri.encode(slug)}"
+                    }
+                    path?.startsWith("/video/") == true -> {
+                        val slug = path.substringAfter("/video/")
+                        "deeplink_loader?type=video&slug=${android.net.Uri.encode(slug)}"
+                    }
+                    path?.startsWith("/book/") == true -> {
+                        val slug = path.substringAfter("/book/")
+                        "deeplink_loader?type=book&slug=${android.net.Uri.encode(slug)}"
+                    }
+                    path?.startsWith("/page/") == true -> {
+                        val slug = path.substringAfter("/page/")
+                        "deeplink_loader?type=page&slug=${android.net.Uri.encode(slug)}"
+                    }
                     path == "/ai_chat" || path?.startsWith("/ai_chat") == true -> {
                         val promptParam = intentData.getQueryParameter("prompt")
                         if (promptParam != null) "ai_chat?prompt=${android.net.Uri.encode(promptParam)}" else "ai_chat"
@@ -189,12 +210,21 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             com.example.ui.profile.ResultWebViewScreen(navController = rootNavController, url = url, title = title)
         }
         composable(
-            "pdf_viewer?url={url}",
-            arguments = listOf(androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType })
+            "pdf_viewer?url={url}&page={page}",
+            arguments = listOf(
+                androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("page") { type = androidx.navigation.NavType.IntType; defaultValue = -1 }
+            )
         ) { backStackEntry ->
             val url = backStackEntry.arguments?.getString("url") ?: ""
             val bookId = url.hashCode().toString()
-            com.example.ui.books.PdfViewerScreen(navController = rootNavController, pdfUrl = url, bookId = bookId)
+            val page = backStackEntry.arguments?.getInt("page") ?: -1
+            com.example.ui.books.PdfViewerScreen(
+                navController = rootNavController,
+                pdfUrl = url,
+                bookId = bookId,
+                initialPageArg = page
+            )
         }
         composable(
             "book_summary?url={url}&bookId={bookId}",
@@ -239,6 +269,7 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("notes_translate") { com.example.ui.study.NotesTranslateScreen(rootNavController) }
         composable("calculator") { com.example.ui.study.calculator.ScientificCalculatorScreen(rootNavController) }
         composable("result_analysis") { com.example.ui.study.ResultAnalysisScreen(rootNavController) }
+        composable("website_reader") { com.example.ui.study.websitereader.WebsiteReaderScreen(rootNavController) }
         composable("progress") { com.example.ui.study.ProgressTrackerScreen(rootNavController) }
         composable("weekly_report") { com.example.ui.study.WeeklyReportScreen(rootNavController) }
         composable(
@@ -291,6 +322,19 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             )
         }
         composable("profile_settings") { com.example.ui.profile.settings.ProfileSettingsScreen(rootNavController, authViewModel, themeViewModel) }
+        composable(
+            "deeplink_loader?type={type}&slug={slug}",
+            arguments = listOf(
+                androidx.navigation.navArgument("type") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("slug") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: ""
+            val slug = backStackEntry.arguments?.getString("slug") ?: ""
+            com.example.ui.home.DeepLinkLoaderScreen(navController = rootNavController, type = type, slug = slug)
+        }
+        composable("profile_details") { com.example.ui.profile.ProfileDetailsScreen(rootNavController, authViewModel) }
+        composable("edit_profile") { com.example.ui.profile.settings.ProfileEditScreen(rootNavController, authViewModel) }
         composable("about_app") { com.example.ui.profile.settings.AboutAppScreen(rootNavController) }
         composable("privacy_policy") { com.example.ui.profile.settings.LegalScreen(rootNavController, "Privacy Policy") }
         composable("terms_of_use") { com.example.ui.profile.settings.LegalScreen(rootNavController, "Terms of Use") }
@@ -303,6 +347,23 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("images_to_pdf") { com.example.ui.pdf.screens.ImageToPdfScreen() }
         composable("map_agent") { com.example.ui.study.map.MapAgentScreen(rootNavController) }
         composable("courses") { com.example.ui.courses.CourseListingScreen(rootNavController) }
+        composable(
+            "tools",
+            enterTransition = {
+                slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) + fadeIn(animationSpec = tween(400))
+            },
+            exitTransition = {
+                slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) + fadeOut(animationSpec = tween(400))
+            },
+            popEnterTransition = {
+                slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) + fadeIn(animationSpec = tween(400))
+            },
+            popExitTransition = {
+                slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) + fadeOut(animationSpec = tween(400))
+            }
+        ) {
+            com.example.ui.study.ToolsScreen(rootNavController)
+        }
     }
 }
 
@@ -353,34 +414,36 @@ fun MainScreen(
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
-            // Using Box to ensure the bottom bar floats correctly and allows content behind
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .navigationBarsPadding() // Float above system navigation
-            ) {
-                NavigationBar(
+            if (currentRoute == null || !currentRoute.startsWith("global_search")) {
+                // Using Box to ensure the bottom bar floats correctly and allows content behind
+                Box(
                     modifier = Modifier
-                        .shadow(16.dp, RoundedCornerShape(32.dp))
-                        .clip(RoundedCornerShape(32.dp)),
-                    windowInsets = WindowInsets(0, 0, 0, 0)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .navigationBarsPadding() // Float above system navigation
                 ) {
-                    items.forEach { screen ->
-                        NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = screen.title) },
-                            label = { Text(screen.title) },
-                            selected = currentRoute == screen.route,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                    NavigationBar(
+                        modifier = Modifier
+                            .shadow(16.dp, RoundedCornerShape(32.dp))
+                            .clip(RoundedCornerShape(32.dp)),
+                        windowInsets = WindowInsets(0, 0, 0, 0)
+                    ) {
+                        items.forEach { screen ->
+                            NavigationBarItem(
+                                icon = { Icon(screen.icon, contentDescription = screen.title) },
+                                label = { Text(screen.title) },
+                                selected = currentRoute == screen.route,
+                                onClick = {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -403,6 +466,11 @@ fun MainScreen(
             composable(Screen.Courses.route) { com.example.ui.courses.CourseListingScreen(navController) }
             composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
             composable("resources") { com.example.ui.home.ResourcesScreen(navController, rootNavController) }
+            composable(Screen.Chat.route) { com.example.ui.chat.ChatListScreen(navController) }
+            composable("chat_room/{conversationId}") { backStackEntry -> 
+                val id = backStackEntry.arguments?.getString("conversationId") ?: return@composable
+                com.example.ui.chat.ChatRoomScreen(navController, id) 
+            }
             composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel, rootNavController, themeViewModel) }
         }
     }

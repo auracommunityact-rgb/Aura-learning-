@@ -1,0 +1,1 @@
+sed -i 's/CREATE POLICY "Authenticated read access for courses" ON public.courses FOR SELECT TO authenticated USING (true);/CREATE POLICY "Public read access for courses" ON public.courses FOR SELECT USING (true);/g' app/supabase_schema.sql

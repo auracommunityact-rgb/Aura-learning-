@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.example.data.repository.notifications.NotificationRepository
 import com.example.ui.ViewModelFactory
 import kotlinx.coroutines.launch
@@ -58,7 +59,6 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
     val continueWatching by viewModel.continueWatching.collectAsState()
     val continueReading by viewModel.continueReading.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
-    val selectedGrade = currentUser?.selectedGrade ?: "All Grades"
     
     val context = LocalContext.current
     val db = remember { com.example.data.local.PlannerDatabase.getDatabase(context) }
@@ -110,106 +110,76 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
         )
     }
 
-    LaunchedEffect(selectedGrade) {
-        viewModel.setSelectedGrade(selectedGrade)
-    }
-
     val savedBooks = allBooks.filter { currentUser?.savedBooks?.contains(it.id) == true }
     var searchQuery by remember { mutableStateOf("") }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Subjects",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleLarge
+    Scaffold(
+        modifier = Modifier.statusBarsPadding(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    val isGuest = currentUser == null || currentUser?.id == "guest_user"
+                    if (!isGuest) {
+                        Column {
+                            Text(
+                                text = "Good Morning, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"} 👋",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (selectedSubject != "All Subjects") "Subject: $selectedSubject" else "Let's continue learning!",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { rootNavController.navigate("notifications") }) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadCount > 0) {
+                                    Badge { Text(unreadCount.toString()) }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
+                        }
+                    }
+                    IconButton(onClick = { 
+                        navController.navigate("profile") {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }) {
+                        Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
                 )
-                Divider()
-                val subjects = listOf("All Subjects", "Mathematics", "Science", "History", "English", "Hindi", "Biology", "Chemistry", "Physics", "Computer Science")
-                subjects.forEach { subject ->
-                    NavigationDrawerItem(
-                        label = { Text(text = subject) },
-                        selected = subject == selectedSubject,
-                        onClick = {
-                            viewModel.setSelectedSubject(subject)
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-                }
-            }
+            )
         }
-    ) {
-        Scaffold(
-            modifier = Modifier.statusBarsPadding(),
-            topBar = {
-                TopAppBar(
-                    title = {
-                        val isGuest = currentUser == null || currentUser?.id == "guest_user"
-                        if (!isGuest) {
-                            Column {
-                                Text(
-                                    text = "Good Morning, ${currentUser?.name?.split(" ")?.firstOrNull() ?: "Student"} 👋",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = if (selectedSubject != "All Subjects") "Subject: $selectedSubject" else "Let's continue learning!",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Filled.Menu, contentDescription = "Menu")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { rootNavController.navigate("notifications") }) {
-                            BadgedBox(
-                                badge = {
-                                    if (unreadCount > 0) {
-                                        Badge { Text(unreadCount.toString()) }
-                                    }
-                                }
-                            ) {
-                                Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
-                            }
-                        }
-                        IconButton(onClick = { 
-                            navController.navigate("profile") {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }) {
-                            Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
-            }
-        ) { padding ->
-        LazyColumn(
+    ) { padding ->
+        val isLoading by viewModel.isLoading.collectAsState()
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = { viewModel.fetchData() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp) // Add padding for bottom nav if needed
         ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp) // Add padding for bottom nav if needed
+            ) {
             // Search Bar
             item {
                 Surface(
@@ -478,7 +448,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, rootN
             }
         }
     }
-    }
+}
 }
 
 @Composable
@@ -569,13 +539,7 @@ fun SectionExploreCategories(selectedSubject: String, onSubjectSelected: (String
 fun QuickActionsSection(navController: NavController, rootNavController: NavController) {
     val actions = listOf(
         Pair("Books", Icons.Outlined.Book),
-        Pair("Videos", Icons.Filled.PlayCircle),
-        Pair("Notes", Icons.AutoMirrored.Filled.Notes),
-        Pair("PYQs", Icons.Filled.HistoryEdu),
-        Pair("Mock Tests", Icons.Filled.Quiz),
-        Pair("Study Planner", Icons.Filled.Event),
-        Pair("Reminder", Icons.Filled.Alarm),
-        Pair("Progress", Icons.Filled.Analytics)
+        Pair("Videos", Icons.Filled.PlayCircle)
     )
 
     LazyRow(
@@ -794,13 +758,7 @@ fun AILearningToolsSection(rootNavController: NavController) {
     SectionHeader("AI Learning Tools")
     
     val tools = listOf(
-        Pair("Chapter Summary", Icons.Filled.Summarize),
-        Pair("Mind Maps", Icons.Filled.AccountTree),
-        Pair("Flashcards", Icons.Filled.Style),
-        Pair("Notes Generator", Icons.Filled.AutoFixHigh),
-        Pair("Translator", Icons.Filled.Translate),
-        Pair("PDF Reader", Icons.Filled.PictureAsPdf),
-        Pair("MCQ Test", Icons.Filled.Quiz)
+        Pair("PDF Reader", Icons.Filled.PictureAsPdf)
     )
 
     LazyRow(

@@ -54,6 +54,18 @@ fun ProfileSettingsScreen(navController: NavController, authViewModel: AuthViewM
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
+            SettingsSectionTitle("Profile")
+            SettingsCard {
+                SettingsItem(
+                    icon = Icons.Filled.AccountCircle,
+                    title = "Profile Settings",
+                    subtitle = "Edit name, contact info, school & academic details",
+                    onClick = { navController.navigate("edit_profile") }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            
             SettingsSectionTitle("Appearance")
             SettingsCard {
                 val themeMode = themeViewModel?.themeMode?.collectAsState()?.value ?: 0
@@ -114,6 +126,13 @@ fun ProfileSettingsScreen(navController: NavController, authViewModel: AuthViewM
             Spacer(modifier = Modifier.height(24.dp))
             SettingsSectionTitle("General")
             SettingsCard {
+                SettingsItem(
+                    icon = Icons.Filled.Notifications,
+                    title = "Notifications",
+                    subtitle = "Manage preferences, sound & vibration",
+                    onClick = { navController.navigate("notification_settings") }
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                 SettingsItem(
                     icon = Icons.Filled.CloudUpload,
                     title = "Check Upload",

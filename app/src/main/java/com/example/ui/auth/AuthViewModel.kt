@@ -221,6 +221,29 @@ class AuthViewModel(private val repository: AuraRepository) : ViewModel() {
         _authState.value = AuthState.Idle
     }
 
+    fun updateUserProfile(updatedUser: User, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        _authState.value = AuthState.Loading
+        viewModelScope.launch {
+            try {
+                if (updatedUser.id == "guest_user") {
+                    _currentUser.value = updatedUser
+                    repository.saveGuestProfile(updatedUser)
+                    _authState.value = AuthState.Success
+                    onSuccess()
+                } else {
+                    repository.updateUserProfile(updatedUser)
+                    _currentUser.value = updatedUser
+                    _authState.value = AuthState.Success
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Auth", "Failed to update profile", e)
+                _authState.value = AuthState.Error(e.message ?: "Failed to update profile")
+                onError(e.message ?: "Failed to update profile")
+            }
+        }
+    }
+
     fun toggleSaveBook(bookId: String) {
         val user = _currentUser.value ?: return
         if (user.id == "guest_user") {

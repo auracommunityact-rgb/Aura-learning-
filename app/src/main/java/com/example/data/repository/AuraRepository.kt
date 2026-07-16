@@ -12,9 +12,16 @@ import com.example.data.models.VideoProgress
 import com.example.data.models.BookProgress
 import com.example.data.models.Course
 import com.example.data.supabase.SupabaseService
+import io.github.jan.supabase.realtime.realtime
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -93,6 +100,17 @@ class AuraRepository {
             client.postgrest["users"].insert(user)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    suspend fun updateUserProfile(user: User) {
+        try {
+            client.postgrest["users"].update(user) {
+                filter { eq("id", user.id) }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
         }
     }
 
@@ -215,7 +233,9 @@ class AuraRepository {
         return try {
             client.postgrest["courses"].select().decodeList<Course>()
         } catch (e: Exception) {
-            emptyList()
+            e.printStackTrace()
+            android.util.Log.e("AuraRepository", "Error fetching courses", e)
+            throw e
         }
     }
     suspend fun getBanners(): List<Banner> {
@@ -582,6 +602,26 @@ class AuraRepository {
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 ""
+            }
+        }
+    }
+
+    fun subscribeToCourses(onChanged: () -> Unit) {
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
+            try {
+                val channel = client.realtime.channel("courses-updates")
+                val changes = channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = "courses"
+                }
+                scope.launch {
+                    changes.collect {
+                        onChanged()
+                    }
+                }
+                channel.subscribe()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
