@@ -124,9 +124,38 @@ data class Video(
 data class Banner(
     val id: String = "",
     val title: String = "",
+    val description: String = "",
     val imageUrl: String = "",
     val link: String = "",
+    val ctaText: String = "Explore Now",
+    val backgroundColor: String = "#6200EE", // Hex or Gradient string
+    val order: Int = 0,
+    val isEnabled: Boolean = true,
+    val startDate: Long = 0L,
+    val endDate: Long = 0L,
+    val autoSlide: Boolean = true,
     val createdAt: Long = 0L
+)
+
+@Serializable
+data class Announcement(
+    val id: String = "",
+    val title: String = "",
+    val content: String = "",
+    val imageUrl: String? = null,
+    val isEnabled: Boolean = true,
+    val scheduledAt: Long = 0L,
+    val createdAt: Long = 0L
+)
+
+@Serializable
+data class HomeSectionConfig(
+    val id: String = "",
+    val type: String = "", // "books", "videos", "courses", "websites", "exams", "trending", "recommended", "announcements"
+    val title: String = "",
+    val icon: String = "",
+    val isVisible: Boolean = true,
+    val order: Int = 0
 )
 
 @Serializable

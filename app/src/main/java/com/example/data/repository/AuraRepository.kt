@@ -44,6 +44,9 @@ class AuraRepository {
         private val _notificationsUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
         val notificationsUpdateTrigger = _notificationsUpdateTrigger.asSharedFlow()
 
+        private val _homeConfigUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+        val homeConfigUpdateTrigger = _homeConfigUpdateTrigger.asSharedFlow()
+
         suspend fun notifyBooksChanged() {
             _booksUpdateTrigger.emit(Unit)
         }
@@ -58,6 +61,10 @@ class AuraRepository {
 
         suspend fun notifyNotificationsChanged() {
             _notificationsUpdateTrigger.emit(Unit)
+        }
+
+        suspend fun notifyHomeConfigChanged() {
+            _homeConfigUpdateTrigger.emit(Unit)
         }
     }
 
@@ -92,6 +99,24 @@ class AuraRepository {
             }.decodeSingle<User>()
         } catch (e: Exception) {
             null
+        }
+    }
+
+    suspend fun searchUsers(query: String): List<User> {
+        return try {
+            client.postgrest["users"].select {
+                filter {
+                    or {
+                        ilike("name", "%$query%")
+                        ilike("email", "%$query%")
+                        ilike("id", "%$query%")
+                        ilike("mobileNumber", "%$query%")
+                        ilike("studentId", "%$query%") // Also adding studentId as it's common for academic apps
+                    }
+                }
+            }.decodeList<User>()
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -240,9 +265,39 @@ class AuraRepository {
     }
     suspend fun getBanners(): List<Banner> {
         return try {
-            client.postgrest["banners"].select().decodeList<Banner>()
+            client.postgrest["banners"].select {
+                filter { eq("isEnabled", true) }
+            }.decodeList<Banner>().sortedBy { it.order }
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    suspend fun getAnnouncements(): List<com.example.data.models.Announcement> {
+        return try {
+            client.postgrest["announcements"].select {
+                filter { eq("isEnabled", true) }
+            }.decodeList<com.example.data.models.Announcement>().sortedByDescending { it.createdAt }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun getHomeSectionConfigs(): List<com.example.data.models.HomeSectionConfig> {
+        return try {
+            client.postgrest["home_sections"].select().decodeList<com.example.data.models.HomeSectionConfig>().sortedBy { it.order }
+        } catch (e: Exception) {
+            // Default sections if none exist in DB
+            listOf(
+                com.example.data.models.HomeSectionConfig("1", "books", "Featured Books", "📚", true, 1),
+                com.example.data.models.HomeSectionConfig("2", "videos", "Featured Videos", "🎥", true, 2),
+                com.example.data.models.HomeSectionConfig("3", "courses", "Popular Courses", "🎓", true, 3),
+                com.example.data.models.HomeSectionConfig("4", "websites", "Educational Websites", "🌐", true, 4),
+                com.example.data.models.HomeSectionConfig("5", "exams", "Practice & Exams", "📝", true, 5),
+                com.example.data.models.HomeSectionConfig("6", "trending", "Trending Content", "🔥", true, 6),
+                com.example.data.models.HomeSectionConfig("7", "recommended", "Recommended For You", "⭐", true, 7),
+                com.example.data.models.HomeSectionConfig("8", "announcements", "Latest Announcements", "📢", true, 8)
+            )
         }
     }
 
@@ -250,8 +305,47 @@ class AuraRepository {
         try {
             val newBanner = if (banner.id.isEmpty()) banner.copy(id = UUID.randomUUID().toString()) else banner
             client.postgrest["banners"].insert(newBanner)
+            notifyHomeConfigChanged()
         } catch (e: Exception) {
             e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun updateBanner(banner: Banner) {
+        try {
+            client.postgrest["banners"].update(banner) {
+                filter { eq("id", banner.id) }
+            }
+            notifyHomeConfigChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun deleteBanner(bannerId: String) {
+        try {
+            val idValue: Any = bannerId.toLongOrNull() ?: bannerId
+            client.postgrest["banners"].delete {
+                filter { eq("id", idValue) }
+            }
+            notifyHomeConfigChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun updateHomeSectionConfig(config: com.example.data.models.HomeSectionConfig) {
+        try {
+            client.postgrest["home_sections"].update(config) {
+                filter { eq("id", config.id) }
+            }
+            notifyHomeConfigChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
         }
     }
 

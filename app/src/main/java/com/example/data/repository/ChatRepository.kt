@@ -39,6 +39,16 @@ class ChatRepository {
             .sortedByDescending { it.lastMessageTime }
     }
     
+    suspend fun getConversation(conversationId: String): Conversation? {
+        return try {
+            postgrest["conversations"]
+                .select { filter { eq("id", conversationId) } }
+                .decodeSingle<Conversation>()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     suspend fun getMessages(conversationId: String): List<Message> {
         return postgrest["messages"]
             .select { 
@@ -62,6 +72,42 @@ class ChatRepository {
             }) {
                 filter { eq("id", conversationId) }
             }
+    }
+
+    suspend fun getOrCreateConversation(otherUserId: String, otherUserName: String): String {
+        val currentUserId = auth.currentUserOrNull()?.id ?: throw Exception("Not logged in")
+        
+        // Find existing 1-on-1 conversation
+        // This is a bit simplified; real prod apps should use a more robust check
+        val currentMembers = postgrest["conversation_members"]
+            .select { filter { eq("userId", currentUserId) } }
+            .decodeList<ConversationMember>()
+            
+        val otherMembers = postgrest["conversation_members"]
+            .select { filter { eq("userId", otherUserId) } }
+            .decodeList<ConversationMember>()
+            
+        val commonConvoId = currentMembers.map { it.conversationId }
+            .intersect(otherMembers.map { it.conversationId }.toSet())
+            .firstOrNull()
+            
+        if (commonConvoId != null) return commonConvoId
+        
+        // Create new
+        val convoId = java.util.UUID.randomUUID().toString()
+        val newConvo = Conversation(
+            id = convoId,
+            name = otherUserName,
+            lastMessageTime = System.currentTimeMillis()
+        )
+        postgrest["conversations"].insert(newConvo)
+        
+        postgrest["conversation_members"].insert(listOf(
+            ConversationMember(id = java.util.UUID.randomUUID().toString(), conversationId = convoId, userId = currentUserId),
+            ConversationMember(id = java.util.UUID.randomUUID().toString(), conversationId = convoId, userId = otherUserId)
+        ))
+        
+        return convoId
     }
     
     fun subscribeToMessages(conversationId: String): Flow<Message> = callbackFlow {

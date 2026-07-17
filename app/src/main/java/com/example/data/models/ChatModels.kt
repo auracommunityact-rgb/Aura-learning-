@@ -6,6 +6,7 @@ import kotlinx.serialization.SerialName
 @Serializable
 data class Conversation(
     val id: String = "",
+    val name: String? = null,
     @SerialName("isGroup") val isGroup: Boolean = false,
     @SerialName("groupName") val groupName: String? = null,
     @SerialName("groupPhotoUrl") val groupPhotoUrl: String? = null,
@@ -18,6 +19,7 @@ data class Conversation(
 
 @Serializable
 data class ConversationMember(
+    val id: String = "",
     @SerialName("conversationId") val conversationId: String,
     @SerialName("userId") val userId: String,
     @SerialName("joinedAt") val joinedAt: Long = System.currentTimeMillis(),

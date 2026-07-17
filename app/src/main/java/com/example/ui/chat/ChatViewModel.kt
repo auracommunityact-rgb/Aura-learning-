@@ -16,9 +16,16 @@ import java.util.UUID
 
 class ChatViewModel : ViewModel() {
     private val repository = ChatRepository()
+    private val auraRepository = com.example.data.repository.AuraRepository()
     
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
     val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<com.example.data.models.User>>(emptyList())
+    val searchResults: StateFlow<List<com.example.data.models.User>> = _searchResults.asStateFlow()
+    
+    private val _currentConversation = MutableStateFlow<Conversation?>(null)
+    val currentConversation: StateFlow<Conversation?> = _currentConversation.asStateFlow()
     
     private val _currentMessages = MutableStateFlow<List<Message>>(emptyList())
     val currentMessages: StateFlow<List<Message>> = _currentMessages.asStateFlow()
@@ -28,6 +35,38 @@ class ChatViewModel : ViewModel() {
     
     val currentUserId: String?
         get() = SupabaseService.client.auth.currentUserOrNull()?.id
+
+    fun searchUsers(query: String) {
+        if (query.isBlank()) {
+            _searchResults.value = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val results = auraRepository.searchUsers(query)
+                _searchResults.value = results.filter { it.id != currentUserId }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun startConversation(otherUserId: String, otherUserName: String, onComplete: (String) -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val id = repository.getOrCreateConversation(otherUserId, otherUserName)
+                onComplete(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
         
     fun loadConversations() {
         viewModelScope.launch {
@@ -47,6 +86,9 @@ class ChatViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                val convo = repository.getConversation(conversationId)
+                _currentConversation.value = convo
+
                 val msgs = repository.getMessages(conversationId)
                 _currentMessages.value = msgs
                 

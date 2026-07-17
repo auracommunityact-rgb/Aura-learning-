@@ -46,6 +46,10 @@ fun AdminNotificationsScreen(navController: NavController) {
     var imageUrlInput by remember { mutableStateOf("") }
     var redirectLinkInput by remember { mutableStateOf("") }
     var categoryInput by remember { mutableStateOf("Announcement") }
+    var priorityInput by remember { mutableStateOf("Normal") }
+    var targetTypeInput by remember { mutableStateOf("All") } // All, Class, User
+    var targetValueInput by remember { mutableStateOf("") }
+    var actionButtonTextInput by remember { mutableStateOf("") }
 
     var isSending by remember { mutableStateOf(false) }
 
@@ -164,6 +168,49 @@ fun AdminNotificationsScreen(navController: NavController) {
                     singleLine = true
                 )
 
+                Text("Priority", style = MaterialTheme.typography.labelLarge)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Normal", "High").forEach { priority ->
+                        FilterChip(
+                            selected = priorityInput == priority,
+                            onClick = { priorityInput = priority },
+                            label = { Text(priority) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Text("Target Audience", style = MaterialTheme.typography.labelLarge)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("All", "Class", "User").forEach { type ->
+                        FilterChip(
+                            selected = targetTypeInput == type,
+                            onClick = { targetTypeInput = type },
+                            label = { Text(type) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                if (targetTypeInput != "All") {
+                    OutlinedTextField(
+                        value = targetValueInput,
+                        onValueChange = { targetValueInput = it },
+                        label = { Text(if (targetTypeInput == "Class") "Class Name (e.g. 10th-A)" else "User ID") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                OutlinedTextField(
+                    value = actionButtonTextInput,
+                    onValueChange = { actionButtonTextInput = it },
+                    label = { Text("Action Button Text (Optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("e.g. View Details, Open Link") }
+                )
+
                 Button(
                     onClick = {
                         if (titleInput.isBlank() || descInput.isBlank()) {
@@ -180,7 +227,11 @@ fun AdminNotificationsScreen(navController: NavController) {
                                     image_url = imageUrlInput.ifBlank { null },
                                     category = categoryInput.ifBlank { "Announcement" },
                                     deep_link = redirectLinkInput.ifBlank { null },
-                                    created_at = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).format(java.util.Date())
+                                    created_at = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).format(java.util.Date()),
+                                    priority = priorityInput,
+                                    target_type = targetTypeInput,
+                                    target_value = targetValueInput.ifBlank { null },
+                                    action_button_text = actionButtonTextInput.ifBlank { null }
                                 )
                                 repository.addNotification(notification)
                                 Toast.makeText(context, "Notification sent successfully!", Toast.LENGTH_SHORT).show()
@@ -191,6 +242,8 @@ fun AdminNotificationsScreen(navController: NavController) {
                                 imageUrlInput = ""
                                 redirectLinkInput = ""
                                 categoryInput = "Announcement"
+                                targetValueInput = ""
+                                actionButtonTextInput = ""
 
                                 refreshHistory()
                             } catch (e: Exception) {

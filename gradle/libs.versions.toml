@@ -43,6 +43,7 @@ secretsGradlePlugin = "2.0.1"
 supabase = "3.0.0"
 ktor = "3.0.1"
 zxing = "3.5.3"
+splashscreen = "1.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -104,6 +105,7 @@ ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref =
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

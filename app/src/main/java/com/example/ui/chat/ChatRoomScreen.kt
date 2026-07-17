@@ -39,6 +39,7 @@ fun ChatRoomScreen(
     viewModel: ChatViewModel = viewModel(factory = ViewModelFactory)
 ) {
     val messages by viewModel.currentMessages.collectAsState()
+    val currentConversation by viewModel.currentConversation.collectAsState()
     val currentUserId = viewModel.currentUserId
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -59,7 +60,7 @@ fun ChatRoomScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         AsyncImage(
-                            model = "https://api.dicebear.com/7.x/avataaars/png?seed=$conversationId",
+                            model = currentConversation?.groupPhotoUrl ?: "https://api.dicebear.com/7.x/avataaars/png?seed=$conversationId",
                             contentDescription = "Profile Photo",
                             modifier = Modifier
                                 .size(40.dp)
@@ -68,7 +69,7 @@ fun ChatRoomScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Study Group", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(currentConversation?.name ?: currentConversation?.groupName ?: "Chat", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             Text("Active now", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }

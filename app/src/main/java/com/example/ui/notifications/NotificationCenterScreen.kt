@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -31,6 +32,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.data.local.notifications.NotificationEntity
 import com.example.data.repository.notifications.NotificationRepository
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -178,6 +180,18 @@ fun NotificationItem(notification: NotificationEntity, onClick: () -> Unit, onDe
                     Text(text = notification.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = "$timeString • ${notification.category}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    
+                    if (notification.actionButtonText != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                        ) {
+                            Text(notification.actionButtonText, fontSize = 12.sp)
+                        }
+                    }
                 }
                 
                 if (!notification.isRead) {

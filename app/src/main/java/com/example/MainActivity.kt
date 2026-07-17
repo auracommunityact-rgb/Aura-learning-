@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,7 @@ import com.example.ui.theme.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
@@ -24,6 +26,9 @@ class MainActivity : ComponentActivity() {
         
         // Register all notification categories/channels with the Android system
         com.example.utils.NotificationHelper.registerNotificationChannels(this)
+        
+        // Start Realtime Notification Service
+        com.example.notifications.RealtimeNotificationService.start(this)
         
         val themeViewModel = ThemeViewModel(this)
         

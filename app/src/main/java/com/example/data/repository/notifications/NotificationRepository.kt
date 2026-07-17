@@ -26,9 +26,14 @@ data class SupabaseNotification(
     val title: String,
     val description: String,
     val image_url: String? = null,
-    val category: String,
+    val category: String = "General",
     val deep_link: String? = null,
-    val created_at: String
+    val created_at: String,
+    val priority: String = "Normal", // Normal, High
+    val target_type: String = "All", // All, Class, User
+    val target_value: String? = null, // Class Name or User ID
+    val action_button_text: String? = null,
+    val scheduled_at: String? = null
 )
 
 class NotificationRepository(private val context: Context) {
@@ -65,7 +70,9 @@ class NotificationRepository(private val context: Context) {
                     category = remote.category,
                     deepLink = remote.deep_link,
                     timestamp = local?.timestamp ?: System.currentTimeMillis(),
-                    isRead = local?.isRead ?: false
+                    isRead = local?.isRead ?: false,
+                    priority = remote.priority,
+                    actionButtonText = remote.action_button_text
                 )
                 notificationDao.insertNotification(entity)
                 

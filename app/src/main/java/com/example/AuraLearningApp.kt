@@ -71,7 +71,6 @@ val items = listOf(
     Screen.Courses,
     Screen.Videos,
     Screen.Books,
-    Screen.Chat,
     Screen.Profile
 )
 
@@ -81,6 +80,23 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory)
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
     val authState by authViewModel.authState.collectAsState()
+
+    // Notification permission for Android 13+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val permissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                Log.d("AuraApp", "Notification permission granted")
+            } else {
+                Log.w("AuraApp", "Notification permission denied")
+            }
+        }
+        
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     androidx.compose.runtime.LaunchedEffect(initialDeepLink) {
         initialDeepLink?.let { link ->
@@ -153,7 +169,12 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         }
     }
 
-    NavHost(navController = rootNavController, startDestination = "splash") {
+    NavHost(
+        navController = rootNavController,
+        startDestination = "splash",
+        enterTransition = { fadeIn(animationSpec = tween(500)) },
+        exitTransition = { fadeOut(animationSpec = tween(500)) }
+    ) {
         composable("splash") { com.example.ui.splash.SplashScreen(rootNavController) }
         composable("login") { LoginScreen(rootNavController, authViewModel) }
         composable("register") { RegisterScreen(rootNavController, authViewModel) }
@@ -162,6 +183,15 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("admin_notifications") { com.example.ui.admin.AdminNotificationsScreen(rootNavController) }
         composable("admin_upload_course") { com.example.ui.admin.AdminCourseUploadScreen(rootNavController) }
         composable("admin_upload_websites") { com.example.ui.admin.AdminWebsiteUploadScreen(rootNavController) }
+        composable("admin_home_customization") { com.example.ui.admin.AdminHomeCustomizationScreen(rootNavController) }
+        composable("admin_add_banner") { com.example.ui.admin.AdminAddEditBannerScreen(rootNavController) }
+        composable(
+            "admin_edit_banner/{bannerId}",
+            arguments = listOf(androidx.navigation.navArgument("bannerId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("bannerId") ?: ""
+            com.example.ui.admin.AdminAddEditBannerScreen(rootNavController, bannerId = id)
+        }
         composable(
             "admin_upload/{type}",
             arguments = listOf(androidx.navigation.navArgument("type") { type = androidx.navigation.NavType.StringType })

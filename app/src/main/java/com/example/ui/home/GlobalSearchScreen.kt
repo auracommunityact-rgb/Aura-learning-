@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.data.models.User
 import com.example.ui.ViewModelFactory
 import com.example.ui.profile.BoardResult
 import com.example.ui.profile.boardsJson
@@ -560,6 +561,7 @@ fun GlobalSearchScreen(
 
     val allBooks by viewModel.allBooks.collectAsState()
     val allVideos by viewModel.allVideos.collectAsState()
+    val userSearchResults by viewModel.userSearchResults.collectAsState()
 
     var courses by remember { mutableStateOf<List<com.example.data.models.Course>>(emptyList()) }
     var websites by remember { mutableStateOf<List<com.example.data.models.Website>>(emptyList()) }
@@ -821,7 +823,7 @@ fun GlobalSearchScreen(
     }
 
     val hasAnyResults = scoredWebsites.isNotEmpty() || scoredBoards.isNotEmpty() || scoredCourses.isNotEmpty() ||
-            scoredBooks.isNotEmpty() || scoredVideos.isNotEmpty() || scoredTools.isNotEmpty()
+            scoredBooks.isNotEmpty() || scoredVideos.isNotEmpty() || scoredTools.isNotEmpty() || userSearchResults.isNotEmpty()
 
     val onBackAction = {
         if (isSearchConfirmed) {
@@ -837,7 +839,13 @@ fun GlobalSearchScreen(
 
     // Standard Horizontal Tabs
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("All", "Books", "Videos", "Courses", "Result Portals")
+    val tabs = listOf("All", "Users", "Books", "Videos", "Courses", "Result Portals")
+
+    LaunchedEffect(searchQuery, isSearchConfirmed) {
+        if (isSearchConfirmed) {
+            viewModel.searchUsers(searchQuery)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -1221,7 +1229,25 @@ fun GlobalSearchScreen(
                                     )
                                 }
 
-                                // 2. Websites
+                                // 2. Users
+                                if (userSearchResults.isNotEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "Users",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                        )
+                                    }
+                                    items(userSearchResults) { user ->
+                                        UserSearchCard(user = user, onClick = {
+                                            rootNavController.navigate("user_profile/${user.id}")
+                                        })
+                                    }
+                                }
+
+                                // 3. Websites
                                 val mergedWebsites = (scoredWebsites.map { "website" to it } + scoredBoards.map { "board" to it })
                                 if (mergedWebsites.isNotEmpty()) {
                                     item {
@@ -1270,7 +1296,7 @@ fun GlobalSearchScreen(
                                     }
                                 }
 
-                                // 3. Courses
+                                // 4. Courses
                                 if (scoredCourses.isNotEmpty()) {
                                     item {
                                         Text(
@@ -1299,7 +1325,7 @@ fun GlobalSearchScreen(
                                     }
                                 }
 
-                                // 4. Books
+                                // 5. Books
                                 if (scoredBooks.isNotEmpty()) {
                                     item {
                                         Text(
@@ -1326,7 +1352,7 @@ fun GlobalSearchScreen(
                                     }
                                 }
 
-                                // 5. Videos
+                                // 6. Videos
                                 if (scoredVideos.isNotEmpty()) {
                                     item {
                                         Text(
@@ -1353,7 +1379,7 @@ fun GlobalSearchScreen(
                                     }
                                 }
 
-                                // 6. Tools
+                                // 7. Tools
                                 if (scoredTools.isNotEmpty()) {
                                     item {
                                         Text(
@@ -1394,6 +1420,13 @@ fun GlobalSearchScreen(
                                     }
                                 }
                             } else if (selectedTab == 1) {
+                                // Users Tab
+                                items(userSearchResults) { user ->
+                                    UserSearchCard(user = user, onClick = {
+                                        rootNavController.navigate("user_profile/${user.id}")
+                                    })
+                                }
+                            } else if (selectedTab == 2) {
                                 // Books Tab
                                 items(scoredBooks) { book ->
                                     GoogleSearchCard(
@@ -1409,7 +1442,7 @@ fun GlobalSearchScreen(
                                         }
                                     )
                                 }
-                            } else if (selectedTab == 2) {
+                            } else if (selectedTab == 3) {
                                 // Videos Tab
                                 items(scoredVideos) { video ->
                                     GoogleSearchCard(
@@ -1425,7 +1458,7 @@ fun GlobalSearchScreen(
                                         }
                                     )
                                 }
-                            } else if (selectedTab == 3) {
+                            } else if (selectedTab == 4) {
                                 // Courses Tab
                                 items(scoredCourses) { course ->
                                     GoogleSearchCard(
@@ -1443,7 +1476,7 @@ fun GlobalSearchScreen(
                                         }
                                     )
                                 }
-                            } else if (selectedTab == 4) {
+                            } else if (selectedTab == 5) {
                                 // Result Portals Tab
                                 items(scoredWebsites) { w ->
                                     GoogleSearchCard(
@@ -1482,6 +1515,121 @@ fun GlobalSearchScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun UserSearchCard(
+    user: User,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1E293B)
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Profile Image / Placeholder
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF334155), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (user.photoUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = user.photoUrl,
+                        contentDescription = "Profile Image",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = (user.name.firstOrNull() ?: 'U').uppercaseChar().toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Color(0xFF38BDF8),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = user.name.ifEmpty { "User ${user.id.take(8)}" },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                
+                if (user.studentId.isNotEmpty()) {
+                    Text(
+                        text = "Student ID: ${user.studentId}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF38BDF8)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                        tint = Color(0xFF64748B),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = user.email.ifEmpty { "No email" },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF94A3B8),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                
+                if (user.mobileNumber.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.mobileNumber,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+            }
+            
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = Color(0xFF64748B),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

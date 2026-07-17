@@ -48,7 +48,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.example.BuildConfig
+import com.example.AppContext
+import com.example.data.local.PlannerDatabase
+import com.example.data.local.ResultAnalysisEntity
 import com.example.data.repository.AuraRepository
+import com.example.utils.ResultParser
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -610,6 +614,16 @@ private suspend fun runFullAnalysisPipeline(
 ) {
     withContext(Dispatchers.IO) {
         try {
+            // 0. Cache Check
+            val db = PlannerDatabase.getDatabase(context)
+            val cached = db.resultAnalysisDao().getResultByUri(uri.toString())
+            if (cached != null) {
+                ResultAnalysisLogger.info("Pipeline", "Found cached result for URI.")
+                onSuccess(cached.toParsedResult())
+                onStepUpdate(AnalysisStep.Completed)
+                return@withContext
+            }
+
             // 1. Validation
             onStepUpdate(AnalysisStep.Validating)
             ResultAnalysisLogger.info("Pipeline", "Validating file exists and is readable.")
@@ -646,22 +660,29 @@ private suspend fun runFullAnalysisPipeline(
             val extractedText = ocrResult.text
 
             ResultAnalysisLogger.info("OCR", "ML Kit text extraction length: ${extractedText.length}")
-            val isOcrLowConfidence = extractedText.trim().length < 20 || !extractedText.any { it.isDigit() }
+            val isOcrLowConfidence = extractedText.trim().length < 30 || !extractedText.any { it.isDigit() }
             if (isOcrLowConfidence) {
                 ResultAnalysisLogger.info("OCR", "Extracted text is insufficient. Low OCR confidence flagged.")
-                withContext(Dispatchers.Main) { onLowConfidence() }
+                withContext(Dispatchers.Main) { 
+                    onLowConfidence()
+                }
+                onStepUpdate(AnalysisStep.Error("OCR could not extract enough information. Please recapture a clearer, upright photo of the marksheet."))
+                return@withContext
             }
 
             // 4. Analysis
             onStepUpdate(AnalysisStep.Analyzing)
             
-            // TODO: Implement Local Offline Analysis here
-            val result = ParsedAnalysisResult(
-                studentName = "Student Name",
-                performanceSummary = "Offline analysis is under development."
-            )
+            val result = ResultParser.parse(ocrResult)
 
-            ResultAnalysisLogger.info("OfflineAnalysis", "Successfully completed local analysis (placeholder).")
+            // Cache the result
+            try {
+                db.resultAnalysisDao().insertResult(ResultAnalysisEntity.fromParsedResult(uri.toString(), result))
+            } catch (e: Exception) {
+                ResultAnalysisLogger.error("Pipeline", "Failed to cache result", e)
+            }
+
+            ResultAnalysisLogger.info("Analysis", "Successfully completed results parsing.")
             
             withContext(Dispatchers.Main) {
                 onSuccess(result)
@@ -1037,6 +1058,83 @@ fun AnalysisResultDisplay(
 }
 
 @Composable
+fun SubjectPerformanceChart(subjects: List<ParsedSubjectScore>, accentColor: Color) {
+    if (subjects.isEmpty()) return
+    
+    val maxScore = subjects.maxOfOrNull { it.maxMarks ?: 100.0 } ?: 100.0
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "PERFORMANCE TREND",
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 12.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            androidx.compose.foundation.Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+            ) {
+                val canvasWidth = size.width
+                val canvasHeight = size.height
+                val barWidth = canvasWidth / (subjects.size * 2)
+                val spacing = barWidth
+                
+                subjects.forEachIndexed { index, subject ->
+                    val scoreRatio = (subject.marks ?: 0.0) / (subject.maxMarks ?: 100.0)
+                    val barHeight = canvasHeight * scoreRatio.toFloat()
+                    
+                    val x = spacing + index * (barWidth + spacing)
+                    val y = canvasHeight - barHeight
+                    
+                    drawRoundRect(
+                        color = accentColor,
+                        topLeft = androidx.compose.ui.geometry.Offset(x, y),
+                        size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
+                    )
+                    
+                    // Draw subject initials
+                    val initials = subject.name.take(3).uppercase()
+                    // (Skipping text drawing on canvas for simplicity, using labels below)
+                }
+                
+                // Draw baseline
+                drawLine(
+                    color = Color.White.copy(alpha = 0.2f),
+                    start = androidx.compose.ui.geometry.Offset(0f, canvasHeight),
+                    end = androidx.compose.ui.geometry.Offset(canvasWidth, canvasHeight),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                subjects.forEach { subject ->
+                    Text(
+                        text = subject.name.take(3).uppercase(),
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun OverviewTabContent(
     result: ParsedAnalysisResult,
     cardBg: Color,
@@ -1155,6 +1253,10 @@ fun OverviewTabContent(
                     )
                 }
             }
+        }
+
+        if (!result.subjects.isNullOrEmpty()) {
+            SubjectPerformanceChart(subjects = result.subjects, accentColor = accentColor)
         }
 
         // Subjects & Marks Display

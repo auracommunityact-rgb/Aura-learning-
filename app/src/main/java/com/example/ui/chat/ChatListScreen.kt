@@ -35,6 +35,10 @@ fun ChatListScreen(
 ) {
     val conversations by viewModel.conversations.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+
+    var showSearchDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         viewModel.loadConversations()
@@ -45,8 +49,8 @@ fun ChatListScreen(
             TopAppBar(
                 title = { Text("Messages", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineMedium) },
                 actions = {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    IconButton(onClick = { showSearchDialog = true }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search Users")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -54,7 +58,7 @@ fun ChatListScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { /* TODO: New Chat */ },
+                onClick = { showSearchDialog = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = "New Chat") },
                 text = { Text("New Message") },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -62,6 +66,70 @@ fun ChatListScreen(
             )
         }
     ) { padding ->
+        if (showSearchDialog) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showSearchDialog = false 
+                    searchQuery = ""
+                    viewModel.searchUsers("")
+                },
+                title = { Text("Find Users") },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { 
+                                searchQuery = it
+                                viewModel.searchUsers(it)
+                            },
+                            label = { Text("Search by name or email") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        if (isLoading && searchResults.isEmpty()) {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                        } else if (searchResults.isEmpty() && searchQuery.isNotEmpty()) {
+                            Text("No users found", modifier = Modifier.align(Alignment.CenterHorizontally))
+                        } else {
+                            LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                                items(searchResults) { user ->
+                                    ListItem(
+                                        headlineContent = { Text(user.name) },
+                                        supportingContent = { Text(user.email) },
+                                        leadingContent = {
+                                            AsyncImage(
+                                                model = user.photoUrl.ifEmpty { "https://ui-avatars.com/api/?name=${user.name}&background=random" },
+                                                contentDescription = null,
+                                                modifier = Modifier.size(40.dp).clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        },
+                                        modifier = Modifier.clickable {
+                                            viewModel.startConversation(user.id, user.name) { convoId ->
+                                                showSearchDialog = false
+                                                navController.navigate("chat_room/$convoId")
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        showSearchDialog = false 
+                        searchQuery = ""
+                        viewModel.searchUsers("")
+                    }) {
+                        Text("Close")
+                    }
+                }
+            )
+        }
+
         if (isLoading && conversations.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -115,7 +183,7 @@ fun ConversationItem(
     conversation: Conversation,
     onClick: () -> Unit
 ) {
-    val title = conversation.groupName ?: "Study Group"
+    val title = conversation.name ?: conversation.groupName ?: "Study Group"
     val avatarUrl = conversation.groupPhotoUrl ?: "https://api.dicebear.com/7.x/avataaars/png?seed=${title}"
     val timeFormatted = SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(conversation.lastMessageTime))
     

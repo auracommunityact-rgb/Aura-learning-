@@ -209,6 +209,25 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CompactActionCard(
+                    title = "Home UI Settings",
+                    icon = Icons.Default.Palette,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    navController.navigate("admin_home_customization")
+                }
+                // Placeholder or future action
+                Spacer(modifier = Modifier.weight(1f))
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Tab row to switch between lists

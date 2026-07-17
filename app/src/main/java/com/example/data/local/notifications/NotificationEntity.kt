@@ -12,5 +12,7 @@ data class NotificationEntity(
     val category: String,
     val deepLink: String?,
     val timestamp: Long,
-    val isRead: Boolean
+    val isRead: Boolean,
+    val priority: String = "Normal",
+    val actionButtonText: String? = null
 )

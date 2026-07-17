@@ -32,7 +32,6 @@ class AuraApplication : Application() {
         // Register Notification Channels
         com.example.utils.NotificationHelper.registerNotificationChannels(this)
         
-        
         // Clean up WebView Code Cache directories recursively
         try {
             val codeCacheDir = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache")
