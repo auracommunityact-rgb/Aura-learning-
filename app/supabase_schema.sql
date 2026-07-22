@@ -295,3 +295,46 @@ BEGIN;
   CREATE PUBLICATION supabase_realtime;
 COMMIT;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.courses;
+
+-- Quiz System Schema
+CREATE TABLE IF NOT EXISTS public.quizzes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT,
+    description TEXT,
+    "className" TEXT,
+    subject TEXT,
+    "associatedId" TEXT,
+    "createdAt" BIGINT DEFAULT extract(epoch from now()) * 1000
+);
+
+CREATE TABLE IF NOT EXISTS public.quiz_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "quizId" UUID REFERENCES public.quizzes(id) ON DELETE CASCADE,
+    "questionText" TEXT,
+    options TEXT[],
+    "correctOptionIndex" INT,
+    explanation TEXT,
+    "order" INT
+);
+
+CREATE TABLE IF NOT EXISTS public.quiz_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "quizId" UUID REFERENCES public.quizzes(id) ON DELETE CASCADE,
+    "userId" UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    score INT,
+    "totalQuestions" INT,
+    "createdAt" BIGINT DEFAULT extract(epoch from now()) * 1000
+);
+
+ALTER TABLE public.quizzes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quiz_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quiz_results ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read access for quizzes" ON public.quizzes FOR SELECT USING (true);
+CREATE POLICY "Admin write access for quizzes" ON public.quizzes FOR ALL USING (public.is_admin());
+
+CREATE POLICY "Public read access for quiz_questions" ON public.quiz_questions FOR SELECT USING (true);
+CREATE POLICY "Admin write access for quiz_questions" ON public.quiz_questions FOR ALL USING (public.is_admin());
+
+CREATE POLICY "Users can view own quiz results" ON public.quiz_results FOR SELECT USING (auth.uid() = "userId");
+CREATE POLICY "Users can insert own quiz results" ON public.quiz_results FOR INSERT WITH CHECK (auth.uid() = "userId");

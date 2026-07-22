@@ -45,6 +45,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import com.example.ui.ViewModelFactory
+import com.example.ui.questionPapers.QuestionPaperListingScreen
 import com.example.ui.auth.AuthViewModel
 import com.example.ui.auth.LoginScreen
 import com.example.ui.auth.RegisterScreen
@@ -53,13 +54,15 @@ import com.example.ui.home.HomeScreen
 import com.example.ui.profile.ProfileScreen
 import com.example.ui.videos.VideosScreen
 import com.example.ui.theme.ThemeViewModel
+import com.example.ui.gamification.LeaderboardScreen
+import com.example.ui.gamification.LeaderboardViewModel
 
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Filled.Home)
-    object Courses : Screen("courses", "Courses", Icons.Filled.MenuBook)
+    object QuestionPapers : Screen("questionPapers", "QuestionPapers", Icons.Filled.MenuBook)
     object Videos : Screen("videos", "Videos", Icons.Filled.PlayCircle)
     object Books : Screen("books", "Books", Icons.Outlined.Book)
     object Chat : Screen("chat_list", "Chat", Icons.Filled.Chat)
@@ -68,7 +71,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 
 val items = listOf(
     Screen.Home,
-    Screen.Courses,
+    Screen.QuestionPapers,
     Screen.Videos,
     Screen.Books,
     Screen.Profile
@@ -119,13 +122,17 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
                 val bookParam = intentData.getQueryParameter("book")
                 newDeepLink = when {
                     bookParam != null -> "deeplink_loader?type=book&slug=${android.net.Uri.encode(bookParam)}"
-                    path?.startsWith("/course/") == true -> {
-                        val slug = path.substringAfter("/course/")
-                        "deeplink_loader?type=course&slug=${android.net.Uri.encode(slug)}"
+                    path?.startsWith("/questionPaper/") == true -> {
+                        val slug = path.substringAfter("/questionPaper/")
+                        "deeplink_loader?type=questionPaper&slug=${android.net.Uri.encode(slug)}"
                     }
                     path?.startsWith("/video/") == true -> {
                         val slug = path.substringAfter("/video/")
                         "deeplink_loader?type=video&slug=${android.net.Uri.encode(slug)}"
+                    }
+                    path?.startsWith("/u/") == true -> {
+                        val userId = path.substringAfter("/u/")
+                        "profile_details/$userId"
                     }
                     path?.startsWith("/book/") == true -> {
                         val slug = path.substringAfter("/book/")
@@ -139,7 +146,7 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
                         val promptParam = intentData.getQueryParameter("prompt")
                         if (promptParam != null) "ai_chat?prompt=${android.net.Uri.encode(promptParam)}" else "ai_chat"
                     }
-                    path == "/courses" || path?.startsWith("/courses") == true -> "courses"
+                    path == "/questionPapers" || path?.startsWith("/questionPapers") == true -> "questionPapers"
                     path == "/pdf_tool" || path?.startsWith("/pdf_tool") == true -> "pdf_tool"
                     path?.startsWith("/book_detail/") == true -> {
                         val bookId = path.substringAfter("/book_detail/")
@@ -179,9 +186,28 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("login") { LoginScreen(rootNavController, authViewModel) }
         composable("register") { RegisterScreen(rootNavController, authViewModel) }
         composable("admin_dashboard") { com.example.ui.admin.AdminDashboardScreen(rootNavController, authViewModel) }
+        composable("admin_users") { com.example.ui.admin.AdminUsersScreen(rootNavController) }
+        composable(
+            "admin_user_profile/{userId}",
+            arguments = listOf(androidx.navigation.navArgument("userId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            com.example.ui.admin.AdminUserProfileScreen(rootNavController, userId)
+        }
         composable("admin_manage_exams") { com.example.ui.admin.AdminManageExamsScreen(rootNavController) }
+        composable("admin_manage_quizzes") {
+            com.example.ui.admin.AdminManageQuizzesScreen(rootNavController)
+        }
+        composable(
+            "admin_add_edit_quiz/{quizId}",
+            arguments = listOf(androidx.navigation.navArgument("quizId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val quizId = backStackEntry.arguments?.getString("quizId") ?: ""
+            com.example.ui.admin.AdminAddEditQuizScreen(rootNavController, quizId)
+        }
+        composable("admin_manage_sections") { com.example.ui.admin.AdminManageSectionsScreen(rootNavController) }
         composable("admin_notifications") { com.example.ui.admin.AdminNotificationsScreen(rootNavController) }
-        composable("admin_upload_course") { com.example.ui.admin.AdminCourseUploadScreen(rootNavController) }
+        composable("admin_upload_questionPaper") { com.example.ui.admin.AdminQuestionPaperUploadScreen(rootNavController) }
         composable("admin_upload_websites") { com.example.ui.admin.AdminWebsiteUploadScreen(rootNavController) }
         composable("admin_home_customization") { com.example.ui.admin.AdminHomeCustomizationScreen(rootNavController) }
         composable("admin_add_banner") { com.example.ui.admin.AdminAddEditBannerScreen(rootNavController) }
@@ -214,11 +240,11 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             com.example.ui.admin.AdminEditContentScreen(rootNavController, id = id, isVideo = true)
         }
         composable(
-            "admin_edit_course/{courseId}",
-            arguments = listOf(androidx.navigation.navArgument("courseId") { type = androidx.navigation.NavType.StringType })
+            "admin_edit_questionPaper/{questionPaperId}",
+            arguments = listOf(androidx.navigation.navArgument("questionPaperId") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getString("courseId") ?: ""
-            com.example.ui.admin.AdminEditCourseScreen(rootNavController, courseId = id)
+            val id = backStackEntry.arguments?.getString("questionPaperId") ?: ""
+            com.example.ui.admin.AdminEditQuestionPaperScreen(rootNavController, questionPaperId = id)
         }
         composable(
             "admin_edit_website/{websiteId}",
@@ -228,6 +254,13 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             com.example.ui.admin.AdminEditWebsiteScreen(rootNavController, websiteId = id)
         }
         composable("exam_results") { com.example.ui.profile.ExamResultScreen(rootNavController, rootNavController) }
+        composable(
+            "video_details/{videoId}",
+            arguments = listOf(androidx.navigation.navArgument("videoId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("videoId") ?: ""
+            com.example.ui.videos.VideoDetailsScreen(id, rootNavController)
+        }
         composable(
             "exam_webview?url={url}&title={title}",
             arguments = listOf(
@@ -315,12 +348,17 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             val prompt = backStackEntry.arguments?.getString("prompt")
             com.example.ui.chat.PuterChatScreen(rootNavController, prompt)
         }
-        composable(
-            "quiz/{lessonId}",
+        composable("quiz/{lessonId}",
             arguments = listOf(androidx.navigation.navArgument("lessonId") { type = androidx.navigation.NavType.StringType })
         ) { backStackEntry ->
             val lessonId = backStackEntry.arguments?.getString("lessonId") ?: ""
             com.example.ui.quiz.QuizScreen(navController = rootNavController, lessonId = lessonId)
+        }
+        composable("leaderboard") {
+            LeaderboardScreen(rootNavController)
+        }
+        composable("user_search") {
+            com.example.ui.search.UserSearchScreen(rootNavController)
         }
         composable(
             "tool_viewer/{toolId}?title={title}",
@@ -363,7 +401,18 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             val slug = backStackEntry.arguments?.getString("slug") ?: ""
             com.example.ui.home.DeepLinkLoaderScreen(navController = rootNavController, type = type, slug = slug)
         }
-        composable("profile_details") { com.example.ui.profile.ProfileDetailsScreen(rootNavController, authViewModel) }
+        composable("profile_details") {
+            com.example.ui.profile.ProfileDetailsScreen(rootNavController, authViewModel, null)
+        }
+        composable(
+            "profile_details/{userId}",
+            arguments = listOf(
+                androidx.navigation.navArgument("userId") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            com.example.ui.profile.ProfileDetailsScreen(rootNavController, authViewModel, userId)
+        }
         composable("edit_profile") { com.example.ui.profile.settings.ProfileEditScreen(rootNavController, authViewModel) }
         composable("about_app") { com.example.ui.profile.settings.AboutAppScreen(rootNavController) }
         composable("privacy_policy") { com.example.ui.profile.settings.LegalScreen(rootNavController, "Privacy Policy") }
@@ -372,11 +421,15 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         composable("notification_settings") { com.example.ui.notifications.NotificationSettingsScreen(rootNavController) }
         composable("my_library") { com.example.ui.profile.MyLibraryScreen(rootNavController, authViewModel) }
 
+        composable("feedback") { com.example.ui.feedback.FeedbackScreen(rootNavController, authViewModel) }
+        composable("admin_feedback_management") { com.example.ui.admin.AdminFeedbackManagementScreen(rootNavController) }
+        composable("admin_feedback_analytics") { com.example.ui.admin.AdminFeedbackAnalyticsScreen(rootNavController) }
+
         composable("pdf_tool") { com.example.ui.pdf.screens.PdfToolScreen(rootNavController) }
         composable("pdf_builder") { com.example.ui.pdf.screens.PdfBuilderScreen(rootNavController) }
         composable("images_to_pdf") { com.example.ui.pdf.screens.ImageToPdfScreen() }
         composable("map_agent") { com.example.ui.study.map.MapAgentScreen(rootNavController) }
-        composable("courses") { com.example.ui.courses.CourseListingScreen(rootNavController) }
+        composable("questionPapers") { QuestionPaperListingScreen(rootNavController) }
         composable(
             "tools",
             enterTransition = {
@@ -492,8 +545,8 @@ fun MainScreen(
                 val query = backStackEntry.arguments?.getString("query") ?: ""
                 com.example.ui.home.GlobalSearchScreen(navController, rootNavController, initialQuery = query)
             }
-            composable(Screen.Videos.route) { VideosScreen(navController, authViewModel, rootNavController) }
-            composable(Screen.Courses.route) { com.example.ui.courses.CourseListingScreen(navController) }
+            composable(Screen.Videos.route) { VideosScreen(navController, rootNavController) }
+            composable(Screen.QuestionPapers.route) { QuestionPaperListingScreen(navController) }
             composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
             composable("resources") { com.example.ui.home.ResourcesScreen(navController, rootNavController) }
             composable(Screen.Chat.route) { com.example.ui.chat.ChatListScreen(navController) }

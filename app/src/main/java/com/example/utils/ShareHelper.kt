@@ -12,9 +12,8 @@ object ShareHelper {
             .trim { it == '-' }
     }
 
-    fun shareContent(context: Context, title: String, contentType: String, idOrTitle: String) {
-        val finalSlug = toSlug(idOrTitle)
-        val shareUrl = "https://aura.auralearning.workers.dev/$contentType/$finalSlug"
+    fun shareContent(context: Context, title: String, contentType: String, id: String) {
+        val shareUrl = "https://aura.auralearning.workers.dev/$contentType/$id"
         
         val shareMessage = "📚 Check this out on Aura Learning!\n\nTitle: $title\n\n$shareUrl"
 

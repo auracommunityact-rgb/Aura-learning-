@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
         
         val intentData = intent.data
         var initialDeepLink = intent.getStringExtra("deep_link")
-        if (intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
+        if (initialDeepLink.isNullOrBlank() && intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
             val path = intentData.path
             val bookParam = intentData.getQueryParameter("book")
             initialDeepLink = when {
@@ -46,6 +46,18 @@ class MainActivity : ComponentActivity() {
                 path?.startsWith("/video/") == true -> {
                     val slug = path.substringAfter("/video/")
                     "deeplink_loader?type=video&slug=${android.net.Uri.encode(slug)}"
+                }
+                path?.startsWith("/questionpaper/") == true -> {
+                    val slug = path.substringAfter("/questionpaper/")
+                    "deeplink_loader?type=questionPaper&slug=${android.net.Uri.encode(slug)}"
+                }
+                path?.startsWith("/tool/") == true -> {
+                    val slug = path.substringAfter("/tool/")
+                    "deeplink_loader?type=tool&slug=${android.net.Uri.encode(slug)}"
+                }
+                path?.startsWith("/u/") == true -> {
+                    val userId = path.substringAfter("/u/")
+                    "profile_details/$userId"
                 }
                 path?.startsWith("/book/") == true -> {
                     val slug = path.substringAfter("/book/")

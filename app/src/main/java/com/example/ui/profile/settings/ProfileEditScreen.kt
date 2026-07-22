@@ -24,12 +24,19 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.data.models.User
 import com.example.ui.auth.AuthViewModel
+import com.example.ui.admin.EditSectionCard
+import com.example.ui.admin.ImagePickerSection
+import kotlinx.coroutines.launch
+import android.net.Uri
+import java.util.UUID
+import com.example.data.repository.AuraRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileEditScreen(navController: NavController, authViewModel: AuthViewModel) {
     val currentUser by authViewModel.currentUser.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val user = currentUser ?: User(
         id = "guest_user",
@@ -43,6 +50,9 @@ fun ProfileEditScreen(navController: NavController, authViewModel: AuthViewModel
     var mobileNumber by remember { mutableStateOf(user.mobileNumber) }
     var photoUrl by remember { mutableStateOf(user.photoUrl) }
     var bannerUrl by remember { mutableStateOf(user.bannerUrl) }
+    var selectedPhotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var selectedBannerUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var repository = remember { com.example.data.repository.AuraRepository() }
     
     // Academic details
     var schoolName by remember { mutableStateOf(user.schoolName) }
@@ -204,24 +214,18 @@ fun ProfileEditScreen(navController: NavController, authViewModel: AuthViewModel
 
                 // SECTION 1: PROFILE ASSETS (Photos)
                 EditSectionCard(title = "Profile Assets", icon = Icons.Filled.CameraAlt) {
-                    OutlinedTextField(
-                        value = photoUrl,
-                        onValueChange = { photoUrl = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Profile Photo URL") },
-                        placeholder = { Text("e.g. https://example.com/photo.jpg") },
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Filled.Photo, contentDescription = null) }
+                    ImagePickerSection(
+                        title = "Profile Photo",
+                        selectedImageUri = selectedPhotoUri,
+                        onImageSelected = { selectedPhotoUri = it },
+                        existingImageUrl = photoUrl
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = bannerUrl,
-                        onValueChange = { bannerUrl = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Profile Banner URL") },
-                        placeholder = { Text("e.g. https://example.com/banner.jpg") },
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Filled.Image, contentDescription = null) }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ImagePickerSection(
+                        title = "Profile Banner",
+                        selectedImageUri = selectedBannerUri,
+                        onImageSelected = { selectedBannerUri = it },
+                        existingImageUrl = bannerUrl
                     )
                 }
 
@@ -483,47 +487,75 @@ fun ProfileEditScreen(navController: NavController, authViewModel: AuthViewModel
                         onClick = {
                             if (validateForm()) {
                                 isSaving = true
-                                val ageVal = ageStr.toIntOrNull() ?: 0
-                                val updatedUser = user.copy(
-                                    name = name.trim(),
-                                    mobileNumber = mobileNumber.trim(),
-                                    photoUrl = photoUrl.trim(),
-                                    bannerUrl = bannerUrl.trim(),
-                                    schoolName = schoolName.trim(),
-                                    className = className.trim(),
-                                    section = section.trim(),
-                                    rollNumber = rollNumber.trim(),
-                                    admissionNumber = admissionNumber.trim(),
-                                    board = board.trim(),
-                                    medium = medium.trim(),
-                                    academicSession = academicSession.trim(),
-                                    gender = gender.trim(),
-                                    dob = dob.trim(),
-                                    age = ageVal,
-                                    bloodGroup = bloodGroup.trim(),
-                                    nationality = nationality.trim(),
-                                    category = category.trim(),
-                                    parentName = parentName.trim(),
-                                    parentMobileNumber = parentMobileNumber.trim(),
-                                    country = country.trim(),
-                                    state = state.trim(),
-                                    district = district.trim(),
-                                    city = city.trim(),
-                                    pinCode = pinCode.trim()
-                                )
-                                
-                                authViewModel.updateUserProfile(
-                                    updatedUser = updatedUser,
-                                    onSuccess = {
+                                coroutineScope.launch {
+                                    try {
+                                        var finalPhotoUrl = photoUrl
+                                        var finalBannerUrl = bannerUrl
+                                        
+                                        if (selectedPhotoUri != null) {
+                                            val bytes = com.example.utils.StorageUtils.compressImage(context, selectedPhotoUri!!)
+                                            if (bytes != null) {
+                                                val fileName = "avatar_${user.id}_${java.util.UUID.randomUUID().toString().take(6)}.jpg"
+                                                val uploadedUrl = repository.uploadImage(bytes, fileName, "avatars")
+                                                if (uploadedUrl.isNotEmpty()) finalPhotoUrl = uploadedUrl
+                                            }
+                                        }
+                                        
+                                        if (selectedBannerUri != null) {
+                                            val bytes = com.example.utils.StorageUtils.compressImage(context, selectedBannerUri!!)
+                                            if (bytes != null) {
+                                                val fileName = "banner_${user.id}_${java.util.UUID.randomUUID().toString().take(6)}.jpg"
+                                                val uploadedUrl = repository.uploadImage(bytes, fileName, "banners")
+                                                if (uploadedUrl.isNotEmpty()) finalBannerUrl = uploadedUrl
+                                            }
+                                        }
+
+                                        val ageVal = ageStr.toIntOrNull() ?: 0
+                                        val updatedUser = user.copy(
+                                            name = name.trim(),
+                                            mobileNumber = mobileNumber.trim(),
+                                            photoUrl = finalPhotoUrl,
+                                            bannerUrl = finalBannerUrl,
+                                            schoolName = schoolName.trim(),
+                                            className = className.trim(),
+                                            section = section.trim(),
+                                            rollNumber = rollNumber.trim(),
+                                            admissionNumber = admissionNumber.trim(),
+                                            board = board.trim(),
+                                            medium = medium.trim(),
+                                            academicSession = academicSession.trim(),
+                                            gender = gender.trim(),
+                                            dob = dob.trim(),
+                                            age = ageVal,
+                                            bloodGroup = bloodGroup.trim(),
+                                            nationality = nationality.trim(),
+                                            category = category.trim(),
+                                            parentName = parentName.trim(),
+                                            parentMobileNumber = parentMobileNumber.trim(),
+                                            country = country.trim(),
+                                            state = state.trim(),
+                                            district = district.trim(),
+                                            city = city.trim(),
+                                            pinCode = pinCode.trim()
+                                        )
+                                        
+                                        authViewModel.updateUserProfile(
+                                            updatedUser = updatedUser,
+                                            onSuccess = {
+                                                isSaving = false
+                                                Toast.makeText(context, "Profile saved successfully!", Toast.LENGTH_SHORT).show()
+                                                navController.popBackStack()
+                                            },
+                                            onError = { error ->
+                                                isSaving = false
+                                                Toast.makeText(context, "Failed: $error", Toast.LENGTH_LONG).show()
+                                            }
+                                        )
+                                    } catch (e: Exception) {
                                         isSaving = false
-                                        Toast.makeText(context, "Profile saved successfully!", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack()
-                                    },
-                                    onError = { error ->
-                                        isSaving = false
-                                        Toast.makeText(context, "Failed: $error", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                                     }
-                                )
+                                }
                             } else {
                                 Toast.makeText(context, "Please fix the validation errors", Toast.LENGTH_SHORT).show()
                             }

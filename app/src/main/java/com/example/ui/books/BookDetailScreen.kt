@@ -59,6 +59,9 @@ fun BookDetailScreen(
     var relatedBooks by remember { mutableStateOf<List<Book>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
+    
+    val currentBookId = book?.id ?: bookId
+    var isShortcutPinned by remember(currentBookId) { mutableStateOf(com.example.utils.ShortcutHelper.isShortcutPinned(context, "book_$currentBookId")) }
 
     val currentUser by authViewModel.currentUser.collectAsState()
     val offlineBooks by offlineBooksViewModel.offlineBooks.collectAsState()
@@ -130,7 +133,6 @@ fun BookDetailScreen(
         loadBookDetails()
     }
 
-    val currentBookId = book?.id ?: bookId
     val isSaved = currentUser?.savedBooks?.contains(currentBookId) == true
     val isDownloaded = offlineBooks.any { it.id == currentBookId }
     val currentProgress = downloadProgress[currentBookId]
@@ -176,7 +178,7 @@ fun BookDetailScreen(
                                     context = context,
                                     title = currentBook.bookName,
                                     contentType = "book",
-                                    idOrTitle = currentBook.bookName
+                                    id = currentBook.id
                                 )
                             },
                             colors = IconButtonDefaults.iconButtonColors(
@@ -187,6 +189,39 @@ fun BookDetailScreen(
                                 imageVector = Icons.Filled.Share,
                                 contentDescription = "Share",
                                 tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Add to Home Screen Button
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    if (isShortcutPinned) {
+                                        com.example.utils.ShortcutHelper.removeShortcut(context, "book_$currentBookId", currentBook.bookName)
+                                        isShortcutPinned = false
+                                    } else {
+                                        com.example.utils.ShortcutHelper.pinShortcut(
+                                            context = context,
+                                            id = "book_$currentBookId",
+                                            title = currentBook.bookName,
+                                            imageUrl = currentBook.coverImage,
+                                            type = "book",
+                                            internalRoute = "book_detail/$currentBookId"
+                                        )
+                                        isShortcutPinned = true
+                                    }
+                                }
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Home,
+                                contentDescription = "Add to Home Screen",
+                                tint = if (isShortcutPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             )
                         }
                         

@@ -37,10 +37,6 @@ object ViewModelFactory : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             return com.example.ui.videos.VideoPlayerViewModel(repository) as T
         }
-        if (modelClass.isAssignableFrom(com.example.ui.courses.CourseViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return com.example.ui.courses.CourseViewModel(repository) as T
-        }
         if (modelClass.isAssignableFrom(MyLibraryViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return MyLibraryViewModel(repository) as T
@@ -48,6 +44,22 @@ object ViewModelFactory : ViewModelProvider.Factory {
         if (modelClass.isAssignableFrom(com.example.ui.chat.ChatViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return com.example.ui.chat.ChatViewModel() as T
+        }
+        if (modelClass.isAssignableFrom(com.example.ui.gamification.LeaderboardViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return com.example.ui.gamification.LeaderboardViewModel(repository) as T
+        }
+        if (modelClass.isAssignableFrom(com.example.ui.search.UserSearchViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return com.example.ui.search.UserSearchViewModel(repository) as T
+        }
+        if (modelClass.isAssignableFrom(com.example.ui.feedback.FeedbackViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return com.example.ui.feedback.FeedbackViewModel(repository) as T
+        }
+        if (modelClass.isAssignableFrom(com.example.ui.admin.AdminFeedbackViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return com.example.ui.admin.AdminFeedbackViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

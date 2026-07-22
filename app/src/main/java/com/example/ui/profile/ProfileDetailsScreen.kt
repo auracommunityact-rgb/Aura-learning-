@@ -36,16 +36,41 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewModel) {
+fun ProfileDetailsScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    userId: String? = null
+) {
     val currentUser by authViewModel.currentUser.collectAsState()
+    var targetUser by remember { mutableStateOf<User?>(null) }
+    val repository = remember { com.example.data.repository.AuraRepository() }
     val context = LocalContext.current
+
+    val isOwnProfile = userId.isNullOrBlank() || userId == currentUser?.id
+
+    LaunchedEffect(userId, currentUser) {
+        if (!userId.isNullOrBlank() && userId != currentUser?.id) {
+            val fetchedUser = repository.getUserProfile(userId)
+            if (fetchedUser == null) {
+                Toast.makeText(context, "User profile not found. Redirecting to Home...", Toast.LENGTH_LONG).show()
+                navController.navigate("main") {
+                    popUpTo(0) { inclusive = true }
+                }
+            } else {
+                targetUser = fetchedUser
+            }
+        } else {
+            targetUser = currentUser
+        }
+    }
+
     val coroutineScope = rememberCoroutineScope()
 
     var isDownloading by remember { mutableStateOf(false) }
     var showCertificatesDialog by remember { mutableStateOf(false) }
     var showDownloadSuccessDialog by remember { mutableStateOf(false) }
 
-    val user = currentUser ?: User(
+    val user = targetUser ?: currentUser ?: User(
         id = "guest_user",
         name = "Guest Student",
         email = "guest@auralearning.com",
@@ -197,10 +222,141 @@ fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewMo
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // QR Code Card
+                    // Gamification Summary Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A237E)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Level ${user.level}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                    Text(user.rank, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = Color(0xFFFFD700))
+                                }
+                            }
+                            
+                            if (isOwnProfile) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                val nextLevelPoints = user.level * 500
+                                val currentLevelPoints = (user.level - 1) * 500
+                                val progress = (user.points - currentLevelPoints).toFloat() / 500f
+                                
+                                LinearProgressIndicator(
+                                    progress = { progress.coerceIn(0f, 1f) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
+                                        .clip(CircleShape),
+                                    color = Color(0xFFFFD700),
+                                    trackColor = Color.White.copy(alpha = 0.2f)
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("${user.points} XP", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                                    Text("${nextLevelPoints - user.points} XP to Level ${user.level + 1}", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Badges Section
+                    if (user.badges.isNotEmpty()) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                "Earned Badges",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            androidx.compose.foundation.lazy.LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(bottom = 8.dp)
+                            ) {
+                                items(user.badges.size) { index ->
+                                    val badgeName = user.badges[index]
+                                    Card(
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                        modifier = Modifier.width(100.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .background(Color(0xFF1A237E).copy(alpha = 0.1f), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = when(badgeName) {
+                                                        "Fast Learner" -> "⚡"
+                                                        "Quiz Master" -> "🎯"
+                                                        "Points Millionaire" -> "💰"
+                                                        else -> "🏆"
+                                                    },
+                                                    fontSize = 20.sp
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                badgeName,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+
+                    // Leaderboard Shortcut Button
+                    Button(
+                        onClick = { navController.navigate("leaderboard") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
+                    ) {
+                        Icon(Icons.Filled.Leaderboard, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("View Global Leaderboard", fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // QR Code Card (Smaller now)
                     Card(
                         modifier = Modifier
-                            .width(180.dp)
+                            .width(150.dp)
                             .padding(8.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
@@ -217,13 +373,13 @@ fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewMo
                             StudentQrCode(
                                 data = studentId,
                                 modifier = Modifier
-                                    .size(120.dp)
+                                    .size(80.dp)
                                     .background(Color.White, RoundedCornerShape(8.dp))
                                     .padding(8.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Scan student ID QR",
+                                text = "Scan student ID",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -260,48 +416,59 @@ fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewMo
                     ProfileInfoGroupCard(
                         title = "Personal Information",
                         icon = Icons.Filled.Person,
-                        items = listOf(
-                            ProfileItem("Full Name", user.name.ifBlank { "Not Specified" }),
-                            ProfileItem("Gender", user.gender.ifBlank { "Not Specified" }),
-                            ProfileItem("Date of Birth", user.dob.ifBlank { "Not Specified" }),
-                            ProfileItem("Age", if (user.age > 0) "${user.age} Years" else "Not Specified"),
-                            ProfileItem("Blood Group", user.bloodGroup.ifBlank { "Not Specified" }),
-                            ProfileItem("Nationality", user.nationality.ifBlank { "Not Specified" }),
-                            ProfileItem("Category", user.category.ifBlank { "Not Specified" })
-                        )
+                        items = if (isOwnProfile) {
+                            listOf(
+                                ProfileItem("Full Name", user.name.ifBlank { "Not Specified" }),
+                                ProfileItem("Gender", user.gender.ifBlank { "Not Specified" }),
+                                ProfileItem("Date of Birth", user.dob.ifBlank { "Not Specified" }),
+                                ProfileItem("Age", if (user.age > 0) "${user.age} Years" else "Not Specified"),
+                                ProfileItem("Blood Group", user.bloodGroup.ifBlank { "Not Specified" }),
+                                ProfileItem("Nationality", user.nationality.ifBlank { "Not Specified" }),
+                                ProfileItem("Category", user.category.ifBlank { "Not Specified" })
+                            )
+                        } else {
+                            listOf(
+                                ProfileItem("Full Name", user.name.ifBlank { "Not Specified" }),
+                                ProfileItem("Gender", user.gender.ifBlank { "Not Specified" })
+                            )
+                        }
                     )
 
                     // Section: Contact Information
-                    ProfileInfoGroupCard(
-                        title = "Contact Information",
-                        icon = Icons.Filled.ContactPage,
-                        items = listOf(
-                            ProfileItem("Email Address", user.email.ifBlank { "Not Specified" }),
-                            ProfileItem("Mobile Number", user.mobileNumber.ifBlank { "Not Specified" }),
-                            ProfileItem("Parent / Guardian", user.parentName.ifBlank { "Not Specified" }),
-                            ProfileItem("Parent Mobile", user.parentMobileNumber.ifBlank { "Not Specified" })
+                    if (isOwnProfile) {
+                        ProfileInfoGroupCard(
+                            title = "Contact Information",
+                            icon = Icons.Filled.ContactPage,
+                            items = listOf(
+                                ProfileItem("Email Address", user.email.ifBlank { "Not Specified" }),
+                                ProfileItem("Mobile Number", user.mobileNumber.ifBlank { "Not Specified" }),
+                                ProfileItem("Parent / Guardian", user.parentName.ifBlank { "Not Specified" }),
+                                ProfileItem("Parent Mobile", user.parentMobileNumber.ifBlank { "Not Specified" })
+                            )
                         )
-                    )
+                    }
 
-                    // Section: Address
-                    ProfileInfoGroupCard(
-                        title = "Address Details",
-                        icon = Icons.Filled.Home,
-                        items = listOf(
-                            ProfileItem("Country", user.country.ifBlank { "Not Specified" }),
-                            ProfileItem("State", user.state.ifBlank { "Not Specified" }),
-                            ProfileItem("District", user.district.ifBlank { "Not Specified" }),
-                            ProfileItem("City", user.city.ifBlank { "Not Specified" }),
-                            ProfileItem("PIN Code", user.pinCode.ifBlank { "Not Specified" })
+                    // Section: Address Details
+                    if (isOwnProfile) {
+                        ProfileInfoGroupCard(
+                            title = "Address Details",
+                            icon = Icons.Filled.Home,
+                            items = listOf(
+                                ProfileItem("Country", user.country.ifBlank { "Not Specified" }),
+                                ProfileItem("State", user.state.ifBlank { "Not Specified" }),
+                                ProfileItem("District", user.district.ifBlank { "Not Specified" }),
+                                ProfileItem("City", user.city.ifBlank { "Not Specified" }),
+                                ProfileItem("PIN Code", user.pinCode.ifBlank { "Not Specified" })
+                            )
                         )
-                    )
+                    }
 
                     // Section: Learning Information
                     ProfileInfoGroupCard(
                         title = "Learning Progress",
                         icon = Icons.Filled.AutoStories,
                         items = listOf(
-                            ProfileItem("Current Courses", if (user.currentCourses.isEmpty()) "0 active courses" else "${user.currentCourses.size} courses enrolled"),
+                            ProfileItem("Active Papers", if (user.currentQuestionPapers.isEmpty()) "0 active papers" else "${user.currentQuestionPapers.size} papers enrolled"),
                             ProfileItem("Books Saved", "${user.savedBooks.size} items in library"),
                             ProfileItem("Videos Saved", "${user.savedVideos.size} lessons saved"),
                             ProfileItem("Certificates Earned", "${user.certificatesEarned.size} credentials"),
@@ -315,26 +482,36 @@ fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewMo
                     ProfileInfoGroupCard(
                         title = "Achievements & Status",
                         icon = Icons.Filled.EmojiEvents,
-                        items = listOf(
-                            ProfileItem("Badges Earned", if (user.badges.isEmpty()) "None yet" else user.badges.joinToString(", ")),
-                            ProfileItem("Global Rank", user.rank),
-                            ProfileItem("Reward Points", "${user.points} pts"),
-                            ProfileItem("Current Level", "Level ${user.level}"),
-                            ProfileItem("Attendance", "${user.attendancePercentage}%")
-                        )
+                        items = if (isOwnProfile) {
+                            listOf(
+                                ProfileItem("Badges Earned", if (user.badges.isEmpty()) "None yet" else user.badges.joinToString(", ")),
+                                ProfileItem("Global Rank", user.rank),
+                                ProfileItem("Reward Points", "${user.points} pts"),
+                                ProfileItem("Current Level", "Level ${user.level}"),
+                                ProfileItem("Attendance", "${user.attendancePercentage}%")
+                            )
+                        } else {
+                            listOf(
+                                ProfileItem("Badges Earned", if (user.badges.isEmpty()) "None yet" else user.badges.joinToString(", ")),
+                                ProfileItem("Global Rank", user.rank),
+                                ProfileItem("Current Level", "Level ${user.level}")
+                            )
+                        }
                     )
 
                     // Section: Account Details
-                    ProfileInfoGroupCard(
-                        title = "Account Details",
-                        icon = Icons.Filled.Info,
-                        items = listOf(
-                            ProfileItem("Created On", if (user.createdAt > 0) java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(user.createdAt)) else "Not Available"),
-                            ProfileItem("Last Session", if (user.lastLogin > 0) java.text.SimpleDateFormat("dd MMM yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(user.lastLogin)) else "Just Now"),
-                            ProfileItem("Login Via", user.provider.replaceFirstChar { it.uppercase() }),
-                            ProfileItem("Profile Status", user.accountStatus)
+                    if (isOwnProfile) {
+                        ProfileInfoGroupCard(
+                            title = "Account Details",
+                            icon = Icons.Filled.Info,
+                            items = listOf(
+                                ProfileItem("Created On", if (user.createdAt > 0) java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(user.createdAt)) else "Not Available"),
+                                ProfileItem("Last Session", if (user.lastLogin > 0) java.text.SimpleDateFormat("dd MMM yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(user.lastLogin)) else "Just Now"),
+                                ProfileItem("Login Via", user.provider.replaceFirstChar { it.uppercase() }),
+                                ProfileItem("Profile Status", user.accountStatus)
+                            )
                         )
-                    )
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -368,42 +545,13 @@ fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewMo
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                // Action: Download ID Card PDF
+                                // Action: Share Profile
                                 Button(
                                     onClick = {
-                                        isDownloading = true
-                                        coroutineScope.launch {
-                                            delay(2500)
-                                            isDownloading = false
-                                            showDownloadSuccessDialog = true
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(52.dp),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("ID Card (PDF)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                }
-
-                                // Action: Share Profile
-                                OutlinedButton(
-                                    onClick = {
                                         val shareText = """
-                                            AURA LEARNING STUDENT PROFILE
-                                            -----------------------------
-                                            Student Name: ${user.name}
-                                            Student ID: $studentId
-                                            Academic Class: ${user.className} ${user.section}
-                                            School Name: ${user.schoolName}
-                                            Rank: ${user.rank}
-                                            Points: ${user.points} pts
-                                            Study Streak: ${user.studyStreak} Days
+                                            Check out my Aura Learning profile!
+
+                                            https://aura.auralearning.workers.dev/u/${user.id}
                                         """.trimIndent()
                                         
                                         val sendIntent = Intent().apply {
@@ -418,30 +566,28 @@ fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewMo
                                         .weight(1f)
                                         .height(52.dp),
                                     shape = RoundedCornerShape(14.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
                                 ) {
                                     Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Share", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Share Profile", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
-                            }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Action: View Certificates
-                            Button(
-                                onClick = { showCertificatesDialog = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary
-                                )
-                            ) {
-                                Icon(Icons.Filled.WorkspacePremium, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("View Earned Certificates", fontWeight = FontWeight.Bold)
+                                // Action: Feedback & Suggestions
+                                OutlinedButton(
+                                    onClick = { navController.navigate("feedback") },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Filled.Feedback, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Feedback", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
                             }
                         }
                     }
@@ -502,7 +648,7 @@ fun ProfileDetailsScreen(navController: NavController, authViewModel: AuthViewMo
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("No Certificates Yet", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Complete video courses & quizzes to unlock official certificates.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                                Text("Complete video lessons & quizzes to unlock official certificates.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), textAlign = TextAlign.Center)
                             }
                         }
                     } else {

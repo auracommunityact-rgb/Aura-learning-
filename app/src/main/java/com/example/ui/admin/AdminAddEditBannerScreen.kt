@@ -1,5 +1,6 @@
 package com.example.ui.admin
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -30,6 +31,8 @@ fun AdminAddEditBannerScreen(navController: NavController, bannerId: String? = n
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var isUploadingImage by remember { mutableStateOf(false) }
     var ctaText by remember { mutableStateOf("Learn More") }
     var ctaLink by remember { mutableStateOf("") }
     var order by remember { mutableStateOf("1") }
@@ -99,11 +102,11 @@ fun AdminAddEditBannerScreen(navController: NavController, bannerId: String? = n
                     maxLines = 2
                 )
                 
-                OutlinedTextField(
-                    value = imageUrl,
-                    onValueChange = { imageUrl = it },
-                    label = { Text("Image URL") },
-                    modifier = Modifier.fillMaxWidth()
+                ImagePickerSection(
+                    title = "Banner Image",
+                    selectedImageUri = selectedImageUri,
+                    onImageSelected = { selectedImageUri = it },
+                    existingImageUrl = imageUrl
                 )
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -135,18 +138,36 @@ fun AdminAddEditBannerScreen(navController: NavController, bannerId: String? = n
                 
                 Button(
                     onClick = {
-                        if (title.isEmpty() || imageUrl.isEmpty()) {
-                            Toast.makeText(context, "Please fill title and image URL", Toast.LENGTH_SHORT).show()
+                        if (title.isEmpty() || (imageUrl.isEmpty() && selectedImageUri == null)) {
+                            Toast.makeText(context, "Please fill title and select an image", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         
                         coroutineScope.launch {
                             try {
+                                isUploadingImage = true
+                                var finalImageUrl = imageUrl
+                                
+                                if (selectedImageUri != null) {
+                                    val bytes = com.example.utils.StorageUtils.compressImage(context, selectedImageUri!!)
+                                    if (bytes != null) {
+                                        val fileName = "banner_${UUID.randomUUID()}.jpg"
+                                        val uploadedUrl = repository.uploadImage(bytes, fileName, "banners")
+                                        if (uploadedUrl.isNotEmpty()) {
+                                            finalImageUrl = uploadedUrl
+                                        } else {
+                                            Toast.makeText(context, "Failed to upload image", Toast.LENGTH_SHORT).show()
+                                            isUploadingImage = false
+                                            return@launch
+                                        }
+                                    }
+                                }
+
                                 val banner = Banner(
                                     id = bannerId ?: UUID.randomUUID().toString(),
                                     title = title,
                                     description = description,
-                                    imageUrl = imageUrl,
+                                    imageUrl = finalImageUrl,
                                     ctaText = ctaText,
                                     link = ctaLink,
                                     order = order.toIntOrNull() ?: 1,
@@ -164,13 +185,20 @@ fun AdminAddEditBannerScreen(navController: NavController, bannerId: String? = n
                                 navController.popBackStack()
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            } finally {
+                                isUploadingImage = false
                             }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isUploadingImage
                 ) {
-                    Text(if (isEditing) "Save Changes" else "Add Banner")
+                    if (isUploadingImage) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text(if (isEditing) "Save Changes" else "Add Banner")
+                    }
                 }
             }
         }

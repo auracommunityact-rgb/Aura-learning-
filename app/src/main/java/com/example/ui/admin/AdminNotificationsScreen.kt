@@ -1,5 +1,6 @@
 package com.example.ui.admin
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -43,7 +44,8 @@ fun AdminNotificationsScreen(navController: NavController) {
     // Form inputs
     var titleInput by remember { mutableStateOf("") }
     var descInput by remember { mutableStateOf("") }
-    var imageUrlInput by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var isUploadingImage by remember { mutableStateOf(false) }
     var redirectLinkInput by remember { mutableStateOf("") }
     var categoryInput by remember { mutableStateOf("Announcement") }
     var priorityInput by remember { mutableStateOf("Normal") }
@@ -127,29 +129,11 @@ fun AdminNotificationsScreen(navController: NavController) {
                     minLines = 3
                 )
 
-                OutlinedTextField(
-                    value = imageUrlInput,
-                    onValueChange = { imageUrlInput = it },
-                    label = { Text("Photo URL (Optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                ImagePickerSection(
+                    title = "Notification Photo (Optional)",
+                    selectedImageUri = selectedImageUri,
+                    onImageSelected = { selectedImageUri = it }
                 )
-
-                if (imageUrlInput.isNotBlank()) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        AsyncImage(
-                            model = imageUrlInput,
-                            contentDescription = "Notification Image Preview",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
 
                 OutlinedTextField(
                     value = redirectLinkInput,
@@ -220,11 +204,24 @@ fun AdminNotificationsScreen(navController: NavController) {
                         coroutineScope.launch {
                             isSending = true
                             try {
+                                var finalImageUrl: String? = null
+                                
+                                if (selectedImageUri != null) {
+                                    val bytes = com.example.utils.StorageUtils.compressImage(context, selectedImageUri!!)
+                                    if (bytes != null) {
+                                        val fileName = "notification_${UUID.randomUUID()}.jpg"
+                                        val uploadedUrl = repository.uploadImage(bytes, fileName, "notifications")
+                                        if (uploadedUrl.isNotEmpty()) {
+                                            finalImageUrl = uploadedUrl
+                                        }
+                                    }
+                                }
+
                                 val notification = SupabaseNotification(
                                     id = UUID.randomUUID().toString(),
                                     title = titleInput,
                                     description = descInput,
-                                    image_url = imageUrlInput.ifBlank { null },
+                                    image_url = finalImageUrl,
                                     category = categoryInput.ifBlank { "Announcement" },
                                     deep_link = redirectLinkInput.ifBlank { null },
                                     created_at = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).format(java.util.Date()),
@@ -239,7 +236,7 @@ fun AdminNotificationsScreen(navController: NavController) {
                                 // Clear inputs
                                 titleInput = ""
                                 descInput = ""
-                                imageUrlInput = ""
+                                selectedImageUri = null
                                 redirectLinkInput = ""
                                 categoryInput = "Announcement"
                                 targetValueInput = ""

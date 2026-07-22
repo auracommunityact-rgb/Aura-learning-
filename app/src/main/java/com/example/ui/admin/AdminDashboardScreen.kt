@@ -1,5 +1,7 @@
 package com.example.ui.admin
 
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Feedback
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +20,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,7 +38,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.data.models.Book
 import com.example.data.models.Video
-import com.example.data.models.Course
+import com.example.data.models.QuestionPaper
 import com.example.data.repository.AuraRepository
 import com.example.data.repository.notifications.SupabaseNotification
 import com.example.data.supabase.SupabaseService
@@ -45,6 +49,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.ui.text.style.TextAlign
@@ -59,13 +64,13 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
         return
     }
 
-    val context = LocalContext.current
+    val mContext = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val repository = remember { AuraRepository() }
 
     var booksList by remember { mutableStateOf<List<Book>>(emptyList()) }
     var videosList by remember { mutableStateOf<List<Video>>(emptyList()) }
-    var coursesList by remember { mutableStateOf<List<Course>>(emptyList()) }
+    var questionPapersList by remember { mutableStateOf<List<QuestionPaper>>(emptyList()) }
     var websitesList by remember { mutableStateOf<List<com.example.data.models.Website>>(emptyList()) }
     var notificationsList by remember { mutableStateOf<List<SupabaseNotification>>(emptyList()) }
     var hapticLogsList by remember { mutableStateOf<List<com.example.data.models.HapticLog>>(emptyList()) }
@@ -78,7 +83,7 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
             try {
                 booksList = repository.getBooks()
                 videosList = repository.getVideos()
-                coursesList = repository.getCourses()
+                questionPapersList = repository.getQuestionPapers()
                 websitesList = repository.getWebsites()
                 notificationsList = SupabaseService.client.from("notifications")
                     .select().decodeList<SupabaseNotification>()
@@ -92,7 +97,7 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "Error loading admin content: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(mContext, "Error loading admin content: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
             }
@@ -170,11 +175,11 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CompactActionCard(
-                    title = "New Course",
+                    title = "New QuestionPaper",
                     icon = Icons.Filled.School,
                     modifier = Modifier.weight(1f)
                 ) {
-                    navController.navigate("admin_upload_course")
+                    navController.navigate("admin_upload_questionPaper")
                 }
                 CompactActionCard(
                     title = "Notification",
@@ -224,8 +229,59 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                 ) {
                     navController.navigate("admin_home_customization")
                 }
-                // Placeholder or future action
-                Spacer(modifier = Modifier.weight(1f))
+                CompactActionCard(
+                    title = "Manage Sections",
+                    icon = Icons.Default.Category,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    navController.navigate("admin_manage_sections")
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CompactActionCard(
+                    title = "Manage Quizzes",
+                    icon = androidx.compose.material.icons.Icons.Filled.School,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    navController.navigate("admin_manage_quizzes")
+                }
+                CompactActionCard(
+                    title = "Manage Users",
+                    icon = androidx.compose.material.icons.Icons.Filled.Person,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    navController.navigate("admin_users")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CompactActionCard(
+                    title = "Feedback Management",
+                    icon = androidx.compose.material.icons.Icons.Filled.Feedback,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    navController.navigate("admin_feedback_management")
+                }
+                CompactActionCard(
+                    title = "Feedback Analytics",
+                    icon = androidx.compose.material.icons.Icons.Filled.BarChart,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    navController.navigate("admin_feedback_analytics")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -250,7 +306,7 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    text = { Text("Courses (${coursesList.size})", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                    text = { Text("QuestionPapers (${questionPapersList.size})", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                 )
                 Tab(
                     selected = selectedTab == 3,
@@ -291,10 +347,10 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                         coroutineScope.launch {
                                             try {
                                                 repository.deleteBook(book.id)
-                                                Toast.makeText(context, "Book deleted", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Book deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     }, onEdit = {
@@ -312,10 +368,10 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                         coroutineScope.launch {
                                             try {
                                                 repository.deleteVideo(video.id)
-                                                Toast.makeText(context, "Video deleted", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Video deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     }, onEdit = {
@@ -324,23 +380,23 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                 }
                             }
                         }
-                        2 -> { // Courses
-                            if (coursesList.isEmpty()) {
-                                item { EmptyStateView("No courses found") }
+                        2 -> { // QuestionPapers
+                            if (questionPapersList.isEmpty()) {
+                                item { EmptyStateView("No questionPapers found") }
                             } else {
-                                items(coursesList) { course ->
-                                    CourseAdminItem(course = course, onDelete = {
+                                items(questionPapersList) { course ->
+                                    QuestionPaperAdminItem(course = course, onDelete = {
                                         coroutineScope.launch {
                                             try {
-                                                repository.deleteCourse(course.id)
-                                                Toast.makeText(context, "Course deleted", Toast.LENGTH_SHORT).show()
+                                                repository.deleteQuestionPaper(course.id)
+                                                Toast.makeText(mContext, "QuestionPaper deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     }, onEdit = {
-                                        navController.navigate("admin_edit_course/${course.id}")
+                                        navController.navigate("admin_edit_questionPaper/${course.id}")
                                     })
                                 }
                             }
@@ -357,10 +413,10 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                                 SupabaseService.client.from("notifications").delete {
                                                     filter { eq("id", idValue) }
                                                 }
-                                                Toast.makeText(context, "Notification deleted", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Notification deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     })
@@ -376,10 +432,10 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                         coroutineScope.launch {
                                             try {
                                                 repository.deleteWebsite(website.id)
-                                                Toast.makeText(context, "Website deleted", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Website deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     }, onEdit = {
@@ -423,10 +479,10 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                                         SupabaseService.client.from("haptic_logs").delete {
                                                             filter { neq("id", "") }
                                                         }
-                                                        Toast.makeText(context, "All logs cleared", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(mContext, "All logs cleared", Toast.LENGTH_SHORT).show()
                                                         loadAllContent()
                                                     } catch (e: Exception) {
-                                                        Toast.makeText(context, "Failed to clear: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(mContext, "Failed to clear: ${e.message}", Toast.LENGTH_SHORT).show()
                                                     }
                                                 }
                                             }
@@ -444,10 +500,10 @@ fun AdminDashboardScreen(navController: NavController, authViewModel: AuthViewMo
                                                 SupabaseService.client.from("haptic_logs").delete {
                                                     filter { eq("id", log.id) }
                                                 }
-                                                Toast.makeText(context, "Log deleted", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Log deleted", Toast.LENGTH_SHORT).show()
                                                 loadAllContent()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(mContext, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     })
@@ -615,8 +671,9 @@ fun VideoAdminItem(video: Video, onDelete: () -> Unit, onEdit: () -> Unit) {
 }
 
 @Composable
-fun CourseAdminItem(course: Course, onDelete: () -> Unit, onEdit: () -> Unit) {
+fun QuestionPaperAdminItem(course: QuestionPaper, onDelete: () -> Unit, onEdit: () -> Unit) {
     var showConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -628,7 +685,7 @@ fun CourseAdminItem(course: Course, onDelete: () -> Unit, onEdit: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = course.thumbnailUrl,
+                model = course.thumbnail,
                 contentDescription = null,
                 modifier = Modifier
                     .size(80.dp, 50.dp)
@@ -642,6 +699,16 @@ fun CourseAdminItem(course: Course, onDelete: () -> Unit, onEdit: () -> Unit) {
                 Text(course.description, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Subject: ${course.subject}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
             }
+            IconButton(onClick = {
+                com.example.utils.ShareHelper.shareContent(
+                    context = context,
+                    title = course.title,
+                    contentType = "questionPaper",
+                    id = course.id
+                )
+            }) {
+                Icon(Icons.Filled.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.secondary)
+            }
             IconButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
             }
@@ -654,7 +721,7 @@ fun CourseAdminItem(course: Course, onDelete: () -> Unit, onEdit: () -> Unit) {
     if (showConfirm) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Delete Course") },
+            title = { Text("Delete QuestionPaper") },
             text = { Text("Are you sure you want to delete '${course.title}'?") },
             confirmButton = {
                 Button(

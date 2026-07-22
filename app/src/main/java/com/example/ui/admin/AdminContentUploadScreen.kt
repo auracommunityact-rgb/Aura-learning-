@@ -222,39 +222,12 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                 )
             }
             
-            Text(if (isVideo) "Thumbnail Image" else "Cover Image", style = MaterialTheme.typography.titleMedium)
-            
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { photoPickerLauncher.launch("image/*") },
-                contentAlignment = Alignment.Center
-            ) {
-                if (selectedImageUri != null) {
-                    AsyncImage(
-                        model = selectedImageUri,
-                        contentDescription = "Selected Image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (thumbnailUrl.isNotEmpty()) {
-                    AsyncImage(
-                        model = thumbnailUrl,
-                        contentDescription = "Selected Image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Tap to select image", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
+            ImagePickerSection(
+                title = if (isVideo) "Thumbnail Image" else "Cover Image",
+                selectedImageUri = selectedImageUri,
+                onImageSelected = { selectedImageUri = it },
+                existingImageUrl = thumbnailUrl
+            )
             
             if (!isVideo) {
                 Text("Select PDF Document", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -376,16 +349,12 @@ fun AdminContentUploadScreen(navController: NavController, isVideo: Boolean) {
                             try {
                                 var finalImageUrl = thumbnailUrl
                                 if (selectedImageUri != null) {
-                                    val inputStream = context.contentResolver.openInputStream(selectedImageUri!!)
-                                    val bytes = inputStream?.readBytes()
-                                    inputStream?.close()
+                                    val bytes = com.example.utils.StorageUtils.compressImage(context, selectedImageUri!!)
                                     if (bytes != null) {
-                                        val ext = context.contentResolver.getType(selectedImageUri!!)?.split("/")?.lastOrNull() ?: "jpg"
-                                        val fileName = "${UUID.randomUUID()}.$ext"
+                                        val fileName = "thumb_${UUID.randomUUID()}.jpg"
                                         val uploadedUrl = repository.uploadCoverImage(bytes, fileName)
                                         if (uploadedUrl.isNotEmpty()) {
                                             finalImageUrl = uploadedUrl
-                                            thumbnailUrl = finalImageUrl // Update the text field state
                                         } else {
                                             Toast.makeText(context, "Failed to upload image", Toast.LENGTH_SHORT).show()
                                         }

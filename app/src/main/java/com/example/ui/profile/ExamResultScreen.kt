@@ -39,6 +39,7 @@ import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+import com.example.data.models.TimestampSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -46,6 +47,7 @@ data class BoardResult(
     val id: String = "",
     val board: String = "",
     val website: String = "",
+    @Serializable(with = TimestampSerializer::class)
     val createdAt: Long = 0L
 )
 
@@ -291,7 +293,7 @@ fun ResultWebViewScreen(navController: NavController, url: String, title: String
                                 context = context,
                                 title = title,
                                 contentType = "page",
-                                idOrTitle = title
+                                id = com.example.utils.ShareHelper.toSlug(title)
                             )
                         }) {
                             Icon(Icons.Filled.Share, contentDescription = "Share Page")

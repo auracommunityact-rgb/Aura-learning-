@@ -41,8 +41,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import coil.compose.AsyncImage
 import com.example.data.models.User
+import com.example.data.models.Book
+import com.example.data.models.Video
+import com.example.data.models.QuestionPaper
+import com.example.data.models.Website
 import com.example.ui.ViewModelFactory
 import com.example.ui.profile.BoardResult
 import com.example.ui.profile.boardsJson
@@ -51,7 +56,6 @@ import com.example.ui.study.allStudyTools
 import com.example.utils.VoiceSearchHelper
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import io.github.jan.supabase.postgrest.from
 import java.net.URLEncoder
 import kotlinx.coroutines.delay
 
@@ -63,231 +67,72 @@ data class HistoryItem(
 
 data class LocalAiAnswer(
     val content: String,
-    val relatedBooks: List<com.example.data.models.Book>,
-    val relatedVideos: List<com.example.data.models.Video>,
-    val relatedCourses: List<com.example.data.models.Course>
+    val relatedBooks: List<Book> = emptyList(),
+    val relatedVideos: List<Video> = emptyList(),
 )
 
-val offlineCourses = listOf(
-    com.example.data.models.Course(
-        id = "course_maths_10",
-        subject = "Maths",
-        title = "Class 10 CBSE Maths Masterclass",
-        description = "Complete syllabus for Class 10th Mathematics covering Real Numbers, Polynomials, Trigonometry, and Statistics with solved exercises.",
-        thumbnailUrl = "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=300&q=80",
-        youtubeUrl = "https://www.youtube.com/watch?v=N4tL7mG_C-o"
-    ),
-    com.example.data.models.Course(
-        id = "course_science_10",
-        subject = "Science",
-        title = "Class 10 Science: Concept Booster",
-        description = "Learn critical Physics, Chemistry, and Biology concepts for Class 10 with interactive animations, chemical equations, and practice papers.",
-        thumbnailUrl = "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=300&q=80",
-        youtubeUrl = "https://www.youtube.com/watch?v=f9vT8H_7gK8"
-    ),
-    com.example.data.models.Course(
-        id = "course_sst_10",
-        subject = "Social Studies",
-        title = "Class 10 Social Science Quick Revision",
-        description = "A rapid revision course for Class 10 Board exams in History, Geography, Political Science, and Economics, featuring major event timelines.",
-        thumbnailUrl = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=300&q=80",
-        youtubeUrl = "https://www.youtube.com/watch?v=3Sg9OWhn3bM"
-    )
-)
-
-fun scoreBook(book: com.example.data.models.Book, query: String): Int {
+fun scoreBook(book: Book, query: String): Int {
     val q = query.lowercase().trim()
     if (q.isEmpty()) return 0
     val title = book.bookName.lowercase()
     val subject = book.subject.lowercase()
-    val grade = book.className.lowercase()
-
     var score = 0
     if (title == q) score += 500
     else if (title.startsWith(q)) score += 300
     else if (title.contains(q)) score += 150
-
-    if (subject == q) score += 200
-    else if (subject.startsWith(q)) score += 100
-    else if (subject.contains(q)) score += 50
-
-    if (grade == q || grade.contains(q)) score += 80
+    if (subject.contains(q)) score += 100
     return score
 }
 
-fun scoreVideo(video: com.example.data.models.Video, query: String): Int {
+fun scoreVideo(video: Video, query: String): Int {
     val q = query.lowercase().trim()
     if (q.isEmpty()) return 0
     val title = video.title.lowercase()
-    val description = video.description.lowercase()
-    val subject = video.subject.lowercase()
-    val grade = video.className.lowercase()
     val teacher = video.teacher.lowercase()
-
+    val subject = video.subject.lowercase()
     var score = 0
     if (title == q) score += 500
     else if (title.startsWith(q)) score += 300
     else if (title.contains(q)) score += 150
-
-    if (description.contains(q)) score += 60
-
-    if (subject == q) score += 200
-    else if (subject.startsWith(q)) score += 100
-    else if (subject.contains(q)) score += 50
-
-    if (grade == q || grade.contains(q)) score += 80
     if (teacher.contains(q)) score += 100
+    if (subject.contains(q)) score += 80
     return score
 }
 
-fun scoreCourse(course: com.example.data.models.Course, query: String): Int {
+fun scoreQuestionPaper(paper: QuestionPaper, query: String): Int {
     val q = query.lowercase().trim()
     if (q.isEmpty()) return 0
-    val title = course.title.lowercase()
-    val description = course.description.lowercase()
-    val subject = course.subject.lowercase()
-
+    val title = paper.title.lowercase()
+    val subject = paper.subject.lowercase()
+    val board = paper.board.lowercase()
     var score = 0
     if (title == q) score += 500
     else if (title.startsWith(q)) score += 300
     else if (title.contains(q)) score += 150
-
-    if (description.contains(q)) score += 60
-
-    if (subject == q) score += 200
-    else if (subject.startsWith(q)) score += 100
-    else if (subject.contains(q)) score += 50
+    if (subject.contains(q)) score += 100
+    if (board.contains(q)) score += 80
     return score
 }
 
-fun scoreTool(tool: com.example.ui.study.StudyTool, query: String): Int {
+fun scoreTool(tool: StudyTool, query: String): Int {
     val q = query.lowercase().trim()
     if (q.isEmpty()) return 0
-    val title = tool.title.lowercase()
-    val description = tool.description.lowercase()
-
-    var score = 0
-    if (title == q) score += 500
-    else if (title.startsWith(q)) score += 300
-    else if (title.contains(q)) score += 150
-
-    if (description.contains(q)) score += 60
-    return score
+    if (tool.title.lowercase().contains(q)) return 100
+    return 0
 }
 
-fun scoreBoard(board: com.example.ui.profile.BoardResult, query: String): Int {
+fun scoreWebsite(w: Website, query: String): Int {
     val q = query.lowercase().trim()
     if (q.isEmpty()) return 0
-    val name = board.board.lowercase()
-    val website = board.website.lowercase()
-
-    var score = 0
-    if (name == q) score += 500
-    else if (name.startsWith(q)) score += 300
-    else if (name.contains(q)) score += 150
-
-    if (website.contains(q)) score += 60
-    return score
+    if (w.name.lowercase().contains(q)) return 100
+    return 0
 }
 
-fun scoreWebsite(website: com.example.data.models.Website, query: String): Int {
+fun scoreBoard(b: BoardResult, query: String): Int {
     val q = query.lowercase().trim()
     if (q.isEmpty()) return 0
-    val name = website.name.lowercase()
-    val desc = website.description.lowercase()
-    val url = website.url.lowercase()
-
-    var score = 0
-    if (name == q) score += 500
-    else if (name.startsWith(q)) score += 300
-    else if (name.contains(q)) score += 150
-
-    if (desc.contains(q)) score += 60
-    if (url.contains(q)) score += 40
-    return score
-}
-
-fun generateLocalAiAnswer(
-    query: String,
-    books: List<com.example.data.models.Book>,
-    videos: List<com.example.data.models.Video>,
-    courses: List<com.example.data.models.Course>
-): LocalAiAnswer? {
-    val q = query.lowercase().trim()
-    if (q.isBlank()) return null
-
-    if (q.contains("math") || q.contains("ganit") || q.contains("trig") || q.contains("algebra") || q.contains("geometry")) {
-        return LocalAiAnswer(
-            content = "Mathematics is the study of numbers, quantities, shapes, and logical reasoning. In Class 10, it covers core branches like Algebra (Polynomials, Quadratic Equations), Geometry (Triangles, Circles), Trigonometry, coordinate systems, and Statistics/Probability. Practice and active derivation are the best ways to build fluency.",
-            relatedBooks = books.filter { it.subject.lowercase().contains("math") || it.bookName.lowercase().contains("math") },
-            relatedVideos = videos.filter { it.subject.lowercase().contains("math") || it.title.lowercase().contains("math") },
-            relatedCourses = courses.filter { it.subject.lowercase().contains("math") || it.title.lowercase().contains("math") }
-        )
-    }
-
-    if (q.contains("science") || q.contains("vigyan") || q.contains("phys") || q.contains("chem") || q.contains("bio") || q.contains("carbon") || q.contains("acid")) {
-        return LocalAiAnswer(
-            content = "Science integrates the study of Physics (motion, electricity, optics), Chemistry (reactions, periodic tables, organic compounds), and Biology (life processes, heredity, environment). Developing clear conceptual understanding, revising chemical equations, and practice labeling diagrams are key study practices.",
-            relatedBooks = books.filter { it.subject.lowercase().contains("sci") || it.bookName.lowercase().contains("sci") },
-            relatedVideos = videos.filter { it.subject.lowercase().contains("sci") || it.title.lowercase().contains("sci") },
-            relatedCourses = courses.filter { it.subject.lowercase().contains("sci") || it.title.lowercase().contains("sci") }
-        )
-    }
-
-    if (q.contains("kritika") || q.contains("hindi") || q.contains("kshitij") || q.contains("sparsh") || q.contains("sanchayan")) {
-        return LocalAiAnswer(
-            content = "Kritika is a supplementary Hindi textbook for Class 9 & 10 secondary education. It features classic literary stories by iconic Indian writers that promote empathy, historical consciousness, and deep linguistic appreciation. Focus on chapter summaries, character arcs, and thematic meanings to score well.",
-            relatedBooks = books.filter { it.bookName.lowercase().contains("kritika") || it.bookName.lowercase().contains("hindi") },
-            relatedVideos = videos.filter { it.title.lowercase().contains("kritika") || it.title.lowercase().contains("hindi") },
-            relatedCourses = courses.filter { it.title.lowercase().contains("hindi") }
-        )
-    }
-
-    if (q.contains("result") || q.contains("rajasthan") || q.contains("rbse") || q.contains("cbse") || q.contains("board") || q.contains("exam")) {
-        return LocalAiAnswer(
-            content = "Rajasthan Board of Secondary Education (RBSE) and CBSE exam results are released officially on state result portals. Aura Learning provides direct result webviews so you can input your Roll Number and access your official marksheet immediately upon release.",
-            relatedBooks = books.filter { it.className.contains("10") },
-            relatedVideos = videos.filter { it.title.lowercase().contains("exam") || it.title.lowercase().contains("result") },
-            relatedCourses = emptyList()
-        )
-    }
-
-    if (q.contains("pdf") || q.contains("reader") || q.contains("notes")) {
-        return LocalAiAnswer(
-            content = "Aura Learning's built-in PDF Reader enables students to read, analyze, and translate any academic NCERT books or custom notes offline. You can easily click any textbook item in the Search results to launch the reader immediately.",
-            relatedBooks = books.take(3),
-            relatedVideos = emptyList(),
-            relatedCourses = emptyList()
-        )
-    }
-
-    val matchedBooks = books.filter { scoreBook(it, query) > 50 }
-    val matchedVideos = videos.filter { scoreVideo(it, query) > 50 }
-    val matchedCourses = courses.filter { scoreCourse(it, query) > 50 }
-
-    if (matchedBooks.isNotEmpty() || matchedVideos.isNotEmpty() || matchedCourses.isNotEmpty()) {
-        val firstBook = matchedBooks.firstOrNull()
-        val firstVideo = matchedVideos.firstOrNull()
-        val subjectName = firstBook?.subject ?: firstVideo?.subject ?: "your selected topics"
-        return LocalAiAnswer(
-            content = "Found highly relevant learning material in $subjectName inside Aura Learning. We've matched ${matchedBooks.size} textbooks, ${matchedVideos.size} videos, and ${matchedCourses.size} video masterclasses matching your search query. Start exploring them below!",
-            relatedBooks = matchedBooks.take(2),
-            relatedVideos = matchedVideos.take(2),
-            relatedCourses = matchedCourses.take(2)
-        )
-    }
-    return null
-}
-
-fun getCategoryIcon(category: String): ImageVector {
-    return when (category) {
-        "Website" -> Icons.Default.School
-        "Book" -> Icons.Default.Book
-        "Video" -> Icons.Default.PlayCircle
-        "Course" -> Icons.Default.School
-        "Tool" -> Icons.Default.Build
-        else -> Icons.Default.Search
-    }
+    if (b.board.lowercase().contains(q)) return 100
+    return 0
 }
 
 @Composable
@@ -297,7 +142,7 @@ fun GoogleSearchCard(
     displayPath: String,
     title: String,
     description: String,
-    thumbnailUrl: String?,
+    thumbnail: String?,
     gradeText: String?,
     onClick: () -> Unit
 ) {
@@ -362,10 +207,10 @@ fun GoogleSearchCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                if (!thumbnailUrl.isNullOrEmpty()) {
+                if (!thumbnail.isNullOrEmpty()) {
                     Spacer(modifier = Modifier.width(12.dp))
                     AsyncImage(
-                        model = thumbnailUrl,
+                        model = thumbnail,
                         contentDescription = null,
                         modifier = Modifier
                             .size(72.dp)
@@ -395,196 +240,26 @@ fun GoogleSearchCard(
     }
 }
 
-@Composable
-fun LocalAiAnswerCard(
-    query: String,
-    books: List<com.example.data.models.Book>,
-    videos: List<com.example.data.models.Video>,
-    courses: List<com.example.data.models.Course>,
-    onBookClick: (String) -> Unit,
-    onVideoClick: (String) -> Unit,
-    onCourseClick: (com.example.data.models.Course) -> Unit
-) {
-    val localAnswer = remember(query, books, videos, courses) {
-        generateLocalAiAnswer(query, books, videos, courses)
-    }
-
-    if (localAnswer == null) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("📘 AI Answer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("No AI answer available.", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF94A3B8))
-            }
-        }
-        return
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📘 AI Answer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
-                Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color(0xFF0369A1)
-                ) {
-                    Text(
-                        text = "Local Model",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = localAnswer.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFF1F5F9),
-                lineHeight = 22.sp
-            )
-            
-            if (localAnswer.relatedBooks.isNotEmpty() || localAnswer.relatedVideos.isNotEmpty() || localAnswer.relatedCourses.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = Color(0xFF334155))
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                if (localAnswer.relatedBooks.isNotEmpty()) {
-                    Text("Related Books", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF38BDF8))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    localAnswer.relatedBooks.take(2).forEach { book ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onBookClick(book.id) }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Book, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Open Book: ${book.bookName} (${book.subject})",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF38BDF8),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                if (localAnswer.relatedVideos.isNotEmpty()) {
-                    Text("Related Videos", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF38BDF8))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    localAnswer.relatedVideos.take(2).forEach { video ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onVideoClick(video.id) }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Open Video: ${video.title}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF38BDF8),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                if (localAnswer.relatedCourses.isNotEmpty()) {
-                    Text("Related Courses", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF38BDF8))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    localAnswer.relatedCourses.take(2).forEach { course ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onCourseClick(course) }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.School, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Open Course: ${course.title}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF38BDF8),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalSearchScreen(
     navController: NavController,
     rootNavController: NavController,
-    viewModel: HomeViewModel = viewModel(factory = ViewModelFactory),
-    initialQuery: String = ""
+    initialQuery: String = "",
+    viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)
 ) {
     val context = LocalContext.current
-    val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
+    // Data from ViewModel
     val allBooks by viewModel.allBooks.collectAsState()
     val allVideos by viewModel.allVideos.collectAsState()
+    val allQuestionPapers by viewModel.allQuestionPapers.collectAsState()
+    val websites by viewModel.allWebsites.collectAsState()
     val userSearchResults by viewModel.userSearchResults.collectAsState()
 
-    var courses by remember { mutableStateOf<List<com.example.data.models.Course>>(emptyList()) }
-    var websites by remember { mutableStateOf<List<com.example.data.models.Website>>(emptyList()) }
-
-    val repository = remember { com.example.data.repository.AuraRepository() }
-    var dynamicBoards by remember { mutableStateOf<List<BoardResult>>(emptyList()) }
-
-    LaunchedEffect(Unit) {
-        try {
-            websites = com.example.data.supabase.SupabaseService.client.from("websites").select().decodeList<com.example.data.models.Website>()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        try {
-            courses = repository.getCourses()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        com.example.data.repository.AuraRepository.boardsUpdateTrigger.collect {
-            dynamicBoards = repository.getExamBoards()
-        }
-    }
-
+    val dynamicBoards = remember { mutableStateListOf<BoardResult>() }
     val staticBoards = remember {
         try {
             val type = object : TypeToken<List<BoardResult>>() {}.type
@@ -593,13 +268,8 @@ fun GlobalSearchScreen(
             emptyList<BoardResult>()
         }
     }
-
     val boards = remember(staticBoards, dynamicBoards) {
         dynamicBoards + staticBoards
-    }
-
-    val allCoursesList = remember(courses) {
-        offlineCourses + courses
     }
 
     // Search and Suggestion State
@@ -610,7 +280,6 @@ fun GlobalSearchScreen(
     val sharedPreferences = remember(context) {
         context.getSharedPreferences("aura_search_prefs", Context.MODE_PRIVATE)
     }
-
     var historyList by remember {
         mutableStateOf<List<HistoryItem>>(emptyList())
     }
@@ -695,14 +364,10 @@ fun GlobalSearchScreen(
         saveHistory(newList)
     }
 
-    fun clearAllHistory() {
-        saveHistory(emptyList())
-    }
-
     // Speech Recognition Setup
     val voiceHelper = remember { VoiceSearchHelper(context) }
     val speechResult by voiceHelper.speechResult.collectAsState()
-    val launcher = rememberLauncherForActivityResult(
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
@@ -721,56 +386,38 @@ fun GlobalSearchScreen(
     }
 
     // Dynamic suggestions based on query
-    val suggestions = remember(searchQuery, allBooks, allVideos, allCoursesList, boards, websites, historyList) {
+    val suggestions = remember(searchQuery, historyList) {
         if (searchQuery.isBlank()) return@remember emptyList<String>()
         val q = searchQuery.lowercase().trim()
         val result = mutableSetOf<String>()
-
-        // 1. Local history
+        
         historyList.forEach { item ->
             if (item.query.lowercase().contains(q)) {
                 result.add(item.query)
             }
         }
-
-        // 2. Predefined smart educational queries
+        
         val smartPredefined = listOf(
-            "Maths", "Math Formula", "Math Video", "Math Notes", "Math Question Bank", "Math Sample Paper", "Math Result",
-            "Class 10 Science", "Class 10 Physics", "Class 10 Chemistry", "Class 10 Board Result", "Science Notes", "Science Question Bank",
-            "Kritika", "Kritika Class 10 Notes", "Kritika PDF Book",
+            "Maths", "Science", "Social Science", "Hindi", "English", "Sanskrit",
             "Rajasthan Result", "RBSE 10th Result", "CBSE Board Result",
-            "PDF Reader", "PDF Reader Tool", "PDF Notes Translator",
-            "Study Planner", "Exam Countdown", "Translator"
+            "Question Bank", "Sample Paper", "Model Paper"
         )
         smartPredefined.forEach { s ->
             if (s.lowercase().contains(q)) {
                 result.add(s)
             }
         }
-
-        // 3. Database models
+        
         allBooks.forEach { book ->
             if (book.bookName.lowercase().contains(q)) result.add(book.bookName)
-            if (book.subject.lowercase().contains(q)) result.add(book.subject)
         }
         allVideos.forEach { video ->
             if (video.title.lowercase().contains(q)) result.add(video.title)
-            if (video.subject.lowercase().contains(q)) result.add(video.subject)
         }
-        allCoursesList.forEach { course ->
-            if (course.title.lowercase().contains(q)) result.add(course.title)
-            if (course.subject.lowercase().contains(q)) result.add(course.subject)
+        allQuestionPapers.forEach { paper ->
+            if (paper.title.lowercase().contains(q)) result.add(paper.title)
         }
-        allStudyTools.forEach { tool ->
-            if (tool.title.lowercase().contains(q)) result.add(tool.title)
-        }
-        boards.forEach { board ->
-            if (board.board.lowercase().contains(q)) result.add(board.board)
-        }
-        websites.forEach { w ->
-            if (w.name.lowercase().contains(q)) result.add(w.name)
-        }
-
+        
         result.filter { it.isNotBlank() }
             .sortedWith(compareBy(
                 { !it.lowercase().startsWith(q) },
@@ -786,35 +433,30 @@ fun GlobalSearchScreen(
             .sortedByDescending { it.second }
             .map { it.first }
     }
-
     val scoredBoards = remember(searchQuery, boards) {
         boards.map { it to scoreBoard(it, searchQuery) }
             .filter { it.second > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
     }
-
-    val scoredCourses = remember(searchQuery, allCoursesList) {
-        allCoursesList.map { it to scoreCourse(it, searchQuery) }
+    val scoredQuestionPapers = remember(searchQuery, allQuestionPapers) {
+        allQuestionPapers.map { it to scoreQuestionPaper(it, searchQuery) }
             .filter { it.second > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
     }
-
     val scoredBooks = remember(searchQuery, allBooks) {
         allBooks.map { it to scoreBook(it, searchQuery) }
             .filter { it.second > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
     }
-
     val scoredVideos = remember(searchQuery, allVideos) {
         allVideos.map { it to scoreVideo(it, searchQuery) }
             .filter { it.second > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
     }
-
     val scoredTools = remember(searchQuery) {
         allStudyTools.map { it to scoreTool(it, searchQuery) }
             .filter { it.second > 0 }
@@ -822,83 +464,71 @@ fun GlobalSearchScreen(
             .map { it.first }
     }
 
-    val hasAnyResults = scoredWebsites.isNotEmpty() || scoredBoards.isNotEmpty() || scoredCourses.isNotEmpty() ||
-            scoredBooks.isNotEmpty() || scoredVideos.isNotEmpty() || scoredTools.isNotEmpty() || userSearchResults.isNotEmpty()
+    val hasAnyResults = scoredQuestionPapers.isNotEmpty() || scoredBooks.isNotEmpty() || 
+                       scoredVideos.isNotEmpty() || scoredTools.isNotEmpty() || 
+                       userSearchResults.isNotEmpty() || scoredWebsites.isNotEmpty() ||
+                       scoredBoards.isNotEmpty()
 
-    val onBackAction = {
+    val onBackAction: () -> Unit = {
         if (isSearchConfirmed) {
             isSearchConfirmed = false
         } else {
             navController.popBackStack()
         }
+        Unit
     }
 
     BackHandler {
         onBackAction()
     }
 
-    // Standard Horizontal Tabs
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("All", "Users", "Books", "Videos", "Courses", "Result Portals")
-
     LaunchedEffect(searchQuery, isSearchConfirmed) {
         if (isSearchConfirmed) {
             viewModel.searchUsers(searchQuery)
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0F172A))
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Rounded Google-Style Top Search Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { onBackAction() }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                Box(
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(Color(0xFF0F172A))) {
+        
+        // Search Header
+        Surface(
+            color = Color(0xFF1E293B),
+            tonalElevation = 4.dp
+        ) {
+            Column {
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .background(Color(0xFF1E293B), RoundedCornerShape(26.dp))
-                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(26.dp))
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 4.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxSize()
+                    IconButton(onClick = onBackAction) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .background(Color(0xFF334155), RoundedCornerShape(24.dp))
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
                         BasicTextField(
                             value = searchQuery,
-                            onValueChange = {
+                            onValueChange = { 
                                 searchQuery = it
                                 isSearchConfirmed = false
                             },
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth()
                                 .focusRequester(focusRequester),
                             textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
+                            cursorBrush = SolidColor(Color(0xFF38BDF8)),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                             keyboardActions = KeyboardActions(onSearch = {
@@ -908,542 +538,253 @@ fun GlobalSearchScreen(
                                     focusManager.clearFocus()
                                 }
                             }),
-                            cursorBrush = SolidColor(Color(0xFF38BDF8)),
                             decorationBox = { innerTextField ->
                                 if (searchQuery.isEmpty()) {
-                                    Text(
-                                        text = "Search books, videos, courses...",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = Color(0xFF64748B)
-                                    )
+                                    Text("Search Aura Learning...", color = Color(0xFF94A3B8))
                                 }
                                 innerTextField()
                             }
                         )
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(
-                                onClick = {
-                                    searchQuery = ""
-                                    isSearchConfirmed = false
-                                },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear",
-                                    tint = Color(0xFF94A3B8),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                    }
+                    
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = ""; isSearchConfirmed = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear", tint = Color(0xFF94A3B8))
                         }
-                        IconButton(
-                            onClick = {
-                                launcher.launch(android.Manifest.permission.RECORD_AUDIO)
-                            },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Mic,
-                                contentDescription = "Voice Search",
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(20.dp)
+                    } else {
+                        IconButton(onClick = {
+                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                        }) {
+                            Icon(Icons.Default.Mic, contentDescription = "Voice Search", tint = Color(0xFF94A3B8))
+                        }
+                    }
+                }
+                
+                if (isSearchConfirmed) {
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = Color.Transparent,
+                        contentColor = Color(0xFF38BDF8),
+                        divider = {},
+                        indicator = { tabPositions ->
+                            TabRowDefaults.SecondaryIndicator(
+                                Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                color = Color(0xFF38BDF8)
+                            )
+                        },
+                        edgePadding = 16.dp
+                    ) {
+                        val tabs = listOf("All", "Books", "Question Papers", "Videos", "Users", "Results")
+                        tabs.forEachIndexed { index, title ->
+                            Tab(
+                                selected = selectedTab == index,
+                                onClick = { selectedTab = index },
+                                text = { Text(title, style = MaterialTheme.typography.labelLarge) },
+                                unselectedContentColor = Color(0xFF94A3B8)
                             )
                         }
                     }
                 }
             }
+        }
 
-            HorizontalDivider(color = Color(0xFF1E293B))
-
-            // Body Area
-            if (searchQuery.isEmpty()) {
-                // Show Recent Searches / History
-                if (historyList.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                tint = Color(0xFF475569),
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "No recent searches yet",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color(0xFF94A3B8)
-                            )
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Recent Searches",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                TextButton(
-                                    onClick = { clearAllHistory() },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444))
-                                ) {
-                                    Text("Clear All")
-                                }
+        // Content
+        Box(modifier = Modifier.weight(1f)) {
+            if (!isSearchConfirmed) {
+                // Suggestions and History
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    if (searchQuery.isNotEmpty()) {
+                        items(suggestions) { suggestion ->
+                            SuggestionItem(suggestion) {
+                                searchQuery = suggestion
+                                isSearchConfirmed = true
+                                addToHistory(suggestion)
+                                focusManager.clearFocus()
                             }
                         }
-
-                        items(historyList) { item ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        if (item.isPinned) Color(0xFF1E293B).copy(alpha = 0.5f)
-                                        else Color.Transparent,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable {
+                    } else {
+                        if (historyList.isNotEmpty()) {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Recent Searches", style = MaterialTheme.typography.titleSmall, color = Color(0xFF94A3B8))
+                                    TextButton(onClick = { saveHistory(emptyList()) }) {
+                                        Text("Clear All", color = Color(0xFF38BDF8))
+                                    }
+                                }
+                            }
+                            items(historyList) { item ->
+                                HistoryRow(
+                                    item = item,
+                                    onSelect = {
                                         searchQuery = item.query
                                         isSearchConfirmed = true
                                         addToHistory(item.query)
                                         focusManager.clearFocus()
-                                    }
-                                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.History,
-                                    contentDescription = null,
-                                    tint = Color(0xFF64748B),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = item.query,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = Color(0xFFF1F5F9),
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                // Pin button
-                                IconButton(
-                                    onClick = { togglePin(item) },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (item.isPinned) Icons.Filled.Star else Icons.Outlined.Star,
-                                        contentDescription = "Pin Favorite",
-                                        tint = if (item.isPinned) Color(0xFFFBBF24) else Color(0xFF475569),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                // Delete button
-                                IconButton(
-                                    onClick = { deleteHistoryItem(item) },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Delete Item",
-                                        tint = Color(0xFFEF4444).copy(alpha = 0.7f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                            HorizontalDivider(color = Color(0xFF1E293B))
-                        }
-                    }
-                }
-            } else if (!isSearchConfirmed) {
-                // Show instant Search Suggestions
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(suggestions) { suggestion ->
-                        val isHistoryItem = remember(historyList, suggestion) {
-                            historyList.any { it.query.equals(suggestion, ignoreCase = true) }
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    searchQuery = suggestion
-                                    isSearchConfirmed = true
-                                    addToHistory(suggestion)
-                                    focusManager.clearFocus()
-                                }
-                                .padding(vertical = 12.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = if (isHistoryItem) Icons.Default.History else Icons.Default.Search,
-                                contentDescription = null,
-                                tint = Color(0xFF64748B),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = suggestion,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color(0xFFF1F5F9),
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            IconButton(
-                                onClick = {
-                                    searchQuery = suggestion
-                                },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowUpward,
-                                    contentDescription = "Fill",
-                                    tint = Color(0xFF475569),
-                                    modifier = Modifier.size(16.dp)
+                                    },
+                                    onDelete = { deleteHistoryItem(item) },
+                                    onPin = { togglePin(item) }
                                 )
                             }
                         }
-                        HorizontalDivider(color = Color(0xFF1E293B))
                     }
                 }
             } else {
-                // Search Results Page
-                Column(modifier = Modifier.fillMaxSize()) {
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedTab,
-                        containerColor = Color(0xFF0F172A),
-                        contentColor = Color(0xFF38BDF8),
-                        edgePadding = 16.dp,
-                        divider = { HorizontalDivider(color = Color(0xFF1E293B)) }
-                    ) {
-                        tabs.forEachIndexed { index, title ->
-                            Tab(
-                                selected = selectedTab == index,
-                                onClick = { selectedTab = index },
-                                text = { Text(title, fontWeight = FontWeight.Medium) },
-                                selectedContentColor = Color(0xFF38BDF8),
-                                unselectedContentColor = Color(0xFF64748B)
-                            )
+                // Search Results
+                if (!hasAnyResults) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.SearchOff, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color(0xFF334155))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("No results found for \"$searchQuery\"", color = Color(0xFF94A3B8))
                         }
                     }
-
-                    if (!hasAnyResults) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "No results found for \"$searchQuery\"",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color(0xFFEF4444),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Suggested searches:",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFF94A3B8)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    val fallbackSearches = listOf("Maths", "Class 10 Science", "PDF Reader", "Kritika")
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp)
-                                    ) {
-                                        fallbackSearches.forEach { fs ->
-                                            item {
-                                                SuggestionChip(
-                                                    onClick = {
-                                                        searchQuery = fs
-                                                        isSearchConfirmed = true
-                                                        addToHistory(fs)
-                                                    },
-                                                    label = { Text(fs) },
-                                                    colors = SuggestionChipDefaults.suggestionChipColors(
-                                                        containerColor = Color(0xFF1E293B),
-                                                        labelColor = Color(0xFF38BDF8)
-                                                    ),
-                                                    border = androidx.compose.foundation.BorderStroke(
-                                                        1.dp,
-                                                        Color(0xFF334155)
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        // Render filtered items
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            if (selectedTab == 0) {
-                                // "All" Tab
-                                // 1. AI Answer Card
-                                item {
-                                    LocalAiAnswerCard(
-                                        query = searchQuery,
-                                        books = allBooks,
-                                        videos = allVideos,
-                                        courses = allCoursesList,
-                                        onBookClick = { id -> rootNavController.navigate("book_detail/$id") },
-                                        onVideoClick = { id -> rootNavController.navigate("video_player/$id") },
-                                        onCourseClick = { course ->
-                                            val encUrl = URLEncoder.encode(course.youtubeUrl, "UTF-8")
-                                            val encTitle = URLEncoder.encode(course.title, "UTF-8")
-                                            rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
-                                        }
-                                    )
-                                }
-
-                                // 2. Users
-                                if (userSearchResults.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Users",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                        )
-                                    }
-                                    items(userSearchResults) { user ->
-                                        UserSearchCard(user = user, onClick = {
-                                            rootNavController.navigate("user_profile/${user.id}")
-                                        })
-                                    }
-                                }
-
-                                // 3. Websites
-                                val mergedWebsites = (scoredWebsites.map { "website" to it } + scoredBoards.map { "board" to it })
-                                if (mergedWebsites.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Websites & Portals",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                        )
-                                    }
-                                    items(mergedWebsites) { pair ->
-                                        if (pair.first == "website") {
-                                            val w = pair.second as com.example.data.models.Website
-                                            GoogleSearchCard(
-                                                category = "Website",
-                                                categoryIcon = Icons.Default.Language,
-                                                displayPath = w.url.substringAfter("://").substringBefore("/"),
-                                                title = w.name,
-                                                description = w.description,
-                                                thumbnailUrl = w.logo,
-                                                gradeText = null,
-                                                onClick = {
-                                                    val encUrl = URLEncoder.encode(w.url, "UTF-8")
-                                                    val encTitle = URLEncoder.encode(w.name, "UTF-8")
-                                                    rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
-                                                }
-                                            )
-                                        } else {
-                                            val b = pair.second as BoardResult
-                                            GoogleSearchCard(
-                                                category = "Result Portal",
-                                                categoryIcon = Icons.Default.School,
-                                                displayPath = b.website.substringAfter("://").substringBefore("/"),
-                                                title = b.board,
-                                                description = "Official website to view examination results, notifications, and student profiles for ${b.board}.",
-                                                thumbnailUrl = null,
-                                                gradeText = "Board Exam",
-                                                onClick = {
-                                                    val encUrl = URLEncoder.encode(b.website, "UTF-8")
-                                                    val encTitle = URLEncoder.encode(b.board, "UTF-8")
-                                                    rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // 4. Courses
-                                if (scoredCourses.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Courses",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                        )
-                                    }
-                                    items(scoredCourses) { course ->
-                                        GoogleSearchCard(
-                                            category = "Course",
-                                            categoryIcon = Icons.Default.School,
-                                            displayPath = "Aura Learning > Courses",
-                                            title = course.title,
-                                            description = course.description,
-                                            thumbnailUrl = course.thumbnailUrl,
-                                            gradeText = course.subject,
-                                            onClick = {
-                                                val encUrl = URLEncoder.encode(course.youtubeUrl, "UTF-8")
-                                                val encTitle = URLEncoder.encode(course.title, "UTF-8")
-                                                rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
-                                            }
-                                        )
-                                    }
-                                }
-
-                                // 5. Books
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        when (selectedTab) {
+                            0 -> { // All Tab
                                 if (scoredBooks.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Books & Notes",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                        )
-                                    }
-                                    items(scoredBooks) { book ->
+                                    item { ResultHeader("Books") }
+                                    items(scoredBooks.take(3)) { book ->
                                         GoogleSearchCard(
                                             category = "Book",
                                             categoryIcon = Icons.Default.Book,
                                             displayPath = "Aura Learning > Books > ${book.subject}",
                                             title = book.bookName,
-                                            description = "Read full online PDF notes, chapters and syllabus textbooks for Class ${book.className}.",
-                                            thumbnailUrl = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
-                                            gradeText = "Grade ${book.className} • ${book.subject}",
+                                            description = book.description,
+                                            thumbnail = book.coverImage,
+                                            gradeText = "Class ${book.className} • ${book.subject}",
                                             onClick = {
-                                                rootNavController.navigate("book_detail/${book.id}")
+                                                val encodedUrl = URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
                                             }
                                         )
                                     }
                                 }
-
-                                // 6. Videos
-                                if (scoredVideos.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Videos",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                if (scoredQuestionPapers.isNotEmpty()) {
+                                    item { ResultHeader("Question Papers") }
+                                    items(scoredQuestionPapers.take(3)) { paper ->
+                                        GoogleSearchCard(
+                                            category = "Question Paper",
+                                            categoryIcon = Icons.Default.Description,
+                                            displayPath = "Aura Learning > Papers > ${paper.subject}",
+                                            title = paper.title,
+                                            description = "Previous year question paper for ${paper.board} Exam ${paper.year}. Subject: ${paper.subject}.",
+                                            thumbnail = paper.thumbnail,
+                                            gradeText = "${paper.board} • ${paper.year}",
+                                            onClick = {
+                                                val encodedUrl = URLEncoder.encode(paper.pdfUrl, "UTF-8")
+                                                rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                            }
                                         )
                                     }
-                                    items(scoredVideos) { video ->
+                                }
+                                if (scoredVideos.isNotEmpty()) {
+                                    item { ResultHeader("Videos") }
+                                    items(scoredVideos.take(3)) { video ->
                                         GoogleSearchCard(
                                             category = "Video",
                                             categoryIcon = Icons.Default.PlayCircle,
                                             displayPath = "Aura Learning > Videos > ${video.subject}",
                                             title = video.title,
                                             description = video.description,
-                                            thumbnailUrl = video.thumbnail,
-                                            gradeText = "Grade ${video.className} • ${video.subject} • ${video.teacher}",
-                                            onClick = {
-                                                rootNavController.navigate("video_player/${video.id}")
-                                            }
+                                            thumbnail = video.thumbnail,
+                                            gradeText = "Teacher: ${video.teacher}",
+                                            onClick = { rootNavController.navigate("video_details/${video.id}") }
                                         )
                                     }
                                 }
-
-                                // 7. Tools
-                                if (scoredTools.isNotEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "Tools",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                        )
+                                if (userSearchResults.isNotEmpty()) {
+                                    item { ResultHeader("Users") }
+                                    items(userSearchResults.take(3)) { user ->
+                                        UserSearchCard(user) {
+                                            rootNavController.navigate("profile_details/${user.id}")
+                                        }
                                     }
-                                    items(scoredTools) { tool ->
+                                }
+                                if (scoredBoards.isNotEmpty()) {
+                                    item { ResultHeader("Boards") }
+                                    items(scoredBoards.take(3)) { b ->
                                         GoogleSearchCard(
-                                            category = "Tool",
-                                            categoryIcon = getCategoryIcon("Tool"),
-                                            displayPath = "Aura Learning > Tools",
-                                            title = tool.title,
-                                            description = tool.description,
-                                            thumbnailUrl = null,
-                                            gradeText = if (tool.isAi) "AI Tool" else "Study Tool",
+                                            category = "Board Result",
+                                            categoryIcon = Icons.Default.Assessment,
+                                            displayPath = b.website.substringAfter("://").substringBefore("/"),
+                                            title = b.board,
+                                            description = "Official website to check exam results for ${b.board}.",
+                                            thumbnail = null,
+                                            gradeText = null,
                                             onClick = {
-                                                if (tool.id == "planner") {
-                                                    rootNavController.navigate("study_planner")
-                                                } else if (tool.id == "countdown") {
-                                                    rootNavController.navigate("exam_countdown")
-                                                } else if (tool.id == "pdf_reader") {
-                                                    rootNavController.navigate("pdf_tool")
-                                                } else if (tool.id == "map_agent") {
-                                                    rootNavController.navigate("map_agent")
-                                                } else if (tool.id == "translate") {
-                                                    rootNavController.navigate("notes_translate")
-                                                } else if (tool.id == "calculator") {
-                                                    rootNavController.navigate("calculator")
-                                                } else {
-                                                    rootNavController.navigate("tool_viewer/${tool.id}?title=${tool.title}")
-                                                }
+                                                val encUrl = URLEncoder.encode(b.website, "UTF-8")
+                                                val encTitle = URLEncoder.encode(b.board, "UTF-8")
+                                                rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
                                             }
                                         )
                                     }
                                 }
-                            } else if (selectedTab == 1) {
-                                // Users Tab
-                                items(userSearchResults) { user ->
-                                    UserSearchCard(user = user, onClick = {
-                                        rootNavController.navigate("user_profile/${user.id}")
-                                    })
+                                if (scoredWebsites.isNotEmpty()) {
+                                    item { ResultHeader("Websites") }
+                                    items(scoredWebsites.take(3)) { w ->
+                                        GoogleSearchCard(
+                                            category = "Website",
+                                            categoryIcon = Icons.Default.Language,
+                                            displayPath = w.url.substringAfter("://").substringBefore("/"),
+                                            title = w.name,
+                                            description = w.description,
+                                            thumbnail = w.logo,
+                                            gradeText = null,
+                                            onClick = {
+                                                val encUrl = URLEncoder.encode(w.url, "UTF-8")
+                                                val encTitle = URLEncoder.encode(w.name, "UTF-8")
+                                                rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
+                                            }
+                                        )
+                                    }
                                 }
-                            } else if (selectedTab == 2) {
-                                // Books Tab
+                            }
+                            1 -> { // Books
                                 items(scoredBooks) { book ->
                                     GoogleSearchCard(
                                         category = "Book",
                                         categoryIcon = Icons.Default.Book,
                                         displayPath = "Aura Learning > Books > ${book.subject}",
                                         title = book.bookName,
-                                        description = "Read full online PDF notes, chapters and syllabus textbooks for Class ${book.className}.",
-                                        thumbnailUrl = book.coverImage.ifEmpty { "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80" },
-                                        gradeText = "Grade ${book.className} • ${book.subject}",
+                                        description = book.description,
+                                        thumbnail = book.coverImage,
+                                        gradeText = "Class ${book.className} • ${book.subject}",
                                         onClick = {
-                                            rootNavController.navigate("book_detail/${book.id}")
+                                            val encodedUrl = URLEncoder.encode(book.pdfUrl, "UTF-8")
+                                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
                                         }
                                     )
                                 }
-                            } else if (selectedTab == 3) {
-                                // Videos Tab
+                            }
+                            2 -> { // Question Papers
+                                items(scoredQuestionPapers) { paper ->
+                                    GoogleSearchCard(
+                                        category = "Question Paper",
+                                        categoryIcon = Icons.Default.Description,
+                                        displayPath = "Aura Learning > Papers > ${paper.subject}",
+                                        title = paper.title,
+                                        description = "Previous year question paper for ${paper.board} Exam ${paper.year}. Subject: ${paper.subject}.",
+                                        thumbnail = paper.thumbnail,
+                                        gradeText = "${paper.board} • ${paper.year}",
+                                        onClick = {
+                                            val encodedUrl = URLEncoder.encode(paper.pdfUrl, "UTF-8")
+                                            rootNavController.navigate("pdf_viewer?url=$encodedUrl")
+                                        }
+                                    )
+                                }
+                            }
+                            3 -> { // Videos
                                 items(scoredVideos) { video ->
                                     GoogleSearchCard(
                                         category = "Video",
@@ -1451,33 +792,36 @@ fun GlobalSearchScreen(
                                         displayPath = "Aura Learning > Videos > ${video.subject}",
                                         title = video.title,
                                         description = video.description,
-                                        thumbnailUrl = video.thumbnail,
-                                        gradeText = "Grade ${video.className} • ${video.subject} • ${video.teacher}",
-                                        onClick = {
-                                            rootNavController.navigate("video_player/${video.id}")
-                                        }
+                                        thumbnail = video.thumbnail,
+                                        gradeText = "Teacher: ${video.teacher}",
+                                        onClick = { rootNavController.navigate("video_details/${video.id}") }
                                     )
                                 }
-                            } else if (selectedTab == 4) {
-                                // Courses Tab
-                                items(scoredCourses) { course ->
+                            }
+                            4 -> { // Users
+                                items(userSearchResults) { user ->
+                                    UserSearchCard(user) {
+                                        rootNavController.navigate("profile_details/${user.id}")
+                                    }
+                                }
+                            }
+                            5 -> { // Results
+                                items(scoredBoards) { b ->
                                     GoogleSearchCard(
-                                        category = "Course",
-                                        categoryIcon = Icons.Default.School,
-                                        displayPath = "Aura Learning > Courses",
-                                        title = course.title,
-                                        description = course.description,
-                                        thumbnailUrl = course.thumbnailUrl,
-                                        gradeText = course.subject,
+                                        category = "Board Result",
+                                        categoryIcon = Icons.Default.Assessment,
+                                        displayPath = b.website.substringAfter("://").substringBefore("/"),
+                                        title = b.board,
+                                        description = "Official website to check exam results for ${b.board}.",
+                                        thumbnail = null,
+                                        gradeText = null,
                                         onClick = {
-                                            val encUrl = URLEncoder.encode(course.youtubeUrl, "UTF-8")
-                                            val encTitle = URLEncoder.encode(course.title, "UTF-8")
+                                            val encUrl = URLEncoder.encode(b.website, "UTF-8")
+                                            val encTitle = URLEncoder.encode(b.board, "UTF-8")
                                             rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
                                         }
                                     )
                                 }
-                            } else if (selectedTab == 5) {
-                                // Result Portals Tab
                                 items(scoredWebsites) { w ->
                                     GoogleSearchCard(
                                         category = "Website",
@@ -1485,27 +829,11 @@ fun GlobalSearchScreen(
                                         displayPath = w.url.substringAfter("://").substringBefore("/"),
                                         title = w.name,
                                         description = w.description,
-                                        thumbnailUrl = w.logo,
+                                        thumbnail = w.logo,
                                         gradeText = null,
                                         onClick = {
                                             val encUrl = URLEncoder.encode(w.url, "UTF-8")
                                             val encTitle = URLEncoder.encode(w.name, "UTF-8")
-                                            rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
-                                        }
-                                    )
-                                }
-                                items(scoredBoards) { b ->
-                                    GoogleSearchCard(
-                                        category = "Result Portal",
-                                        categoryIcon = Icons.Default.School,
-                                        displayPath = b.website.substringAfter("://").substringBefore("/"),
-                                        title = b.board,
-                                        description = "Official website to view examination results, notifications, and student profiles for ${b.board}.",
-                                        thumbnailUrl = null,
-                                        gradeText = "Board Exam",
-                                        onClick = {
-                                            val encUrl = URLEncoder.encode(b.website, "UTF-8")
-                                            val encTitle = URLEncoder.encode(b.board, "UTF-8")
                                             rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
                                         }
                                     )
@@ -1520,116 +848,94 @@ fun GlobalSearchScreen(
 }
 
 @Composable
-fun UserSearchCard(
-    user: User,
-    onClick: () -> Unit
-) {
+fun SuggestionItem(suggestion: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(suggestion, color = Color(0xFFF1F5F9), style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun HistoryRow(item: HistoryItem, onSelect: () -> Unit, onDelete: () -> Unit, onPin: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.History, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(item.query, color = Color(0xFFF1F5F9), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        
+        IconButton(onClick = onPin) {
+            Icon(
+                if (item.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                contentDescription = "Pin",
+                tint = if (item.isPinned) Color(0xFF38BDF8) else Color(0xFF64748B),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Default.Close, contentDescription = "Delete", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
+fun ResultHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = Color.White,
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
+}
+
+@Composable
+fun UserSearchCard(user: User, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E293B)
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile Image / Placeholder
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(48.dp)
                     .background(Color(0xFF334155), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 if (user.photoUrl.isNotEmpty()) {
                     AsyncImage(
                         model = user.photoUrl,
-                        contentDescription = "Profile Image",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Text(
-                        text = (user.name.firstOrNull() ?: 'U').uppercaseChar().toString(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color(0xFF38BDF8),
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(user.name.take(1).uppercase(), color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
                 }
             }
-            
             Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = user.name.ifEmpty { "User ${user.id.take(8)}" },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                
-                if (user.studentId.isNotEmpty()) {
-                    Text(
-                        text = "Student ID: ${user.studentId}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF38BDF8)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null,
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = user.email.ifEmpty { "No email" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF94A3B8),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                
-                if (user.mobileNumber.isNotEmpty()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = null,
-                            tint = Color(0xFF64748B),
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = user.mobileNumber,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF94A3B8)
-                        )
-                    }
-                }
+            Column {
+                Text(user.name, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(user.email, color = Color(0xFF94A3B8), style = MaterialTheme.typography.bodySmall)
             }
-            
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = Color(0xFF64748B),
-                modifier = Modifier.size(20.dp)
-            )
         }
     }
 }

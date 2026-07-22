@@ -48,6 +48,9 @@ import com.example.ui.auth.AuthViewModel
 import com.example.data.models.Book
 import com.example.data.models.Video
 import com.example.data.models.User
+import com.example.data.models.QuestionPaper
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -69,7 +72,7 @@ fun HomeScreen(
     
     val recentBooks by viewModel.recentBooks.collectAsState()
     val recentVideos by viewModel.recentVideos.collectAsState()
-    val allCourses by viewModel.allCourses.collectAsState()
+    val allQuestionPapers by viewModel.allQuestionPapers.collectAsState()
     val allWebsites by viewModel.allWebsites.collectAsState()
     
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -194,19 +197,21 @@ fun HomeScreen(
                             onViewAll = { navController.navigate("videos") }
                         ) { video ->
                             VideoCard(video = video) {
-                                navController.navigate("video_player/${video.id}")
+                                rootNavController.navigate("video_details/${video.id}")
                             }
                         }
                     }
-                    "courses" -> {
+                    "question_papers" -> {
                         ContentSection(
                             title = section.title,
                             icon = section.icon,
-                            items = allCourses,
-                            onViewAll = { navController.navigate("courses") }
-                        ) { course ->
-                            CourseCard(course = course) {
-                                // Navigate to course detail logic
+                            items = allQuestionPapers,
+                            onViewAll = { navController.navigate("questionPapers") }
+                        ) { questionPaper ->
+                            QuestionPaperCard(questionPaper = questionPaper) {
+                                val encUrl = android.net.Uri.encode(questionPaper.pdfUrl)
+                                val encTitle = android.net.Uri.encode(questionPaper.title)
+                                rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
                             }
                         }
                     }
@@ -544,7 +549,7 @@ fun AnnouncementSection(title: String, icon: String, announcements: List<com.exa
 }
 
 @Composable
-fun CourseCard(course: com.example.data.models.Course, onClick: () -> Unit) {
+fun QuestionPaperCard(questionPaper: com.example.data.models.QuestionPaper, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .width(220.dp)
@@ -554,7 +559,7 @@ fun CourseCard(course: com.example.data.models.Course, onClick: () -> Unit) {
     ) {
         Column {
             AsyncImage(
-                model = course.thumbnailUrl,
+                model = questionPaper.thumbnail,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -562,8 +567,8 @@ fun CourseCard(course: com.example.data.models.Course, onClick: () -> Unit) {
                 contentScale = ContentScale.Crop
             )
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(course.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(course.subject, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Text(questionPaper.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(questionPaper.subject, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -587,7 +592,7 @@ fun SearchBarSection(onSearchClick: () -> Unit) {
             Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                "Search books, videos, courses, websites, exams...",
+                "Search books, videos, question papers, websites, exams...",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )

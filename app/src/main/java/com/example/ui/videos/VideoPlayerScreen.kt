@@ -123,7 +123,7 @@ fun VideoPlayerScreen(
                                 context = context,
                                 title = v.title,
                                 contentType = "video",
-                                idOrTitle = v.title
+                                id = v.id
                             )
                         }) {
                             Icon(imageVector = androidx.compose.material.icons.Icons.Filled.Share, contentDescription = "Share Video")

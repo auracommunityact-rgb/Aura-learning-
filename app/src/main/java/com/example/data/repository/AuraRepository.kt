@@ -6,11 +6,12 @@ import com.example.data.models.Book
 import com.example.data.models.Flashcard
 import com.example.data.models.FlashcardDeck
 import com.example.data.models.Note
+import com.example.data.models.QuestionPaperSection
 import com.example.data.models.User
 import com.example.data.models.Video
 import com.example.data.models.VideoProgress
 import com.example.data.models.BookProgress
-import com.example.data.models.Course
+import com.example.data.models.QuestionPaper
 import com.example.data.supabase.SupabaseService
 import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.postgresChangeFlow
@@ -44,6 +45,9 @@ class AuraRepository {
         private val _notificationsUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
         val notificationsUpdateTrigger = _notificationsUpdateTrigger.asSharedFlow()
 
+        private val _sectionsUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
+        val sectionsUpdateTrigger = _sectionsUpdateTrigger.asSharedFlow()
+
         private val _homeConfigUpdateTrigger = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
         val homeConfigUpdateTrigger = _homeConfigUpdateTrigger.asSharedFlow()
 
@@ -61,6 +65,10 @@ class AuraRepository {
 
         suspend fun notifyNotificationsChanged() {
             _notificationsUpdateTrigger.emit(Unit)
+        }
+
+        suspend fun notifySectionsChanged() {
+            _sectionsUpdateTrigger.emit(Unit)
         }
 
         suspend fun notifyHomeConfigChanged() {
@@ -117,6 +125,26 @@ class AuraRepository {
             }.decodeList<User>()
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    suspend fun getAllUsers(): List<User> {
+        return try {
+            client.postgrest["users"].select {
+                limit(100)
+            }.decodeList<User>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun deleteUser(uid: String) {
+        try {
+            client.postgrest["users"].delete {
+                filter { eq("id", uid) }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -253,14 +281,14 @@ class AuraRepository {
     }
 
     // Banners
-    // Courses
-    suspend fun getCourses(): List<Course> {
+    // QuestionPapers
+    suspend fun getQuestionPapers(): List<QuestionPaper> {
         return try {
-            client.postgrest["courses"].select().decodeList<Course>()
+            client.postgrest["question_papers"].select().decodeList<QuestionPaper>()
         } catch (e: Exception) {
             e.printStackTrace()
-            android.util.Log.e("AuraRepository", "Error fetching courses", e)
-            throw e
+            android.util.Log.e("AuraRepository", "Error fetching question papers: ${e.message}", e)
+            emptyList()
         }
     }
     suspend fun getBanners(): List<Banner> {
@@ -291,7 +319,7 @@ class AuraRepository {
             listOf(
                 com.example.data.models.HomeSectionConfig("1", "books", "Featured Books", "📚", true, 1),
                 com.example.data.models.HomeSectionConfig("2", "videos", "Featured Videos", "🎥", true, 2),
-                com.example.data.models.HomeSectionConfig("3", "courses", "Popular Courses", "🎓", true, 3),
+                com.example.data.models.HomeSectionConfig("3", "question_papers", "Popular QuestionPapers", "🎓", true, 3),
                 com.example.data.models.HomeSectionConfig("4", "websites", "Educational Websites", "🌐", true, 4),
                 com.example.data.models.HomeSectionConfig("5", "exams", "Practice & Exams", "📝", true, 5),
                 com.example.data.models.HomeSectionConfig("6", "trending", "Trending Content", "🔥", true, 6),
@@ -349,21 +377,21 @@ class AuraRepository {
         }
     }
 
-    suspend fun addCourse(course: Course) {
+    suspend fun addQuestionPaper(paper: QuestionPaper) {
         try {
-            val newCourse = if (course.id.isEmpty()) course.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else course
-            client.postgrest["courses"].insert(newCourse)
+            val newPaper = if (paper.id.isEmpty()) paper.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else paper
+            client.postgrest["question_papers"].insert(newPaper)
         } catch (e: Exception) {
             e.printStackTrace()
             throw e
         }
     }
     
-    suspend fun updateCourse(course: Course) {
+    suspend fun updateQuestionPaper(paper: QuestionPaper) {
         try {
-            if (course.id.isNotEmpty()) {
-                client.postgrest["courses"].update(course) {
-                    filter { eq("id", course.id) }
+            if (paper.id.isNotEmpty()) {
+                client.postgrest["question_papers"].update(paper) {
+                    filter { eq("id", paper.id) }
                 }
             }
         } catch (e: Exception) {
@@ -372,13 +400,62 @@ class AuraRepository {
         }
     }
     
-    suspend fun deleteCourse(courseId: String) {
+    suspend fun deleteQuestionPaper(paperId: String) {
         try {
-            if (courseId.isNotEmpty()) {
-                val idValue: Any = courseId.toLongOrNull() ?: courseId
-                client.postgrest["courses"].delete {
+            if (paperId.isNotEmpty()) {
+                val idValue: Any = paperId.toLongOrNull() ?: paperId
+                client.postgrest["question_papers"].delete {
                     filter { eq("id", idValue) }
                 }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    // QuestionPaperSections
+    suspend fun getQuestionPaperSections(): List<QuestionPaperSection> {
+        return try {
+            client.postgrest["question_paper_sections"].select().decodeList<QuestionPaperSection>().sortedBy { it.order }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun addQuestionPaperSection(section: QuestionPaperSection) {
+        try {
+            val newSection = if (section.id.isEmpty()) section.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else section
+            client.postgrest["question_paper_sections"].insert(newSection)
+            notifySectionsChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun updateQuestionPaperSection(section: QuestionPaperSection) {
+        try {
+            if (section.id.isNotEmpty()) {
+                client.postgrest["question_paper_sections"].update(section) {
+                    filter { eq("id", section.id) }
+                }
+                notifySectionsChanged()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    suspend fun deleteQuestionPaperSection(sectionId: String) {
+        try {
+            if (sectionId.isNotEmpty()) {
+                val idValue: Any = sectionId.toLongOrNull() ?: sectionId
+                client.postgrest["question_paper_sections"].delete {
+                    filter { eq("id", idValue) }
+                }
+                notifySectionsChanged()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -558,10 +635,16 @@ class AuraRepository {
             }.decodeList<VideoProgress>().firstOrNull()
 
             if (existing != null) {
+                if (!existing.isWatched && progress.isWatched) {
+                    awardPoints(progress.userId, 50, "Completed Video Lesson")
+                }
                 client.postgrest["video_progress"].update(progress.copy(id = existing.id, lastWatchedAt = System.currentTimeMillis())) {
                     filter { eq("id", existing.id) }
                 }
             } else {
+                if (progress.isWatched) {
+                    awardPoints(progress.userId, 50, "Completed Video Lesson")
+                }
                 client.postgrest["video_progress"].insert(progress.copy(id = UUID.randomUUID().toString(), lastWatchedAt = System.currentTimeMillis()))
             }
         } catch (e: Exception) {
@@ -589,10 +672,17 @@ class AuraRepository {
             }.decodeList<BookProgress>().firstOrNull()
 
             if (existing != null) {
+                // Award points if they read significantly more
+                if (progress.lastPage > existing.lastPage + 5) {
+                    awardPoints(progress.userId, 30, "Reading Milestone")
+                }
                 client.postgrest["book_progress"].update(progress.copy(id = existing.id, lastReadAt = System.currentTimeMillis())) {
                     filter { eq("id", existing.id) }
                 }
             } else {
+                if (progress.lastPage > 0) {
+                    awardPoints(progress.userId, 10, "Started Reading")
+                }
                 client.postgrest["book_progress"].insert(progress.copy(id = UUID.randomUUID().toString(), lastReadAt = System.currentTimeMillis()))
             }
         } catch (e: Exception) {
@@ -601,6 +691,172 @@ class AuraRepository {
     }
 
     // Exam Boards (Exam Results websites)
+    // Quizzes
+    suspend fun getQuizzes(className: String = "", subject: String = "", associatedId: String = ""): List<com.example.data.models.Quiz> {
+        return try {
+            val query = client.postgrest["quizzes"].select {
+                if (className.isNotEmpty()) filter { eq("className", className) }
+                if (subject.isNotEmpty()) filter { eq("subject", subject) }
+                if (associatedId.isNotEmpty()) filter { eq("associatedId", associatedId) }
+            }
+            query.decodeList<com.example.data.models.Quiz>().sortedByDescending { it.createdAt }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun addQuiz(quiz: com.example.data.models.Quiz): String {
+        return try {
+            val newId = if (quiz.id.isEmpty()) UUID.randomUUID().toString() else quiz.id
+            val newQuiz = quiz.copy(id = newId, createdAt = System.currentTimeMillis())
+            client.postgrest["quizzes"].insert(newQuiz)
+            newId
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
+    }
+
+    suspend fun deleteQuiz(quizId: String) {
+        if (quizId.isNotEmpty()) {
+            try {
+                client.postgrest["quizzes"].delete { filter { eq("id", quizId) } }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    suspend fun getQuizQuestions(quizId: String): List<com.example.data.models.QuizQuestion> {
+        return try {
+            client.postgrest["quiz_questions"].select {
+                filter { eq("quizId", quizId) }
+            }.decodeList<com.example.data.models.QuizQuestion>().sortedBy { it.order }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun saveQuizQuestions(quizId: String, questions: List<com.example.data.models.QuizQuestion>) {
+        try {
+            client.postgrest["quiz_questions"].delete { filter { eq("quizId", quizId) } }
+            if (questions.isNotEmpty()) {
+                val newQuestions = questions.map { if (it.id.isEmpty()) it.copy(id = UUID.randomUUID().toString(), quizId = quizId) else it.copy(quizId = quizId) }
+                client.postgrest["quiz_questions"].insert(newQuestions)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun saveQuizResult(result: com.example.data.models.QuizResult) {
+        try {
+            val newResult = result.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis())
+            client.postgrest["quiz_results"].insert(newResult)
+            
+            // Award points for quiz
+            val pointsToAward = (result.score * 10) + (if (result.score == result.totalQuestions && result.totalQuestions > 0) 20 else 0)
+            if (pointsToAward > 0) {
+                awardPoints(result.userId, pointsToAward, "Quiz: ${result.score}/${result.totalQuestions}")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // Gamification Logic
+    suspend fun awardPoints(userId: String, points: Int, reason: String) {
+        try {
+            val user = getUserProfile(userId) ?: return
+            val newPoints = user.points + points
+            val newLevel = (newPoints / 500) + 1
+            
+            val updatedUser = user.copy(
+                points = newPoints,
+                level = newLevel,
+                rank = when {
+                    newPoints > 5000 -> "Diamond Elite"
+                    newPoints > 2500 -> "Platinum Scholar"
+                    newPoints > 1000 -> "Gold Learner"
+                    newPoints > 500 -> "Silver Achiever"
+                    else -> "Bronze Starter"
+                }
+            )
+            
+            updateUserProfile(updatedUser)
+            checkAndAwardBadges(updatedUser)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private suspend fun checkAndAwardBadges(user: User) {
+        val currentBadges = user.badges.toMutableList()
+        var changed = false
+
+        // 1. Fast Learner
+        if (!currentBadges.contains("Fast Learner")) {
+            val progress = getVideoProgress(user.id)
+            if (progress.any { it.isWatched }) {
+                currentBadges.add("Fast Learner")
+                changed = true
+            }
+        }
+
+        // 2. Quiz Master
+        if (!currentBadges.contains("Quiz Master")) {
+            val results = getQuizResultsByUser(user.id)
+            if (results.any { it.score == it.totalQuestions && it.totalQuestions > 0 }) {
+                currentBadges.add("Quiz Master")
+                changed = true
+            }
+        }
+
+        // 3. Points Milestone
+        if (user.points >= 1000 && !currentBadges.contains("Points Millionaire")) {
+            currentBadges.add("Points Millionaire")
+            changed = true
+        }
+
+        if (changed) {
+            updateUserProfile(user.copy(badges = currentBadges))
+        }
+    }
+
+    suspend fun getLeaderboard(): List<com.example.data.models.LeaderboardEntry> {
+        return try {
+            val users = client.postgrest["users"].select {
+                order("points", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(50)
+            }.decodeList<User>()
+            
+            users.mapIndexed { index, user ->
+                com.example.data.models.LeaderboardEntry(
+                    userId = user.id,
+                    name = user.name,
+                    photoUrl = user.photoUrl,
+                    points = user.points,
+                    rank = index + 1,
+                    level = user.level
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun getQuizResultsByUser(userId: String): List<com.example.data.models.QuizResult> {
+        return try {
+            client.postgrest["quiz_results"].select {
+                filter { eq("userId", userId) }
+            }.decodeList<com.example.data.models.QuizResult>().sortedByDescending { it.createdAt }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
     suspend fun getExamBoards(): List<com.example.ui.profile.BoardResult> {
         return try {
             client.postgrest["exam_boards"].select().decodeList<com.example.ui.profile.BoardResult>()
@@ -659,6 +915,17 @@ class AuraRepository {
         }
     }
 
+    suspend fun uploadImage(imageBytes: ByteArray, fileName: String, bucketName: String = "uploads"): String {
+        return try {
+            val bucket = client.storage[bucketName]
+            bucket.upload(fileName, imageBytes) { upsert = true }
+            bucket.publicUrl(fileName)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
+    }
+
     suspend fun uploadResultImage(imageBytes: ByteArray, fileName: String): String {
         return try {
             val bucket = client.storage["results"]
@@ -700,13 +967,13 @@ class AuraRepository {
         }
     }
 
-    fun subscribeToCourses(onChanged: () -> Unit) {
+    fun subscribeToQuestionPapers(onChanged: () -> Unit) {
         val scope = CoroutineScope(Dispatchers.IO)
         scope.launch {
             try {
-                val channel = client.realtime.channel("courses-updates")
+                val channel = client.realtime.channel("question-papers-updates")
                 val changes = channel.postgresChangeFlow<PostgresAction>("public") {
-                    table = "courses"
+                    table = "question_papers"
                 }
                 scope.launch {
                     changes.collect {
@@ -716,6 +983,111 @@ class AuraRepository {
                 channel.subscribe()
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    // Feedback Methods
+    suspend fun submitFeedback(feedback: com.example.data.models.Feedback): Boolean {
+        return try {
+            client.postgrest["feedback"].insert(feedback)
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun getAllFeedback(): List<com.example.data.models.Feedback> {
+        return try {
+            client.postgrest["feedback"].select {
+                order("createdAt", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+            }.decodeList<com.example.data.models.Feedback>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun updateFeedbackStatus(feedbackId: String, status: String): Boolean {
+        return try {
+            client.postgrest["feedback"].update({
+                set("status", status)
+                set("updatedAt", System.currentTimeMillis())
+            }) {
+                filter {
+                    eq("id", feedbackId)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun deleteFeedback(feedbackId: String): Boolean {
+        return try {
+            client.postgrest["feedback"].delete {
+                filter {
+                    eq("id", feedbackId)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun toggleUpvoteFeedback(feedbackId: String, userId: String): Boolean {
+        return try {
+            // First fetch the current feedback
+            val feedbacks = client.postgrest["feedback"].select {
+                filter { eq("id", feedbackId) }
+            }.decodeList<com.example.data.models.Feedback>()
+            
+            if (feedbacks.isNotEmpty()) {
+                val feedback = feedbacks.first()
+                val upvotedByList = feedback.upvotedBy.toMutableList()
+                val isUpvoted = upvotedByList.contains(userId)
+                
+                if (isUpvoted) {
+                    upvotedByList.remove(userId)
+                } else {
+                    upvotedByList.add(userId)
+                }
+                
+                client.postgrest["feedback"].update({
+                    set("upvotes", upvotedByList.size)
+                    set("upvotedBy", upvotedByList)
+                }) {
+                    filter { eq("id", feedbackId) }
+                }
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun uploadFeedbackScreenshot(imageBytes: ByteArray, fileName: String): String {
+        return try {
+            val bucket = client.storage["feedback_screenshots"]
+            bucket.upload(fileName, imageBytes) { upsert = true }
+            bucket.publicUrl(fileName)
+        } catch (e: Exception) {
+            // Fallback to covers bucket if specialized bucket doesn't exist
+            try {
+                val bucket = client.storage["covers"]
+                bucket.upload("feedback/$fileName", imageBytes) { upsert = true }
+                bucket.publicUrl("feedback/$fileName")
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                ""
             }
         }
     }

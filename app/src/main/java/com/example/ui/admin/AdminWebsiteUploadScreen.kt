@@ -46,12 +46,6 @@ fun AdminWebsiteUploadScreen(navController: NavController) {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isUploading by remember { mutableStateOf(false) }
 
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        selectedImageUri = uri
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -76,31 +70,11 @@ fun AdminWebsiteUploadScreen(navController: NavController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Website Logo", style = MaterialTheme.typography.titleMedium)
-            
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { photoPickerLauncher.launch("image/*") }
-                    .align(Alignment.CenterHorizontally),
-                contentAlignment = Alignment.Center
-            ) {
-                if (selectedImageUri != null) {
-                    AsyncImage(
-                        model = selectedImageUri,
-                        contentDescription = "Selected Logo",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Upload", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
+            ImagePickerSection(
+                title = "Website Logo",
+                selectedImageUri = selectedImageUri,
+                onImageSelected = { selectedImageUri = it }
+            )
 
             OutlinedTextField(
                 value = name,
@@ -140,9 +114,7 @@ fun AdminWebsiteUploadScreen(navController: NavController) {
                             // Upload Image
                             var logoUrl = ""
                             selectedImageUri?.let { uri ->
-                                val inputStream = context.contentResolver.openInputStream(uri)
-                                val bytes = inputStream?.readBytes()
-                                inputStream?.close()
+                                val bytes = com.example.utils.StorageUtils.compressImage(context, uri)
                                 if (bytes != null) {
                                     val fileName = "website_${System.currentTimeMillis()}.jpg"
                                     logoUrl = repository.uploadCoverImage(bytes, fileName)

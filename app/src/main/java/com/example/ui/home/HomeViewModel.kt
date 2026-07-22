@@ -41,8 +41,11 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _allVideos = MutableStateFlow<List<Video>>(emptyList())
     val allVideos: StateFlow<List<Video>> = _allVideos.asStateFlow()
 
-    private val _allCourses = MutableStateFlow<List<com.example.data.models.Course>>(emptyList())
-    val allCourses: StateFlow<List<com.example.data.models.Course>> = _allCourses.asStateFlow()
+    private val _allQuestionPapers = MutableStateFlow<List<com.example.data.models.QuestionPaper>>(emptyList())
+    val allQuestionPapers: StateFlow<List<com.example.data.models.QuestionPaper>> = _allQuestionPapers.asStateFlow()
+
+    private val _questionPaperSections = MutableStateFlow<List<com.example.data.models.QuestionPaperSection>>(emptyList())
+    val questionPaperSections: StateFlow<List<com.example.data.models.QuestionPaperSection>> = _questionPaperSections.asStateFlow()
 
     private val _allWebsites = MutableStateFlow<List<com.example.data.models.Website>>(emptyList())
     val allWebsites: StateFlow<List<com.example.data.models.Website>> = _allWebsites.asStateFlow()
@@ -61,6 +64,7 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
             merge(
                 AuraRepository.booksUpdateTrigger,
                 AuraRepository.videosUpdateTrigger,
+                AuraRepository.sectionsUpdateTrigger,
                 AuraRepository.homeConfigUpdateTrigger
             ).collect {
                 fetchData()
@@ -132,8 +136,11 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
                 val fetchedVideos = repository.getVideos()
                 _allVideos.value = fetchedVideos
                 
-                val fetchedCourses = repository.getCourses()
-                _allCourses.value = fetchedCourses
+                val fetchedQuestionPapers = repository.getQuestionPapers()
+                _allQuestionPapers.value = fetchedQuestionPapers
+                
+                val fetchedSections = repository.getQuestionPaperSections()
+                _questionPaperSections.value = fetchedSections
                 
                 val fetchedWebsites = repository.getWebsites()
                 _allWebsites.value = fetchedWebsites

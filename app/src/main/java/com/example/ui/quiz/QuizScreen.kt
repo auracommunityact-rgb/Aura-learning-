@@ -1,7 +1,6 @@
 package com.example.ui.quiz
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,47 +16,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
-
-data class QuizQuestion(
-    val id: String,
-    val questionText: String,
-    val options: List<String>,
-    val correctOptionIndex: Int,
-    val explanation: String
-)
+import com.example.ui.auth.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreen(
     navController: NavController,
-    lessonId: String
+    lessonId: String,
+    viewModel: QuizViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    val questions = remember(lessonId) {
-        listOf(
-            QuizQuestion(
-                "1",
-                "What is the key prerequisite for master-level learning?",
-                listOf("Rote learning", "Spaced repetition and active recall", "Cramming before exams", "Passive reading"),
-                1,
-                "Scientific study shows that spaced repetition and active recall are the most effective study techniques."
-            ),
-            QuizQuestion(
-                "2",
-                "How does consistent goal-setting impact learning outcomes?",
-                listOf("It has no direct impact", "It causes academic burnout", "It drives structured habits and consistent daily progress", "It is only useful for examinations"),
-                2,
-                "Consistent, measurable goal-setting creates psychological ownership and drives incremental progress."
-            ),
-            QuizQuestion(
-                "3",
-                "Which strategy is recommended when encountering complex topics?",
-                listOf("Skimming and skipping hard details", "Breaking the topic down into smaller, structured concepts", "Memorizing whole chapters", "Avoiding practice questions"),
-                1,
-                "Deconstructing complex ideas into simpler constituent parts (First Principles) simplifies and accelerates deep understanding."
-            )
-        )
+    val quiz by viewModel.quiz.collectAsState()
+    val questions by viewModel.questions.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+
+    LaunchedEffect(lessonId) {
+        viewModel.loadQuizByAssociatedId(lessonId)
     }
 
     var currentQuestionIndex by remember { mutableStateOf(0) }
@@ -71,7 +49,7 @@ fun QuizScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Lesson Quiz") },
+                title = { Text(quiz?.title ?: "Quiz") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -86,7 +64,27 @@ fun QuizScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            if (quizCompleted) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (error != null) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(error!!, color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { navController.popBackStack() }) {
+                        Text("Go Back")
+                    }
+                }
+            } else if (quizCompleted) {
+                LaunchedEffect(Unit) {
+                    currentUser?.id?.let { uid ->
+                        quiz?.id?.let { qid ->
+                            viewModel.submitQuizResult(uid, qid, score, questions.size)
+                        }
+                    }
+                }
                 QuizResultScreen(
                     score = score,
                     totalQuestions = questions.size,
@@ -181,7 +179,7 @@ fun QuizScreen(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    AnimatedVisibility(visible = showFeedback) {
+                    AnimatedVisibility(visible = showFeedback && currentQuestion.explanation.isNotEmpty()) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)

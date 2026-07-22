@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -250,6 +251,43 @@ fun BooksScreen(
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Pin Selected Category Course to Home Screen
+                var isCoursePinned by remember(selectedCategory) {
+                    mutableStateOf(com.example.utils.ShortcutHelper.isShortcutPinned(context, "course_${selectedCategory.lowercase()}"))
+                }
+
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            val courseId = "course_${selectedCategory.lowercase()}"
+                            val courseTitle = "$selectedCategory Course"
+                            if (isCoursePinned) {
+                                com.example.utils.ShortcutHelper.removeShortcut(context, courseId, courseTitle)
+                                isCoursePinned = false
+                            } else {
+                                com.example.utils.ShortcutHelper.pinShortcut(
+                                    context = context,
+                                    id = courseId,
+                                    title = courseTitle,
+                                    imageUrl = null,
+                                    type = "course",
+                                    internalRoute = "books"
+                                )
+                                isCoursePinned = true
+                            }
+                        }
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Home,
+                        contentDescription = "Pin Course to Home Screen",
+                        tint = if (isCoursePinned) MaterialTheme.colorScheme.primary else Color(0xFF9AA0A6)
                     )
                 }
             }

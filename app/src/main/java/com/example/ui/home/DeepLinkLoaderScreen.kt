@@ -92,17 +92,17 @@ fun DeepLinkLoaderScreen(
                             errorMessage = "We couldn't find the requested video. It may have been removed or renamed."
                         }
                     }
-                    "course" -> {
-                        val courses = repository.getCourses()
-                        val matchedCourse = courses.find { isMatch(it.title, it.id, slug) }
-                        if (matchedCourse != null) {
-                            val encUrl = URLEncoder.encode(matchedCourse.youtubeUrl, "UTF-8")
-                            val encTitle = URLEncoder.encode(matchedCourse.title, "UTF-8")
+                    "questionpaper" -> {
+                        val questionPapers = repository.getQuestionPapers()
+                        val matchedQuestionPaper = questionPapers.find { isMatch(it.title, it.id, slug) }
+                        if (matchedQuestionPaper != null) {
+                            val encUrl = URLEncoder.encode(matchedQuestionPaper.pdfUrl, "UTF-8")
+                            val encTitle = URLEncoder.encode(matchedQuestionPaper.title, "UTF-8")
                             navController.navigate("exam_webview?url=$encUrl&title=$encTitle") {
                                 popUpTo("deeplink_loader?type={type}&slug={slug}") { inclusive = true }
                             }
                         } else {
-                            errorMessage = "We couldn't find the requested course. It may have been removed or renamed."
+                            errorMessage = "We couldn't find the requested question paper. It may have been removed or renamed."
                         }
                     }
                     "page" -> {
@@ -116,6 +116,29 @@ fun DeepLinkLoaderScreen(
                             }
                         } else {
                             errorMessage = "We couldn't find the requested website or portal page."
+                        }
+                    }
+                    "course" -> {
+                        // Redirect deep links for courses/subjects directly to the main books/courses library
+                        navController.navigate("books") {
+                            popUpTo("deeplink_loader?type={type}&slug={slug}") { inclusive = true }
+                        }
+                    }
+                    "tool" -> {
+                        val route = when (slug.lowercase().trim()) {
+                            "planner", "study_planner", "study-planner" -> "study_planner"
+                            "countdown", "exam_countdown", "exam-countdown" -> "exam_countdown"
+                            "pdf_tool", "pdf_reader", "pdf-reader" -> "pdf_tool"
+                            "translate", "notes_translate", "notes-translate" -> "notes_translate"
+                            "calculator", "scientific_calculator", "scientific-calculator" -> "calculator"
+                            "result_analysis", "result-analysis" -> "result_analysis"
+                            "website_reader", "website-reader" -> "website_reader"
+                            "progress", "progress_tracker", "progress-tracker" -> "progress"
+                            "weekly_report", "weekly-report" -> "weekly_report"
+                            else -> "study_planner"
+                        }
+                        navController.navigate(route) {
+                            popUpTo("deeplink_loader?type={type}&slug={slug}") { inclusive = true }
                         }
                     }
                     else -> {

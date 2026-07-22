@@ -1,311 +1,201 @@
 package com.example.ui.videos
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.data.models.Video
 import com.example.ui.ViewModelFactory
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.shape.RoundedCornerShape
-import com.example.ui.auth.AuthViewModel
-import kotlinx.coroutines.launch
+import com.example.ui.home.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideosScreen(navController: NavController, authViewModel: AuthViewModel, rootNavController: NavController, viewModel: VideosViewModel = viewModel(factory = ViewModelFactory)) {
-    val videos by viewModel.videos.collectAsState()
-    val selectedClass by viewModel.selectedClass.collectAsState()
-    val selectedSubject by viewModel.selectedSubject.collectAsState()
-    val currentUser by authViewModel.currentUser.collectAsState()
+fun VideosScreen(
+    navController: NavController,
+    rootNavController: NavController,
+    viewModel: HomeViewModel = viewModel(factory = ViewModelFactory)
+) {
+    val allVideos by viewModel.allVideos.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    LaunchedEffect(currentUser?.selectedGrade) {
-        val grade = currentUser?.selectedGrade ?: "All Grades"
-        val initialClass = if (grade == "All Grades") null else {
-            val gradeStr = grade.replace("Grade ", "")
-            val isNumeric = gradeStr.any { it.isDigit() }
-            if (isNumeric && gradeStr.isNotEmpty()) {
-                val cleanGrade = gradeStr.filter { it.isDigit() }
-                when (cleanGrade) {
-                    "1" -> "1st"
-                    "2" -> "2nd"
-                    "3" -> "3rd"
-                    else -> "${cleanGrade}th"
-                }
-            } else {
-                null
-            }
-        }
-        viewModel.setFilters(initialClass, selectedSubject)
-    }
-
-    var showLoginPrompt by remember { mutableStateOf(false) }
-
-    if (showLoginPrompt) {
-        AlertDialog(
-            onDismissRequest = { showLoginPrompt = false },
-            title = { Text("Sign In Required") },
-            text = { Text("You need to sign in to save videos.") },
-            confirmButton = {
-                TextButton(onClick = { 
-                    showLoginPrompt = false
-                    rootNavController.navigate("login") 
-                }) {
-                    Text("Login")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLoginPrompt = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    val classes = listOf("1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th")
-    val subjects = listOf("Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science")
-    
-    val videosBySubject = videos.groupBy { it.subject.ifEmpty { "Other" } }
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text(
-                    "Filters",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(16.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.PlayCircle, 
+                            contentDescription = null, 
+                            tint = Color(0xFFFF0000),
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Aura Videos", fontWeight = FontWeight.ExtraBold)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { navController.navigate("global_search") }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
-                HorizontalDivider()
-                
-                LazyColumn(modifier = Modifier.fillMaxHeight().padding(bottom = 16.dp)) {
-                    item {
-                        Text(
-                            "Grade Level",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
-                        )
-                        NavigationDrawerItem(
-                            label = { Text("All Grades") },
-                            selected = selectedClass == null,
-                            onClick = { 
-                                viewModel.setFilters(null, selectedSubject)
-                                authViewModel.updateSelectedGrade("All Grades")
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                    lazyItems(classes) { cls ->
-                        NavigationDrawerItem(
-                            label = { Text(cls) },
-                            selected = selectedClass == cls,
-                            onClick = { 
-                                viewModel.setFilters(cls, selectedSubject)
-                                authViewModel.updateSelectedGrade("Grade ${cls.dropLast(2)}")
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                    
-                    item {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        Text(
-                            "Subject",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                        )
-                        NavigationDrawerItem(
-                            label = { Text("All Subjects") },
-                            selected = selectedSubject == null,
-                            onClick = { 
-                                viewModel.setFilters(selectedClass, null)
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                    
-                    lazyItems(subjects) { subject ->
-                        NavigationDrawerItem(
-                            label = { Text(subject) },
-                            selected = selectedSubject == subject,
-                            onClick = { 
-                                viewModel.setFilters(selectedClass, subject)
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-                }
-            }
+            )
         }
-    ) {
-        Scaffold(
-            modifier = Modifier.statusBarsPadding(),
-            topBar = {
-                TopAppBar(
-                    title = { Text("Video Lessons") },
-                    actions = {
-                        IconButton(onClick = { navController.navigate("global_search") }) {
-                            Icon(Icons.Filled.Search, contentDescription = "Search")
-                        }
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Filled.FilterList, contentDescription = "Filter")
-                        }
-                    }
-                )
+    ) { padding ->
+        if (isLoading && allVideos.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-        ) { padding ->
-            val isLoading by viewModel.isLoading.collectAsState()
-            PullToRefreshBox(
-                isRefreshing = isLoading,
-                onRefresh = { viewModel.fetchVideos() },
+        } else {
+            LazyColumn(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    onClick = { navController.navigate("global_search") }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                // Category Chips (optional, for better UX)
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Search videos...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
+                        val categories = listOf("All", "Maths", "Science", "SST", "Hindi", "English", "Exam Tips")
+                        items(categories) { cat ->
+                            SuggestionChip(
+                                onClick = {},
+                                label = { Text(cat) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                            )
+                        }
                     }
                 }
 
-                if (videos.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
-                        contentAlignment = androidx.compose.ui.Alignment.Center
-                    ) {
-                        Text("No videos found for selected filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                items(allVideos) { video ->
+                    YouTubeStyleVideoCard(video) {
+                        rootNavController.navigate("video_details/${video.id}")
                     }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        videosBySubject.forEach { (subject, subjectVideos) ->
-                            item {
-                                Text(
-                                    text = subject,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(top = if (subject == videosBySubject.keys.first()) 0.dp else 16.dp, bottom = 4.dp)
-                                )
-                            }
-                            lazyItems(subjectVideos) { video ->
-                                val context = LocalContext.current
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().clickable { 
-                                        com.example.utils.AdMobManager.showInterstitial(context) {
-                                            rootNavController.navigate("video_player/${video.id}")
-                                        }
-                                    },
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                ) {
-                                    Column {
-                                        Box {
-                                            AsyncImage(
-                                                model = video.thumbnail.ifEmpty { "https://images.unsplash.com/photo-1596496050827-8299e0220de1?auto=format&fit=crop&w=300&q=80" },
-                                                contentDescription = video.title,
-                                                modifier = Modifier.height(200.dp).fillMaxWidth(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                            if (video.title.contains("lesson 1", ignoreCase = true)) {
-                                                Surface(
-                                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(bottomEnd = 8.dp),
-                                                    modifier = Modifier.align(androidx.compose.ui.Alignment.TopStart)
-                                                ) {
-                                                    Text(
-                                                        text = "Lesson 1",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                                    )
-                                                }
-                                            }
-                                            IconButton(
-                                                onClick = { 
-                                                    if (currentUser == null) {
-                                                        showLoginPrompt = true
-                                                    } else {
-                                                        authViewModel.toggleSaveVideo(video.id)
-                                                    }
-                                                },
-                                                modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd)
-                                            ) {
-                                                val isSaved = currentUser?.savedVideos?.contains(video.id) == true
-                                                Icon(
-                                                    imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                                                    contentDescription = "Save Video",
-                                                    tint = if (isSaved) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.White
-                                                )
-                                            }
-                                        }
-                                        Column(modifier = Modifier.padding(16.dp)) {
-                                            Text(video.title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(video.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text("Grade ${video.className}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                }
+                
+                item {
+                    Spacer(modifier = Modifier.height(80.dp)) // Padding for bottom nav
                 }
             }
         }
     }
 }
-}
 
+@Composable
+fun YouTubeStyleVideoCard(video: Video, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(bottom = 24.dp)
+    ) {
+        // Thumbnail (16:9)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16 / 9f)
+        ) {
+            AsyncImage(
+                model = video.thumbnail,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Duration Badge
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp),
+                color = Color.Black.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Text(
+                    text = video.duration,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+            }
+        }
+
+        // Info Row
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            // Teacher Avatar
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = video.teacher.take(1).uppercase(),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${video.teacher} • Class ${video.className} • ${video.subject}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "120K views • 3 months ago", // Mocked views/date
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            IconButton(onClick = { /* Menu */ }) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More", modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}

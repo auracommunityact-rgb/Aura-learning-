@@ -13,8 +13,8 @@ data class Conversation(
     @SerialName("groupDescription") val groupDescription: String? = null,
     @SerialName("adminId") val adminId: String? = null,
     @SerialName("lastMessageText") val lastMessageText: String? = null,
-    @SerialName("lastMessageTime") val lastMessageTime: Long = System.currentTimeMillis(),
-    @SerialName("createdAt") val createdAt: Long = System.currentTimeMillis()
+    @SerialName("lastMessageTime") @Serializable(with = TimestampSerializer::class) val lastMessageTime: Long = System.currentTimeMillis(),
+    @SerialName("createdAt") @Serializable(with = TimestampSerializer::class) val createdAt: Long = System.currentTimeMillis()
 )
 
 @Serializable
@@ -22,7 +22,7 @@ data class ConversationMember(
     val id: String = "",
     @SerialName("conversationId") val conversationId: String,
     @SerialName("userId") val userId: String,
-    @SerialName("joinedAt") val joinedAt: Long = System.currentTimeMillis(),
+    @SerialName("joinedAt") @Serializable(with = TimestampSerializer::class) val joinedAt: Long = System.currentTimeMillis(),
     val role: String = "member",
     @SerialName("isMuted") val isMuted: Boolean = false,
     @SerialName("isArchived") val isArchived: Boolean = false,
@@ -38,8 +38,8 @@ data class Message(
     val type: String = "text",
     @SerialName("attachmentUrl") val attachmentUrl: String? = null,
     @SerialName("replyToId") val replyToId: String? = null,
-    @SerialName("createdAt") val createdAt: Long = System.currentTimeMillis(),
-    @SerialName("updatedAt") val updatedAt: Long? = null,
+    @SerialName("createdAt") @Serializable(with = TimestampSerializer::class) val createdAt: Long = System.currentTimeMillis(),
+    @SerialName("updatedAt") @Serializable(with = TimestampSerializer::class) val updatedAt: Long? = null,
     @SerialName("isDeleted") val isDeleted: Boolean = false
 )
 
@@ -47,7 +47,7 @@ data class Message(
 data class MessageRead(
     @SerialName("messageId") val messageId: String,
     @SerialName("userId") val userId: String,
-    @SerialName("readAt") val readAt: Long = System.currentTimeMillis()
+    @SerialName("readAt") @Serializable(with = TimestampSerializer::class) val readAt: Long = System.currentTimeMillis()
 )
 
 @Serializable
@@ -55,12 +55,12 @@ data class MessageReaction(
     @SerialName("messageId") val messageId: String,
     @SerialName("userId") val userId: String,
     val reaction: String,
-    @SerialName("createdAt") val createdAt: Long = System.currentTimeMillis()
+    @SerialName("createdAt") @Serializable(with = TimestampSerializer::class) val createdAt: Long = System.currentTimeMillis()
 )
 
 @Serializable
 data class UserPresence(
     @SerialName("userId") val userId: String,
     @SerialName("isOnline") val isOnline: Boolean = false,
-    @SerialName("lastSeen") val lastSeen: Long = System.currentTimeMillis()
+    @SerialName("lastSeen") @Serializable(with = TimestampSerializer::class) val lastSeen: Long = System.currentTimeMillis()
 )
