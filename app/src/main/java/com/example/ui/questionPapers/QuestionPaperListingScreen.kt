@@ -46,6 +46,7 @@ fun QuestionPaperListingScreen(
     val allPapers by viewModel.allQuestionPapers.collectAsState()
     val sectionsFromDb by viewModel.questionPaperSections.collectAsState()
     
+    val context = LocalContext.current
     var selectionLevel by remember { mutableStateOf(SelectionLevel.SECTION) }
     var selectedSection by remember { mutableStateOf<String?>(null) }
     var selectedSubject by remember { mutableStateOf<String?>(null) }
@@ -128,7 +129,9 @@ fun QuestionPaperListingScreen(
                     }
                     SelectionLevel.PAPERS -> {
                         PapersList(papersForSubject) { paper ->
-                            navController.navigate("pdf_viewer/${paper.id}")
+                            com.example.utils.AdsManager.showInterstitial(context) {
+                                navController.navigate("pdf_viewer/${paper.id}")
+                            }
                         }
                     }
                 }

@@ -52,6 +52,16 @@ CREATE TABLE IF NOT EXISTS public.banners (
     "createdAt" BIGINT
 );
 
+-- Create Home Sections table
+CREATE TABLE IF NOT EXISTS public.home_sections (
+    id TEXT PRIMARY KEY,
+    type TEXT,
+    title TEXT,
+    icon TEXT,
+    "isVisible" BOOLEAN DEFAULT true,
+    "order" INT DEFAULT 0
+);
+
 -- Create Courses table
 CREATE TABLE IF NOT EXISTS public.courses (
     id UUID PRIMARY KEY,
@@ -99,6 +109,7 @@ ALTER TABLE public.books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.videos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.home_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.flashcard_decks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.flashcards ENABLE ROW LEVEL SECURITY;
@@ -146,6 +157,10 @@ CREATE POLICY "Admin write access for videos" ON public.videos FOR ALL USING ( p
 -- Banners policies
 CREATE POLICY "Public read access for banners" ON public.banners FOR SELECT USING (true);
 CREATE POLICY "Admin write access for banners" ON public.banners FOR ALL USING ( public.is_admin() );
+
+-- Home Sections policies
+CREATE POLICY "Public read access for home_sections" ON public.home_sections FOR SELECT USING (true);
+CREATE POLICY "Admin write access for home_sections" ON public.home_sections FOR ALL USING ( public.is_admin() );
 
 -- Courses policies
 CREATE POLICY "Public read access for courses" ON public.courses FOR SELECT USING (true);

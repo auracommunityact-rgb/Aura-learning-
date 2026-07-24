@@ -62,3 +62,8 @@
 -keep class com.google.android.gms.internal.mlkit_** { *; }
 -dontwarn com.google.mlkit.**
 
+# Google Mobile Ads (AdMob) Rules
+-keep class com.google.android.gms.ads.** { *; }
+-keep interface com.google.android.gms.ads.** { *; }
+-dontwarn com.google.android.gms.ads.**
+

@@ -14,11 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.ui.auth.AuthViewModel
+import com.example.utils.AdsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +35,7 @@ fun QuizScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(lessonId) {
         viewModel.loadQuizByAssociatedId(lessonId)
@@ -88,7 +91,11 @@ fun QuizScreen(
                 QuizResultScreen(
                     score = score,
                     totalQuestions = questions.size,
-                    onDone = { navController.popBackStack() }
+                    onDone = {
+                        AdsManager.showInterstitial(context) {
+                            navController.popBackStack()
+                        }
+                    }
                 )
             } else if (currentQuestion != null) {
                 Column(

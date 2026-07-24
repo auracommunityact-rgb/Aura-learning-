@@ -27,7 +27,23 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
+
 class AuraRepository {
+    private val lenientJson = Json { encodeDefaults = true; ignoreUnknownKeys = true }
+
+    private inline fun <reified T : Any> getJsonWithoutId(item: T): Map<String, kotlinx.serialization.json.JsonElement> {
+        val map = lenientJson.encodeToJsonElement(item).jsonObject.toMutableMap()
+        map.remove("id")
+        return map
+    }
+
+    private inline fun <reified T : Any> getJsonListWithoutId(items: List<T>): List<Map<String, kotlinx.serialization.json.JsonElement>> {
+        return items.map { getJsonWithoutId(it) }
+    }
+
     private val client = SupabaseService.client
     private val prefs by lazy { AppContext.context.getSharedPreferences("guest_prefs", android.content.Context.MODE_PRIVATE) }
 
@@ -168,37 +184,187 @@ class AuraRepository {
     }
 
     // Books
+    private fun parseBookFromJson(jsonObj: kotlinx.serialization.json.JsonObject): Book {
+        fun getString(vararg keys: String): String {
+            for (k in keys) {
+                val elem = jsonObj[k]
+                if (elem != null && elem !is kotlinx.serialization.json.JsonNull) {
+                    if (elem is kotlinx.serialization.json.JsonPrimitive) {
+                        return elem.content
+                    } else {
+                        return elem.toString()
+                    }
+                }
+            }
+            return ""
+        }
+
+        val idStr = getString("id", "book_id")
+        val bookName = getString("bookName", "book_name", "title", "name")
+        val className = getString("className", "class_name", "class", "grade")
+        val subject = getString("subject", "subject_name")
+        val description = getString("description", "summary")
+        val coverImage = getString("coverImage", "cover_image", "thumbnail", "image_url")
+        val pdfUrl = getString("pdfUrl", "pdf_url", "file_url", "url")
+        
+        val createdAtElem = jsonObj["createdAt"] ?: jsonObj["created_at"]
+        val createdAtLong = when (createdAtElem) {
+            is kotlinx.serialization.json.JsonPrimitive -> {
+                createdAtElem.content.toLongOrNull() ?: 0L
+            }
+            else -> 0L
+        }
+
+        return Book(
+            id = idStr,
+            bookName = bookName,
+            className = className,
+            subject = subject,
+            description = description,
+            coverImage = coverImage,
+            pdfUrl = pdfUrl,
+            createdAt = createdAtLong
+        )
+    }
+
+    private fun getDefaultBooks(): List<Book> {
+        return listOf(
+            Book(
+                id = "default_book_1",
+                bookName = "NCERT Class 10 Mathematics",
+                className = "10th",
+                subject = "Mathematics",
+                description = "Comprehensive Mathematics textbook for Class 10 covering Quadratic Equations, Trigonometry, and Circles.",
+                coverImage = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/jemh111.pdf"
+            ),
+            Book(
+                id = "default_book_2",
+                bookName = "NCERT Class 10 Science",
+                className = "10th",
+                subject = "Science",
+                description = "Class 10 Science textbook covering Physics, Chemistry, and Biology fundamentals.",
+                coverImage = "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/jesc116.pdf"
+            ),
+            Book(
+                id = "default_book_3",
+                bookName = "NCERT Class 10 Social Science - History",
+                className = "10th",
+                subject = "Social science",
+                description = "India and the Contemporary World - II for Class 10 Social Science students.",
+                coverImage = "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/jess101.pdf"
+            ),
+            Book(
+                id = "default_book_4",
+                bookName = "NCERT Class 10 English First Flight",
+                className = "10th",
+                subject = "English",
+                description = "Main English literature textbook for CBSE Class 10 containing poems and stories.",
+                coverImage = "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/jefp101.pdf"
+            ),
+            Book(
+                id = "default_book_5",
+                bookName = "NCERT Class 10 Hindi Kshitij Part 2",
+                className = "10th",
+                subject = "Hindi",
+                description = "Class 10 Hindi textbook with rich literary selections and grammar practice.",
+                coverImage = "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/jhks101.pdf"
+            ),
+            Book(
+                id = "default_book_6",
+                bookName = "NCERT Class 9 Mathematics",
+                className = "9th",
+                subject = "Mathematics",
+                description = "Class 9 Mathematics textbook covering Number Systems, Algebra, and Geometry.",
+                coverImage = "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/iemh101.pdf"
+            ),
+            Book(
+                id = "default_book_7",
+                bookName = "NCERT Class 9 Science",
+                className = "9th",
+                subject = "Science",
+                description = "Class 9 Science textbook with foundational physics, chemistry, and biology topics.",
+                coverImage = "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/iesc101.pdf"
+            ),
+            Book(
+                id = "default_book_8",
+                bookName = "NCERT Class 12 Physics Part 1",
+                className = "12th",
+                subject = "Science",
+                description = "Higher Secondary Physics textbook for Class 12 covering Electrostatics and Magnetism.",
+                coverImage = "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?auto=format&fit=crop&w=600&q=80",
+                pdfUrl = "https://ncert.nic.in/textbook/pdf/leph101.pdf"
+            )
+        )
+    }
+
     suspend fun getBooks(): List<Book> {
         return try {
-            client.postgrest["books"].select().decodeList<Book>()
+            val jsonArray = client.postgrest["books"].select().decodeList<kotlinx.serialization.json.JsonObject>()
+            val parsedBooks = jsonArray.map { parseBookFromJson(it) }.filter { it.bookName.isNotBlank() || it.pdfUrl.isNotBlank() }
+            
+            android.util.Log.d("AuraRepository", "Fetched ${parsedBooks.size} books from Supabase")
+            
+            if (parsedBooks.isNotEmpty()) {
+                try {
+                    val dao = com.example.data.local.PlannerDatabase.getDatabase(AppContext.context).cachedBookDao()
+                    dao.insertCachedBooks(parsedBooks.map { com.example.data.local.CachedBookEntity.fromBook(it) })
+                } catch (e: Exception) {
+                    android.util.Log.e("AuraRepository", "Error caching books in Room: ${e.message}", e)
+                }
+                parsedBooks
+            } else {
+                val cached = try {
+                    val dao = com.example.data.local.PlannerDatabase.getDatabase(AppContext.context).cachedBookDao()
+                    dao.getAllCachedBooks().map { it.toBook() }
+                } catch (dbE: Exception) {
+                    emptyList()
+                }
+                android.util.Log.d("AuraRepository", "Supabase returned 0 books, loaded ${cached.size} from Room cache")
+                if (cached.isNotEmpty()) cached else getDefaultBooks()
+            }
         } catch (e: Exception) {
-            emptyList()
+            android.util.Log.e("AuraRepository", "Error fetching books from Supabase: ${e.message}", e)
+            try {
+                val dao = com.example.data.local.PlannerDatabase.getDatabase(AppContext.context).cachedBookDao()
+                val cached = dao.getAllCachedBooks().map { it.toBook() }
+                android.util.Log.d("AuraRepository", "Error fallback, loaded ${cached.size} books from Room cache")
+                if (cached.isNotEmpty()) cached else getDefaultBooks()
+            } catch (dbE: Exception) {
+                android.util.Log.e("AuraRepository", "Error reading Room cache: ${dbE.message}", dbE)
+                getDefaultBooks()
+            }
         }
     }
 
     suspend fun getBook(bookId: String): Book? {
-        return try {
-            client.postgrest["books"].select {
-                filter { eq("id", bookId) }
-            }.decodeList<Book>().firstOrNull()
-        } catch (e: Exception) {
-            null
-        }
+        val allBooks = getBooks()
+        return allBooks.find { it.id == bookId || it.id.equals(bookId, ignoreCase = true) }
     }
 
     suspend fun getBooksByClass(className: String): List<Book> {
-        return try {
-            client.postgrest["books"].select {
-                filter { eq("className", className) }
-            }.decodeList<Book>()
-        } catch (e: Exception) {
-            emptyList()
+        val allBooks = getBooks()
+        if (className.isBlank() || className.equals("All Grades", ignoreCase = true)) return allBooks
+        val targetDigits = className.filter { it.isDigit() }
+        return allBooks.filter { book ->
+            val bookClass = book.className.trim()
+            val bookDigits = bookClass.filter { it.isDigit() }
+            bookClass.equals(className, ignoreCase = true) ||
+            (targetDigits.isNotEmpty() && bookDigits == targetDigits) ||
+            bookClass.contains(className, ignoreCase = true) ||
+            className.contains(bookClass, ignoreCase = true)
         }
     }
 
     suspend fun addBook(book: Book) {
-        val newBook = if (book.id.isEmpty()) book.copy(id = UUID.randomUUID().toString()) else book
-        client.postgrest["books"].insert(newBook)
+        val newBook = book
+        client.postgrest["books"].insert(if (newBook.id.isEmpty() || newBook.id.length > 20) getJsonWithoutId(newBook) else newBook)
         notifyBooksChanged()
     }
     
@@ -224,19 +390,50 @@ class AuraRepository {
     // Videos
     suspend fun getVideos(): List<Video> {
         return try {
-            client.postgrest["videos"].select().decodeList<Video>()
+            val fetchedVideos = client.postgrest["videos"].select().decodeList<Video>()
+            
+            if (fetchedVideos.isNotEmpty()) {
+                try {
+                    val dao = com.example.data.local.PlannerDatabase.getDatabase(AppContext.context).cachedVideoDao()
+                    dao.insertCachedVideos(fetchedVideos.map { com.example.data.local.CachedVideoEntity.fromVideo(it) })
+                } catch (e: Exception) {
+                    android.util.Log.e("AuraRepository", "Error caching videos in Room: ${e.message}", e)
+                }
+                fetchedVideos
+            } else {
+                val cached = try {
+                    val dao = com.example.data.local.PlannerDatabase.getDatabase(AppContext.context).cachedVideoDao()
+                    dao.getAllCachedVideos().map { it.toVideo() }
+                } catch (dbE: Exception) {
+                    emptyList()
+                }
+                cached
+            }
         } catch (e: Exception) {
-            emptyList()
+            android.util.Log.e("AuraRepository", "Error fetching videos from Supabase: ${e.message}", e)
+            try {
+                val dao = com.example.data.local.PlannerDatabase.getDatabase(AppContext.context).cachedVideoDao()
+                dao.getAllCachedVideos().map { it.toVideo() }
+            } catch (dbE: Exception) {
+                android.util.Log.e("AuraRepository", "Error reading Room cache for videos: ${dbE.message}", dbE)
+                emptyList()
+            }
         }
     }
 
     suspend fun getVideosByClass(className: String): List<Video> {
-        return try {
-            client.postgrest["videos"].select {
-                filter { eq("className", className) }
-            }.decodeList<Video>()
-        } catch (e: Exception) {
-            emptyList()
+        val allVideos = getVideos()
+        if (className.isBlank() || className.equals("All Grades", ignoreCase = true)) return allVideos
+        
+        val targetDigits = className.filter { it.isDigit() }
+        return allVideos.filter { video ->
+            val videoClass = video.className.trim()
+            val videoDigits = videoClass.filter { it.isDigit() }
+            
+            videoClass.equals(className, ignoreCase = true) ||
+            (targetDigits.isNotEmpty() && videoDigits == targetDigits) ||
+            videoClass.contains(className, ignoreCase = true) ||
+            className.contains(videoClass, ignoreCase = true)
         }
     }
 
@@ -246,8 +443,8 @@ class AuraRepository {
     }
 
     suspend fun addVideo(video: Video) {
-        val newVideo = if (video.id.isEmpty()) video.copy(id = UUID.randomUUID().toString()) else video
-        client.postgrest["videos"].insert(newVideo)
+        val newVideo = video
+        client.postgrest["videos"].insert(if (newVideo.id.isEmpty() || newVideo.id.length > 20) getJsonWithoutId(newVideo) else newVideo)
         notifyVideosChanged()
     }
     
@@ -311,28 +508,52 @@ class AuraRepository {
         }
     }
 
-    suspend fun getHomeSectionConfigs(): List<com.example.data.models.HomeSectionConfig> {
+    suspend fun getHomeSectionConfigs(onlyVisible: Boolean = false): List<com.example.data.models.HomeSectionConfig> {
+        val defaultSections = listOf(
+            com.example.data.models.HomeSectionConfig("default_home", "home", "Home", "home", true, 1),
+            com.example.data.models.HomeSectionConfig("default_books", "books", "Books", "book", true, 2),
+            com.example.data.models.HomeSectionConfig("default_videos", "videos", "Videos", "play_circle", true, 3)
+        )
         return try {
-            client.postgrest["home_sections"].select().decodeList<com.example.data.models.HomeSectionConfig>().sortedBy { it.order }
+            val response = if (onlyVisible) {
+                client.postgrest["home_sections"].select {
+                    filter {
+                        eq("isVisible", true)
+                    }
+                }.decodeList<com.example.data.models.HomeSectionConfig>()
+            } else {
+                client.postgrest["home_sections"].select().decodeList<com.example.data.models.HomeSectionConfig>()
+            }
+            // Filter out default sections if they exist in the DB response to prevent overrides or duplicates
+            val filteredResponse = response.filter {
+                it.type != "home" && it.type != "books" && it.type != "videos"
+            }
+            val combined = (defaultSections + filteredResponse).sortedBy { it.order }
+            println("Fetched combined home sections: $combined")
+            android.util.Log.d("AuraRepository", "Fetched combined home sections: $combined")
+            combined
         } catch (e: Exception) {
-            // Default sections if none exist in DB
-            listOf(
-                com.example.data.models.HomeSectionConfig("1", "books", "Featured Books", "📚", true, 1),
-                com.example.data.models.HomeSectionConfig("2", "videos", "Featured Videos", "🎥", true, 2),
-                com.example.data.models.HomeSectionConfig("3", "question_papers", "Popular QuestionPapers", "🎓", true, 3),
-                com.example.data.models.HomeSectionConfig("4", "websites", "Educational Websites", "🌐", true, 4),
-                com.example.data.models.HomeSectionConfig("5", "exams", "Practice & Exams", "📝", true, 5),
-                com.example.data.models.HomeSectionConfig("6", "trending", "Trending Content", "🔥", true, 6),
-                com.example.data.models.HomeSectionConfig("7", "recommended", "Recommended For You", "⭐", true, 7),
-                com.example.data.models.HomeSectionConfig("8", "announcements", "Latest Announcements", "📢", true, 8)
-            )
+            println("Error fetching home sections, returning hardcoded defaults: ${e.message}")
+            android.util.Log.e("AuraRepository", "Error fetching dynamic sections, returning defaults", e)
+            e.printStackTrace()
+            defaultSections
+        }
+    }
+
+    suspend fun addHomeSectionConfig(config: com.example.data.models.HomeSectionConfig) {
+        try {
+            client.postgrest["home_sections"].insert(if (config.id.isEmpty() || config.id.length > 20) getJsonWithoutId(config) else config)
+            notifyHomeConfigChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
         }
     }
 
     suspend fun addBanner(banner: Banner) {
         try {
-            val newBanner = if (banner.id.isEmpty()) banner.copy(id = UUID.randomUUID().toString()) else banner
-            client.postgrest["banners"].insert(newBanner)
+            val newBanner = banner
+            client.postgrest["banners"].insert(if (newBanner.id.isEmpty() || newBanner.id.length > 20) getJsonWithoutId(newBanner) else newBanner)
             notifyHomeConfigChanged()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -379,8 +600,8 @@ class AuraRepository {
 
     suspend fun addQuestionPaper(paper: QuestionPaper) {
         try {
-            val newPaper = if (paper.id.isEmpty()) paper.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else paper
-            client.postgrest["question_papers"].insert(newPaper)
+            val newPaper = if (paper.id.isEmpty()) paper.copy(createdAt = System.currentTimeMillis()) else paper
+            client.postgrest["question_papers"].insert(if (paper.id.isEmpty() || paper.id.length > 20) getJsonWithoutId(newPaper) else newPaper)
         } catch (e: Exception) {
             e.printStackTrace()
             throw e
@@ -425,8 +646,8 @@ class AuraRepository {
 
     suspend fun addQuestionPaperSection(section: QuestionPaperSection) {
         try {
-            val newSection = if (section.id.isEmpty()) section.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else section
-            client.postgrest["question_paper_sections"].insert(newSection)
+            val newSection = if (section.id.isEmpty()) section.copy(createdAt = System.currentTimeMillis()) else section
+            client.postgrest["question_paper_sections"].insert(if (section.id.isEmpty() || section.id.length > 20) getJsonWithoutId(newSection) else newSection)
             notifySectionsChanged()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -474,8 +695,8 @@ class AuraRepository {
     
     suspend fun addWebsite(website: com.example.data.models.Website) {
         try {
-            val newWebsite = if (website.id.isEmpty()) website.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else website
-            client.postgrest["websites"].insert(newWebsite)
+            val newWebsite = if (website.id.isEmpty()) website.copy(createdAt = System.currentTimeMillis()) else website
+            client.postgrest["websites"].insert(if (website.id.isEmpty() || website.id.length > 20) getJsonWithoutId(newWebsite) else newWebsite)
         } catch (e: Exception) {
             e.printStackTrace()
             throw e
@@ -524,8 +745,8 @@ class AuraRepository {
 
     suspend fun addNote(note: Note) {
         try {
-            val newNote = if (note.id.isEmpty()) note.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else note
-            client.postgrest["notes"].insert(newNote)
+            val newNote = if (note.id.isEmpty()) note.copy(createdAt = System.currentTimeMillis()) else note
+            client.postgrest["notes"].insert(if (note.id.isEmpty() || note.id.length > 20) getJsonWithoutId(newNote) else newNote)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -557,10 +778,11 @@ class AuraRepository {
 
     suspend fun addFlashcardDeck(deck: FlashcardDeck): String {
         return try {
-            val newDeckId = UUID.randomUUID().toString()
-            val newDeck = deck.copy(id = newDeckId, createdAt = System.currentTimeMillis())
-            client.postgrest["flashcard_decks"].insert(newDeck)
-            newDeckId
+            
+            val newDeck = if (deck.id.isEmpty()) deck.copy(createdAt = System.currentTimeMillis()) else deck
+            val result = client.postgrest["flashcard_decks"].insert(if (deck.id.isEmpty() || deck.id.length > 20) getJsonWithoutId(newDeck) else newDeck) { select() }
+            val inserted = result.decodeSingle<FlashcardDeck>()
+            inserted.id
         } catch (e: Exception) {
             e.printStackTrace()
             ""
@@ -595,8 +817,8 @@ class AuraRepository {
 
     suspend fun addFlashcard(card: Flashcard) {
         try {
-            val newCard = if (card.id.isEmpty()) card.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else card
-            client.postgrest["flashcards"].insert(newCard)
+            val newCard = if (card.id.isEmpty()) card.copy(createdAt = System.currentTimeMillis()) else card
+            client.postgrest["flashcards"].insert(if (card.id.isEmpty() || card.id.length > 20) getJsonWithoutId(newCard) else newCard)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -645,7 +867,7 @@ class AuraRepository {
                 if (progress.isWatched) {
                     awardPoints(progress.userId, 50, "Completed Video Lesson")
                 }
-                client.postgrest["video_progress"].insert(progress.copy(id = UUID.randomUUID().toString(), lastWatchedAt = System.currentTimeMillis()))
+                client.postgrest["video_progress"].insert(getJsonWithoutId(progress.copy(lastWatchedAt = System.currentTimeMillis())))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -683,7 +905,7 @@ class AuraRepository {
                 if (progress.lastPage > 0) {
                     awardPoints(progress.userId, 10, "Started Reading")
                 }
-                client.postgrest["book_progress"].insert(progress.copy(id = UUID.randomUUID().toString(), lastReadAt = System.currentTimeMillis()))
+                client.postgrest["book_progress"].insert(getJsonWithoutId(progress.copy(lastReadAt = System.currentTimeMillis())))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -708,10 +930,10 @@ class AuraRepository {
 
     suspend fun addQuiz(quiz: com.example.data.models.Quiz): String {
         return try {
-            val newId = if (quiz.id.isEmpty()) UUID.randomUUID().toString() else quiz.id
-            val newQuiz = quiz.copy(id = newId, createdAt = System.currentTimeMillis())
-            client.postgrest["quizzes"].insert(newQuiz)
-            newId
+            val newQuiz = if (quiz.id.isEmpty()) quiz.copy(createdAt = System.currentTimeMillis()) else quiz
+            val result = client.postgrest["quizzes"].insert(if (quiz.id.isEmpty() || quiz.id.length > 20) getJsonWithoutId(newQuiz) else newQuiz) { select() }
+            val inserted = result.decodeSingle<com.example.data.models.Quiz>()
+            inserted.id
         } catch (e: Exception) {
             e.printStackTrace()
             ""
@@ -741,8 +963,8 @@ class AuraRepository {
         try {
             client.postgrest["quiz_questions"].delete { filter { eq("quizId", quizId) } }
             if (questions.isNotEmpty()) {
-                val newQuestions = questions.map { if (it.id.isEmpty()) it.copy(id = UUID.randomUUID().toString(), quizId = quizId) else it.copy(quizId = quizId) }
-                client.postgrest["quiz_questions"].insert(newQuestions)
+                val newQuestions = questions.map { it.copy(quizId = quizId) }
+                client.postgrest["quiz_questions"].insert(getJsonListWithoutId(newQuestions))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -751,8 +973,8 @@ class AuraRepository {
 
     suspend fun saveQuizResult(result: com.example.data.models.QuizResult) {
         try {
-            val newResult = result.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis())
-            client.postgrest["quiz_results"].insert(newResult)
+            val newResult = if(result.id.isEmpty()) result.copy(createdAt = System.currentTimeMillis()) else result
+            client.postgrest["quiz_results"].insert(if (result.id.isEmpty() || result.id.length > 20) getJsonWithoutId(newResult) else newResult)
             
             // Award points for quiz
             val pointsToAward = (result.score * 10) + (if (result.score == result.totalQuestions && result.totalQuestions > 0) 20 else 0)
@@ -867,8 +1089,8 @@ class AuraRepository {
 
     suspend fun addExamBoard(board: com.example.ui.profile.BoardResult) {
         try {
-            val newBoard = if (board.id.isEmpty()) board.copy(id = UUID.randomUUID().toString(), createdAt = System.currentTimeMillis()) else board
-            client.postgrest["exam_boards"].insert(newBoard)
+            val newBoard = if (board.id.isEmpty()) board.copy(createdAt = System.currentTimeMillis()) else board
+            client.postgrest["exam_boards"].insert(if (board.id.isEmpty() || board.id.length > 20) getJsonWithoutId(newBoard) else newBoard)
             notifyBoardsChanged()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -907,7 +1129,7 @@ class AuraRepository {
     // Notifications
     suspend fun addNotification(notification: com.example.data.repository.notifications.SupabaseNotification) {
         try {
-            client.postgrest["notifications"].insert(notification)
+            client.postgrest["notifications"].insert(if (notification.id.isEmpty() || notification.id.length > 20) getJsonWithoutId(notification) else notification)
             notifyNotificationsChanged()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -990,7 +1212,7 @@ class AuraRepository {
     // Feedback Methods
     suspend fun submitFeedback(feedback: com.example.data.models.Feedback): Boolean {
         return try {
-            client.postgrest["feedback"].insert(feedback)
+            client.postgrest["feedback"].insert(if (feedback.id.isEmpty() || feedback.id.length > 20) getJsonWithoutId(feedback) else feedback)
             true
         } catch (e: Exception) {
             e.printStackTrace()

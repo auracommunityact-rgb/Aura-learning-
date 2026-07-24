@@ -56,6 +56,9 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     private val _activeExamSubject = MutableStateFlow<String?>(null)
     val activeExamSubject: StateFlow<String?> = _activeExamSubject.asStateFlow()
 
@@ -125,29 +128,73 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
     fun fetchData() {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
+            
+            // 1. Load home sections (has fallback inside repository, always succeeds)
             try {
-                _homeSections.value = repository.getHomeSectionConfigs()
+                _homeSections.value = repository.getHomeSectionConfigs(onlyVisible = true)
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading home sections", e)
+            }
+            
+            // 2. Load other dynamic data with safe individual try-catches
+            try {
                 _banners.value = repository.getBanners()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading banners", e)
+            }
+            
+            try {
                 _announcements.value = repository.getAnnouncements()
-                
-                val fetchedBooks = repository.getBooks()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading announcements", e)
+            }
+            
+            var fetchedBooks = emptyList<com.example.data.models.Book>()
+            try {
+                fetchedBooks = repository.getBooks()
                 _allBooks.value = fetchedBooks
-                
-                val fetchedVideos = repository.getVideos()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading books", e)
+            }
+            
+            var fetchedVideos = emptyList<com.example.data.models.Video>()
+            try {
+                fetchedVideos = repository.getVideos()
                 _allVideos.value = fetchedVideos
-                
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading videos", e)
+            }
+            
+            try {
                 val fetchedQuestionPapers = repository.getQuestionPapers()
                 _allQuestionPapers.value = fetchedQuestionPapers
-                
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading question papers", e)
+            }
+            
+            try {
                 val fetchedSections = repository.getQuestionPaperSections()
                 _questionPaperSections.value = fetchedSections
-                
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading question paper sections", e)
+            }
+            
+            try {
                 val fetchedWebsites = repository.getWebsites()
                 _allWebsites.value = fetchedWebsites
-                
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading websites", e)
+            }
+            
+            try {
                 filterContent(_selectedSubject.value)
-                
-                // Load user progress
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error filtering content", e)
+            }
+            
+            // Load user progress
+            try {
                 val userId = SupabaseService.client.auth.currentSessionOrNull()?.user?.id
                 if (userId != null) {
                     val videoProgress = repository.getVideoProgress(userId)
@@ -166,10 +213,10 @@ class HomeViewModel(private val repository: AuraRepository) : ViewModel() {
                     _continueReading.value = cBooks
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                _isLoading.value = false
+                android.util.Log.e("HomeViewModel", "Error loading user progress", e)
             }
+            
+            _isLoading.value = false
         }
     }
 }

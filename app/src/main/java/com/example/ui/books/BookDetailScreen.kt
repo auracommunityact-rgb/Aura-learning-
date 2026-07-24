@@ -332,7 +332,7 @@ fun BookDetailScreen(
                                 val localFile = offlineBooks.find { it.id == currentBook.id }
                                 val urlToOpen = if (localFile != null) "file://" + localFile.localPdfPath else currentBook.pdfUrl
                                 if (urlToOpen.isNotEmpty()) {
-                                    com.example.utils.AdMobManager.showInterstitial(context) {
+                                    com.example.utils.AdsManager.showInterstitial(context) {
                                         val encodedUrl = URLEncoder.encode(urlToOpen, "UTF-8")
                                         navController.navigate("pdf_viewer?url=$encodedUrl")
                                     }

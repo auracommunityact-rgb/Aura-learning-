@@ -138,7 +138,7 @@ fun AdminWebsiteUploadScreen(navController: NavController) {
                                 createdAt = System.currentTimeMillis()
                             )
 
-                            SupabaseService.client.from("websites").insert(website)
+                            com.example.data.repository.AuraRepository().addWebsite(website)
                             
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(context, "Website uploaded successfully", Toast.LENGTH_SHORT).show()

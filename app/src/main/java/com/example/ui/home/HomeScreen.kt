@@ -107,7 +107,7 @@ fun HomeScreen(
                     IconButton(onClick = { navController.navigate("chat_list") }) {
                         Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Chat")
                     }
-                    IconButton(onClick = { rootNavController.navigate("profile") }) {
+                    IconButton(onClick = { rootNavController.navigate("profile_details") }) {
                         Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
                     }
                 },
@@ -117,136 +117,196 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState)
+        val errorMessage by viewModel.errorMessage.collectAsState()
+
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = { viewModel.fetchData() },
+            modifier = Modifier.padding(padding)
         ) {
-            // 1. Global Search Bar
-            SearchBarSection(onSearchClick = { navController.navigate("global_search") })
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 2. Quick Actions
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
             ) {
-                QuickActionButton(
-                    text = "Google Search",
-                    icon = null,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        val encodedUrl = android.net.Uri.encode("https://www.google.com")
-                        rootNavController.navigate("exam_webview?url=$encodedUrl&title=Search")
-                    },
-                    isGoogle = true
-                )
-                QuickActionButton(
-                    text = "AI Mode",
-                    icon = Icons.Default.AutoAwesome,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        val encodedUrl = android.net.Uri.encode("https://www.google.com/search?udm=50")
-                        rootNavController.navigate("exam_webview?url=$encodedUrl&title=AI Mode")
+                // 1. Global Search Bar
+                SearchBarSection(onSearchClick = { navController.navigate("global_search") })
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Error message banner/card if there's any error
+                errorMessage?.let { error ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ErrorOutline,
+                                    contentDescription = "Error",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = error,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { viewModel.fetchData() },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                modifier = Modifier.height(48.dp) // Accessibility min 48dp height
+                            ) {
+                                Text("Retry", color = MaterialTheme.colorScheme.onError)
+                            }
+                        }
                     }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 3. Banner Carousel
-            if (banners.isNotEmpty()) {
-                BannerCarousel(
-                    banners = banners,
-                    navController = navController,
-                    rootNavController = rootNavController
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-            } else if (isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().height(180.dp).padding(horizontal = 16.dp)) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-            }
 
-            // 4. Dynamic Sections
-            homeSections.filter { it.isVisible }.forEach { section ->
-                when (section.type) {
-                    "books" -> {
-                        ContentSection(
-                            title = section.title,
-                            icon = section.icon,
-                            items = recentBooks,
-                            onViewAll = { navController.navigate("books") }
-                        ) { book ->
-                            BookCard(book = book) {
-                                navController.navigate("book_detail/${book.id}")
-                            }
+                // 2. Quick Actions
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    QuickActionButton(
+                        text = "Google Search",
+                        icon = null,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val encodedUrl = android.net.Uri.encode("https://www.google.com")
+                            rootNavController.navigate("exam_webview?url=$encodedUrl&title=Search")
+                        },
+                        isGoogle = true
+                    )
+                    QuickActionButton(
+                        text = "AI Mode",
+                        icon = Icons.Default.AutoAwesome,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val encodedUrl = android.net.Uri.encode("https://www.google.com/search?udm=50")
+                            rootNavController.navigate("exam_webview?url=$encodedUrl&title=AI Mode")
                         }
-                    }
-                    "videos" -> {
-                        ContentSection(
-                            title = section.title,
-                            icon = section.icon,
-                            items = recentVideos,
-                            onViewAll = { navController.navigate("videos") }
-                        ) { video ->
-                            VideoCard(video = video) {
-                                rootNavController.navigate("video_details/${video.id}")
-                            }
-                        }
-                    }
-                    "question_papers" -> {
-                        ContentSection(
-                            title = section.title,
-                            icon = section.icon,
-                            items = allQuestionPapers,
-                            onViewAll = { navController.navigate("questionPapers") }
-                        ) { questionPaper ->
-                            QuestionPaperCard(questionPaper = questionPaper) {
-                                val encUrl = android.net.Uri.encode(questionPaper.pdfUrl)
-                                val encTitle = android.net.Uri.encode(questionPaper.title)
-                                rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
-                            }
-                        }
-                    }
-                    "websites" -> {
-                        ContentSection(
-                            title = section.title,
-                            icon = section.icon,
-                            items = allWebsites,
-                            onViewAll = { /* View all websites */ }
-                        ) { website ->
-                            WebsiteCard(website = website) {
-                                val encodedUrl = android.net.Uri.encode(website.url)
-                                rootNavController.navigate("exam_webview?url=$encodedUrl&title=${website.name}")
-                            }
-                        }
-                    }
-                    "exams" -> {
-                        ExamSection(
-                            title = section.title,
-                            icon = section.icon,
-                            navController = navController
-                        )
-                    }
-                    "announcements" -> {
-                        AnnouncementSection(
-                            title = section.title,
-                            icon = section.icon,
-                            announcements = announcements
-                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 3. Banner Carousel
+                if (banners.isNotEmpty()) {
+                    BannerCarousel(
+                        banners = banners,
+                        navController = navController,
+                        rootNavController = rootNavController
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                } else if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(180.dp).padding(horizontal = 16.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+
+                // 4. Dynamic Sections
+                homeSections.filter { it.isVisible }.forEachIndexed { index, section ->
+                    when (section.type) {
+                        "home" -> {
+                            DefaultNavigationSectionsSection(
+                                navController = navController,
+                                scrollState = scrollState
+                            )
+                        }
+                        "books" -> {
+                            ContentSection(
+                                title = section.title,
+                                icon = section.icon,
+                                items = recentBooks,
+                                onViewAll = { navController.navigate("books") }
+                            ) { book ->
+                                BookCard(book = book) {
+                                    navController.navigate("book_detail/${book.id}")
+                                }
+                            }
+                        }
+                        "videos" -> {
+                            ContentSection(
+                                title = section.title,
+                                icon = section.icon,
+                                items = recentVideos,
+                                onViewAll = { navController.navigate("videos") }
+                            ) { video ->
+                                VideoCard(video = video) {
+                                    rootNavController.navigate("video_details/${video.id}")
+                                }
+                            }
+                        }
+                        "question_papers" -> {
+                            ContentSection(
+                                title = section.title,
+                                icon = section.icon,
+                                items = allQuestionPapers,
+                                onViewAll = { navController.navigate("questionPapers") }
+                            ) { questionPaper ->
+                                QuestionPaperCard(questionPaper = questionPaper) {
+                                    val encUrl = android.net.Uri.encode(questionPaper.pdfUrl)
+                                    val encTitle = android.net.Uri.encode(questionPaper.title)
+                                    rootNavController.navigate("exam_webview?url=$encUrl&title=$encTitle")
+                                }
+                            }
+                        }
+                        "websites" -> {
+                            ContentSection(
+                                title = section.title,
+                                icon = section.icon,
+                                items = allWebsites,
+                                onViewAll = { /* View all websites */ }
+                            ) { website ->
+                                WebsiteCard(website = website) {
+                                    val encodedUrl = android.net.Uri.encode(website.url)
+                                    rootNavController.navigate("exam_webview?url=$encodedUrl&title=${website.name}")
+                                }
+                            }
+                        }
+                        "exams" -> {
+                            ExamSection(
+                                title = section.title,
+                                icon = section.icon,
+                                navController = navController
+                            )
+                        }
+                        "announcements" -> {
+                            AnnouncementSection(
+                                title = section.title,
+                                icon = section.icon,
+                                announcements = announcements
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    if (index == 1 || (index > 1 && index % 3 == 0)) {
+                        com.example.ui.components.NativeAdViewComposable()
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -391,7 +451,7 @@ fun <T> ContentSection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(icon, style = MaterialTheme.typography.titleLarge)
+                SectionIcon(icon)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
@@ -466,7 +526,7 @@ fun ExamSection(title: String, icon: String, navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(icon, style = MaterialTheme.typography.titleLarge)
+            SectionIcon(icon)
             Spacer(modifier = Modifier.width(8.dp))
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }
@@ -517,7 +577,7 @@ fun AnnouncementSection(title: String, icon: String, announcements: List<com.exa
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(icon, style = MaterialTheme.typography.titleLarge)
+            SectionIcon(icon)
             Spacer(modifier = Modifier.width(8.dp))
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }
@@ -754,6 +814,152 @@ fun GoogleIcon(modifier: Modifier = Modifier.size(24.dp)) {
             strokeWidth = strokeWidth,
             cap = StrokeCap.Square
         )
+    }
+}
+
+@Composable
+fun SectionIcon(iconStr: String) {
+    when (iconStr) {
+        "home" -> Icon(Icons.Default.Home, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+        "book" -> Icon(Icons.Default.Book, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+        "play_circle" -> Icon(Icons.Default.PlayCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+        "question_papers", "graduation_cap" -> Icon(Icons.Default.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+        else -> {
+            val displayIcon = when (iconStr) {
+                "📚" -> "📚"
+                "🎥" -> "🎥"
+                "🎓" -> "🎓"
+                "🌐" -> "🌐"
+                "📝" -> "📝"
+                "🔥" -> "🔥"
+                "⭐" -> "⭐"
+                "📢" -> "📢"
+                else -> iconStr
+            }
+            if (displayIcon.length <= 2) {
+                Text(displayIcon, style = MaterialTheme.typography.titleLarge)
+            } else {
+                Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun DefaultNavigationSectionsSection(
+    navController: NavController,
+    scrollState: androidx.compose.foundation.ScrollState
+) {
+    val coroutineScope = rememberCoroutineScope()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Explore, 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Main Navigation", 
+                style = MaterialTheme.typography.titleLarge, 
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Card 1: Home
+            NavigationSectionCard(
+                title = "Home",
+                icon = Icons.Default.Home,
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                contentColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    coroutineScope.launch {
+                        scrollState.animateScrollTo(0)
+                    }
+                }
+            )
+            
+            // Card 2: Books
+            NavigationSectionCard(
+                title = "Books",
+                icon = Icons.Default.Book,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
+                contentColor = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    navController.navigate("books")
+                }
+            )
+            
+            // Card 3: Videos
+            NavigationSectionCard(
+                title = "Videos",
+                icon = Icons.Default.PlayCircle,
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f),
+                contentColor = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    navController.navigate("videos")
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun NavigationSectionCard(
+    title: String,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(90.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.15f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = contentColor,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = contentColor,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 

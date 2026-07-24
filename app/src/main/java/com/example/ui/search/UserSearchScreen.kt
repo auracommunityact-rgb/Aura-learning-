@@ -1,16 +1,20 @@
 package com.example.ui.search
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -36,8 +42,7 @@ fun UserSearchScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-
-    val primaryBlue = Color(0xFF1A237E)
+    val presences by viewModel.userPresences.collectAsState()
 
     Scaffold(
         topBar = {
@@ -46,7 +51,7 @@ fun UserSearchScreen(
                     TextField(
                         value = searchQuery,
                         onValueChange = { viewModel.onSearchQueryChange(it) },
-                        placeholder = { Text("Search by name, ID or email...") },
+                        placeholder = { Text("Search by name, email, or ID...") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -70,7 +75,8 @@ fun UserSearchScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         }
     ) { padding ->
@@ -78,14 +84,31 @@ fun UserSearchScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = primaryBlue)
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
-            if (searchResults.isEmpty() && searchQuery.length >= 2 && !isLoading) {
+            if (searchQuery.length < 2) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No users found matching \"$searchQuery\"", color = Color.Gray)
+                    Text(
+                        "Type at least 2 characters to search for registered users",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(32.dp)
+                    )
+                }
+            } else if (searchResults.isEmpty() && !isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        "No users found matching \"$searchQuery\"",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(32.dp)
+                    )
                 }
             } else {
                 LazyColumn(
@@ -93,10 +116,22 @@ fun UserSearchScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(searchResults) { user ->
-                        UserSearchResultItem(user) {
-                            // Navigate to user profile or start chat
-                            navController.navigate("profile_details/${user.id}")
+                    itemsIndexed(searchResults) { index, user ->
+                        val isOnline = presences[user.id]?.isOnline == true
+                        UserSearchResultItem(
+                            user = user,
+                            isOnline = isOnline,
+                            onStartChat = {
+                                viewModel.startConversation(user.id, user.name) { convoId ->
+                                    navController.navigate("chat_room/$convoId")
+                                }
+                            },
+                            onClick = {
+                                navController.navigate("profile_details/${user.id}")
+                            }
+                        )
+                        if (index > 0 && index % 5 == 0) {
+                            com.example.ui.components.NativeAdViewComposable()
                         }
                     }
                 }
@@ -106,7 +141,12 @@ fun UserSearchScreen(
 }
 
 @Composable
-fun UserSearchResultItem(user: User, onClick: () -> Unit) {
+fun UserSearchResultItem(
+    user: User,
+    isOnline: Boolean,
+    onStartChat: () -> Unit,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -116,39 +156,77 @@ fun UserSearchResultItem(user: User, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(16.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = user.photoUrl.ifBlank { "https://via.placeholder.com/150" },
-                contentDescription = null,
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            Box {
+                AsyncImage(
+                    model = user.photoUrl.ifBlank { "https://ui-avatars.com/api/?name=${user.name}&background=random" },
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                if (isOnline) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(Color.Green)
+                            .align(Alignment.BottomEnd)
+                            .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(user.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = user.name.ifBlank { "Aura User" },
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (user.isVerified) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Verified,
+                            contentDescription = "Verified",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "@${user.email.substringBefore("@")}", 
-                    style = MaterialTheme.typography.bodySmall, 
-                    color = Color.Gray
+                    text = "@${user.email.substringBefore("@").ifBlank { user.id.take(8) }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (user.bio.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = user.bio,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-            Surface(
-                color = Color(0xFF1A237E).copy(alpha = 0.1f),
-                shape = RoundedCornerShape(8.dp)
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onStartChat,
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Text(
-                    text = "Lvl ${user.level}",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF1A237E),
-                    fontWeight = FontWeight.Bold
-                )
+                Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Chat", style = MaterialTheme.typography.labelMedium)
             }
         }
     }
 }
+

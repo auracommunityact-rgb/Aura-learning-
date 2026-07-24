@@ -251,6 +251,7 @@ fun GlobalSearchScreen(
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
 
     // Data from ViewModel
     val allBooks by viewModel.allBooks.collectAsState()
@@ -305,10 +306,9 @@ fun GlobalSearchScreen(
 
     LaunchedEffect(Unit) {
         historyList = loadHistory()
-        if (initialQuery.isBlank()) {
-            delay(100)
-            focusRequester.requestFocus()
-        }
+        delay(150)
+        focusRequester.requestFocus()
+        keyboardController?.show()
     }
 
     fun saveHistory(newList: List<HistoryItem>) {
@@ -473,7 +473,12 @@ fun GlobalSearchScreen(
         if (isSearchConfirmed) {
             isSearchConfirmed = false
         } else {
-            navController.popBackStack()
+            val popped = navController.popBackStack()
+            if (!popped) {
+                rootNavController.navigate("main?tab=home") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
         }
         Unit
     }
@@ -748,6 +753,9 @@ fun GlobalSearchScreen(
                                             }
                                         )
                                     }
+                                }
+                                item {
+                                    com.example.ui.components.NativeAdViewComposable()
                                 }
                             }
                             1 -> { // Books

@@ -23,6 +23,9 @@ class BooksViewModel(private val repository: AuraRepository) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     init {
         fetchBooks()
         viewModelScope.launch {
@@ -35,11 +38,17 @@ class BooksViewModel(private val repository: AuraRepository) : ViewModel() {
     fun fetchBooks() {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             try {
-                _allBooks.value = repository.getBooks()
+                val fetched = repository.getBooks()
+                _allBooks.value = fetched
+                if (fetched.isEmpty()) {
+                    _errorMessage.value = "No books available"
+                }
                 applyFilters()
             } catch (e: Exception) {
                 e.printStackTrace()
+                _errorMessage.value = "Failed to load books: ${e.localizedMessage ?: "Unknown error"}"
             } finally {
                 _isLoading.value = false
             }
@@ -52,23 +61,49 @@ class BooksViewModel(private val repository: AuraRepository) : ViewModel() {
         applyFilters()
     }
 
+    fun clearFilters() {
+        _selectedClass.value = null
+        _selectedSubject.value = null
+        applyFilters()
+    }
+
     private fun applyFilters() {
         val cls = _selectedClass.value
         val sub = _selectedSubject.value
         var filtered = _allBooks.value
 
-        if (cls != null) {
-            filtered = filtered.filter { it.className.equals(cls, ignoreCase = true) }
+        if (!cls.isNullOrBlank() && !cls.equals("All Grades", ignoreCase = true)) {
+            val targetDigits = cls.filter { it.isDigit() }
+            filtered = filtered.filter { book ->
+                val bookClass = book.className.trim()
+                val bookDigits = bookClass.filter { it.isDigit() }
+                
+                bookClass.equals(cls, ignoreCase = true) ||
+                (targetDigits.isNotEmpty() && bookDigits == targetDigits) ||
+                bookClass.contains(cls, ignoreCase = true) ||
+                cls.contains(bookClass, ignoreCase = true)
+            }
         }
-        if (sub != null && sub.isNotEmpty()) {
+
+        if (!sub.isNullOrBlank() && !sub.equals("Ebooks", ignoreCase = true) && !sub.equals("All", ignoreCase = true)) {
             val mappedSubject = when (sub) {
                 "SST" -> "Social Studies"
                 "Computer" -> "Computer Science"
                 else -> sub
             }
-            filtered = filtered.filter { it.subject.equals(mappedSubject, ignoreCase = true) }
+            filtered = filtered.filter { book ->
+                val bSub = book.subject.lowercase().trim()
+                val targetSub = mappedSubject.lowercase().trim()
+                bSub.contains(targetSub) || targetSub.contains(bSub) || matchesSubjectCategory(bSub, targetSub)
+            }
         }
 
         _books.value = filtered
+    }
+
+    private fun matchesSubjectCategory(bookSub: String, cat: String): Boolean {
+        if (cat == "social science" && (bookSub.contains("social") || bookSub.contains("studies") || bookSub.contains("history") || bookSub.contains("geography") || bookSub.contains("sst"))) return true
+        if (cat == "mathematics" && (bookSub.contains("math") || bookSub.contains("maths"))) return true
+        return false
     }
 }

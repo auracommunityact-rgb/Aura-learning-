@@ -12,7 +12,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
+
 object HapticHelper {
+    private val lenientJson = Json { encodeDefaults = true; ignoreUnknownKeys = true }
+
+    private inline fun <reified T : Any> getJsonWithoutId(item: T): Map<String, kotlinx.serialization.json.JsonElement> {
+        val map = lenientJson.encodeToJsonElement(item).jsonObject.toMutableMap()
+        map.remove("id")
+        return map
+    }
+
     private val scope = CoroutineScope(Dispatchers.IO)
 
     fun triggerAndLog(
@@ -45,7 +57,7 @@ object HapticHelper {
                     details = details,
                     created_at = System.currentTimeMillis()
                 )
-                SupabaseService.client.from("haptic_logs").insert(log)
+                SupabaseService.client.from("haptic_logs").insert(getJsonWithoutId(log))
             } catch (e: Exception) {
                 // Fail gracefully: table might not exist yet or there may be no network connection
                 e.printStackTrace()

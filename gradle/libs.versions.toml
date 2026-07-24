@@ -44,8 +44,10 @@ supabase = "3.0.0"
 ktor = "3.0.1"
 zxing = "3.5.3"
 splashscreen = "1.0.1"
+userMessagingPlatform = "3.0.0"
 
 [libraries]
+user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "userMessagingPlatform" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

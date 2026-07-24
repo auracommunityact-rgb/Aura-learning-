@@ -6,6 +6,9 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -19,8 +22,21 @@ object TimestampSerializer : KSerializer<Long> {
     }
 
     override fun deserialize(decoder: Decoder): Long {
-        val isoString = decoder.decodeString()
+        if (decoder is JsonDecoder) {
+            val element = decoder.decodeJsonElement()
+            return if (element.jsonPrimitive.isString) {
+                try {
+                    df.parse(element.jsonPrimitive.content)?.time ?: 0L
+                } catch (e: Exception) {
+                    0L
+                }
+            } else {
+                element.jsonPrimitive.longOrNull ?: 0L
+            }
+        }
+        
         return try {
+            val isoString = decoder.decodeString()
             df.parse(isoString)?.time ?: 0L
         } catch (e: Exception) {
             0L

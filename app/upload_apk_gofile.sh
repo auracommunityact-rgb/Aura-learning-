@@ -1,5 +1,12 @@
 #!/bin/bash
-APK_PATH="/app/applet/app/build/outputs/apk/release/app-release.apk"
+APK_PATH=$(find . -name "*.apk" 2>/dev/null | sort -r | head -n 1)
+
+if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+    echo "Error: No APK found in build outputs."
+    exit 1
+fi
+
+echo "Found APK at: $APK_PATH"
 
 echo "Fetching GoFile server..."
 SERVER=$(python3 -c '
@@ -18,12 +25,11 @@ except Exception as e:
 ')
 
 if [ -z "$SERVER" ] || [ "$SERVER" == "error" ]; then
-    echo "Failed to get GoFile server"
-    exit 1
+    SERVER="store1"
 fi
 
 echo "Uploading to $SERVER..."
-RESULT=$(curl -s -F file=@"$APK_PATH" "https://$SERVER.gofile.io/contents/uploadfile")
+RESULT=$(curl -s -F "file=@$APK_PATH" "https://$SERVER.gofile.io/contents/uploadfile")
 
 echo "Result JSON: $RESULT"
 

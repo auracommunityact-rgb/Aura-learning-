@@ -64,3 +64,35 @@ data class UserPresence(
     @SerialName("isOnline") val isOnline: Boolean = false,
     @SerialName("lastSeen") @Serializable(with = TimestampSerializer::class) val lastSeen: Long = System.currentTimeMillis()
 )
+
+@Serializable
+data class BlockedUser(
+    val id: String = "",
+    @SerialName("userId") val userId: String,
+    @SerialName("blockedUserId") val blockedUserId: String,
+    @SerialName("createdAt") @Serializable(with = TimestampSerializer::class) val createdAt: Long = System.currentTimeMillis()
+)
+
+@Serializable
+data class Report(
+    val id: String = "",
+    @SerialName("reporterId") val reporterId: String,
+    @SerialName("reportedUserId") val reportedUserId: String,
+    val reason: String,
+    @SerialName("createdAt") @Serializable(with = TimestampSerializer::class) val createdAt: Long = System.currentTimeMillis()
+)
+
+@Serializable
+data class TypingStatus(
+    @SerialName("conversationId") val conversationId: String,
+    @SerialName("userId") val userId: String,
+    @SerialName("status") val status: String = "typing" // typing, recording, uploading, none
+)
+
+sealed class MessageUpdate {
+    data class Insert(val message: Message) : MessageUpdate()
+    data class Update(val message: Message) : MessageUpdate()
+    data class Delete(val messageId: String) : MessageUpdate()
+}
+
+

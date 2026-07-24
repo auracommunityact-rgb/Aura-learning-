@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         
         // Initialize AdMob Mobile Ads SDK optimally on startup
-        com.example.utils.AdMobManager.initialize(this)
+        com.example.utils.AdsManager.initialize(application, this)
         
         // Register all notification categories/channels with the Android system
         com.example.utils.NotificationHelper.registerNotificationChannels(this)
@@ -34,6 +34,10 @@ class MainActivity : ComponentActivity() {
         
         val intentData = intent.data
         var initialDeepLink = intent.getStringExtra("deep_link")
+        if (initialDeepLink.isNullOrBlank() && intent.action == "com.example.ACTION_GLOBAL_SEARCH") {
+            val query = intent.getStringExtra("query") ?: ""
+            initialDeepLink = if (query.isNotBlank()) "global_search?query=${android.net.Uri.encode(query)}" else "global_search"
+        }
         if (initialDeepLink.isNullOrBlank() && intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
             val path = intentData.path
             val bookParam = intentData.getQueryParameter("book")
@@ -105,6 +109,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    val isInPipMode = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipMode.value = isInPictureInPictureMode
     }
 
     override fun onResume() {

@@ -22,9 +22,7 @@ class AuraApplication : Application() {
             e.printStackTrace()
         }
 
-        // Initialize Google Mobile Ads SDK and cache interstitial
         try {
-            com.example.utils.AdMobManager.initialize(this)
         } catch (e: Exception) {
             e.printStackTrace()
         }

@@ -613,7 +613,7 @@ fun AdminUserProfileScreen(navController: NavController, userId: String) {
                                             created_at = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date()),
                                             priority = "High"
                                         )
-                                        SupabaseService.client.from("notifications").insert(newNotification)
+                                        repository.addNotification(newNotification)
                                         showNotificationDialog = false
                                         Toast.makeText(context, "Notification dispatched successfully!", Toast.LENGTH_SHORT).show()
                                     } catch (e: Exception) {

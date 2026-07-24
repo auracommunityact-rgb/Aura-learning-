@@ -2,10 +2,6 @@ package com.example.ui.pdf.screens
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -105,7 +101,6 @@ fun PdfToolScreen(navController: NavController, viewModel: PdfToolViewModel = vi
                     .background(MaterialTheme.colorScheme.background)
             ) {
                 StoragePermissionWrapper {
-                    // Trigger scan on entry
                     LaunchedEffect(Unit) {
                         viewModel.scanForPdfs(context)
                     }
@@ -154,7 +149,6 @@ fun PdfGridContent(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Sticky/Top elements in Grid (Search Bar & Quick Stats)
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column {
                 ModernSearchBar(
@@ -165,14 +159,12 @@ fun PdfGridContent(
                 QuickStatsHeader(filteredCount = pdfFiles.size, totalCount = totalFilesCount)
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Real AdMob Banner Ad placement
-                AdMobBanner(
+                com.example.ui.components.NativeAdViewComposable(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                        .padding(vertical = 4.dp),
-                    adUnitId = "ca-app-pub-2424129289119816/4019403537"
+                        .padding(vertical = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -194,7 +186,6 @@ fun PdfGridContent(
                 items = pdfFiles,
                 key = { _, pdf -> pdf.id }
             ) { index, pdf ->
-                // Apply a delicate staggered animated entry
                 var isVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(pdf.id) {
                     isVisible = true
@@ -332,7 +323,6 @@ fun PdfGridCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Dynamic scale spring animation for premium neural expressive tactile feel
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1.0f,
         animationSpec = spring(
@@ -342,7 +332,6 @@ fun PdfGridCard(
         label = "press_scale"
     )
 
-    // Format size neatly
     val formattedSize = remember(pdf.size) {
         val sizeInKb = pdf.size / 1024.0
         if (sizeInKb > 1024) {
@@ -352,7 +341,6 @@ fun PdfGridCard(
         }
     }
 
-    // Format date modified neatly
     val formattedDate = remember(pdf.dateModified) {
         try {
             val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
@@ -362,7 +350,6 @@ fun PdfGridCard(
         }
     }
 
-    // Dynamic gradient background for the cover block based on file ID
     val gradientColors = remember(pdf.id) {
         val index = (pdf.id % 5).toInt()
         when (index) {
@@ -395,7 +382,6 @@ fun PdfGridCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // PDF Visual Thumbnail Block with dynamic glowing gradients and glossy badge
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -403,7 +389,6 @@ fun PdfGridCard(
                     .background(Brush.linearGradient(gradientColors))
                     .padding(12.dp)
             ) {
-                // Background artistic geometric visual elements to give premium depth
                 Box(
                     modifier = Modifier
                         .size(100.dp)
@@ -412,7 +397,6 @@ fun PdfGridCard(
                         .background(Color.White.copy(alpha = 0.1f), CircleShape)
                 )
 
-                // Sleek PDF Icon representation
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
@@ -428,7 +412,6 @@ fun PdfGridCard(
                     )
                 }
 
-                // Glowing/Glossy Red File type badge
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -446,7 +429,6 @@ fun PdfGridCard(
                 }
             }
 
-            // Info details section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -552,7 +534,6 @@ fun ModernFABGroup(
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // First Custom FAB: Images to PDF
         SmallFloatingActionButton(
             onClick = onImagesToPdfClick,
             shape = RoundedCornerShape(12.dp),
@@ -584,7 +565,6 @@ fun ModernFABGroup(
             }
         }
 
-        // Main Premium Floating Action Button
         ExtendedFloatingActionButton(
             onClick = onCreatePdfClick,
             shape = RoundedCornerShape(16.dp),
@@ -614,27 +594,5 @@ fun ModernFABGroup(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun AdMobBanner(
-    modifier: Modifier = Modifier,
-    adUnitId: String = "ca-app-pub-2424129289119816/4019403537"
-) {
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        AndroidView(
-            modifier = Modifier.fillMaxWidth(),
-            factory = { context ->
-                AdView(context).apply {
-                    setAdSize(AdSize.BANNER)
-                    setAdUnitId(adUnitId)
-                    loadAd(AdRequest.Builder().build())
-                }
-            }
-        )
     }
 }

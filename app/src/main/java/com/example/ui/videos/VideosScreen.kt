@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -95,9 +96,12 @@ fun VideosScreen(
                     }
                 }
 
-                items(allVideos) { video ->
+                itemsIndexed(allVideos) { index, video ->
                     YouTubeStyleVideoCard(video) {
                         rootNavController.navigate("video_details/${video.id}")
+                    }
+                    if (index > 0 && index % 5 == 0) {
+                        com.example.ui.components.NativeAdViewComposable()
                     }
                 }
                 

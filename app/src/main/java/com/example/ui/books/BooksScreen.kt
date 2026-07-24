@@ -48,7 +48,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.example.data.models.Book
 import com.example.ui.ViewModelFactory
 import com.example.ui.auth.AuthViewModel
-import com.example.utils.AdMobManager
+import com.example.utils.AdsManager
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -66,6 +66,7 @@ fun BooksScreen(
 ) {
     val books by viewModel.books.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
     val selectedClass by viewModel.selectedClass.collectAsState()
     val selectedSubject by viewModel.selectedSubject.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -376,7 +377,7 @@ fun BooksScreen(
                                 HighFidelityBookCard(
                                     book = bookObj,
                                     onBookClick = {
-                                        AdMobManager.showInterstitial(context) {
+                                        AdsManager.showInterstitial(context) {
                                             val encodedUrl = URLEncoder.encode(bookObj.pdfUrl, "UTF-8")
                                             rootNavController.navigate("pdf_viewer?url=$encodedUrl")
                                         }
@@ -398,7 +399,16 @@ fun BooksScreen(
                     )
                     
                     if (recentlyReducedBooks.isEmpty()) {
-                        EmptyStatePlaceholder(subjectName = selectedCategory)
+                        EmptyStatePlaceholder(
+                            subjectName = selectedCategory,
+                            onResetFilters = if (selectedClass != null || selectedCategory != "Ebooks") {
+                                {
+                                    viewModel.clearFilters()
+                                    authViewModel.updateSelectedGrade("All Grades")
+                                    selectedCategory = "Ebooks"
+                                }
+                            } else null
+                        )
                     } else {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -409,7 +419,7 @@ fun BooksScreen(
                                 HighFidelityBookCard(
                                     book = book,
                                     onBookClick = {
-                                        AdMobManager.showInterstitial(context) {
+                                        AdsManager.showInterstitial(context) {
                                             rootNavController.navigate("book_detail/${book.id}")
                                         }
                                     }
@@ -417,6 +427,11 @@ fun BooksScreen(
                             }
                         }
                     }
+                }
+
+                // Native Advanced Ad Placement
+                item {
+                    com.example.ui.components.NativeAdViewComposable()
                 }
 
                 // Second Carousel: "Start your free preview"
@@ -430,7 +445,16 @@ fun BooksScreen(
                     )
                     
                     if (freePreviewBooks.isEmpty()) {
-                        EmptyStatePlaceholder(subjectName = selectedCategory)
+                        EmptyStatePlaceholder(
+                            subjectName = selectedCategory,
+                            onResetFilters = if (selectedClass != null || selectedCategory != "Ebooks") {
+                                {
+                                    viewModel.clearFilters()
+                                    authViewModel.updateSelectedGrade("All Grades")
+                                    selectedCategory = "Ebooks"
+                                }
+                            } else null
+                        )
                     } else {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -441,7 +465,7 @@ fun BooksScreen(
                                 HighFidelityBookCard(
                                     book = book,
                                     onBookClick = {
-                                        AdMobManager.showInterstitial(context) {
+                                        AdsManager.showInterstitial(context) {
                                             rootNavController.navigate("book_detail/${book.id}")
                                         }
                                     }
@@ -596,12 +620,14 @@ fun HighFidelityBookCard(
 }
 
 @Composable
-fun EmptyStatePlaceholder(subjectName: String) {
+fun EmptyStatePlaceholder(
+    subjectName: String,
+    onResetFilters: (() -> Unit)? = null
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF1E1F22))
             .border(1.dp, Color(0xFF2F3033), RoundedCornerShape(12.dp)),
@@ -609,7 +635,7 @@ fun EmptyStatePlaceholder(subjectName: String) {
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(20.dp)
         ) {
             Text(
                 text = "No books found under '$subjectName'",
@@ -620,11 +646,20 @@ fun EmptyStatePlaceholder(subjectName: String) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Check other sections or update your class grade level filter.",
+                text = "Check other subject tabs or update your grade level filter.",
                 color = Color(0xFF9AA0A6),
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
+            if (onResetFilters != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onResetFilters,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A))
+                ) {
+                    Text("View All Grades & Books", color = Color.White, fontSize = 12.sp)
+                }
+            }
         }
     }
 }

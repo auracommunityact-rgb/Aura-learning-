@@ -117,6 +117,10 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
         val listener = androidx.core.util.Consumer<android.content.Intent> { intent ->
             val intentData = intent.data
             var newDeepLink = intent.getStringExtra("deep_link")
+            if (newDeepLink.isNullOrBlank() && intent.action == "com.example.ACTION_GLOBAL_SEARCH") {
+                val query = intent.getStringExtra("query") ?: ""
+                newDeepLink = if (query.isNotBlank()) "global_search?query=${android.net.Uri.encode(query)}" else "global_search"
+            }
             if (intentData != null && (intentData.host == "auralearningwebsite.netlify.app" || intentData.host == "aura.auralearning.workers.dev")) {
                 val path = intentData.path
                 val bookParam = intentData.getQueryParameter("book")
@@ -361,6 +365,17 @@ fun AuraLearningApp(themeViewModel: ThemeViewModel? = null, initialDeepLink: Str
             com.example.ui.search.UserSearchScreen(rootNavController)
         }
         composable(
+            "global_search?query={query}",
+            arguments = listOf(androidx.navigation.navArgument("query") { defaultValue = "" })
+        ) { backStackEntry ->
+            val query = backStackEntry.arguments?.getString("query") ?: ""
+            com.example.ui.home.GlobalSearchScreen(
+                navController = rootNavController,
+                rootNavController = rootNavController,
+                initialQuery = query
+            )
+        }
+        composable(
             "tool_viewer/{toolId}?title={title}",
             arguments = listOf(
                 androidx.navigation.navArgument("toolId") { type = androidx.navigation.NavType.StringType },
@@ -497,7 +512,13 @@ fun MainScreen(
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
-            if (currentRoute == null || !currentRoute.startsWith("global_search")) {
+            val isChatRelated = currentRoute == "chat_list" ||
+                currentRoute?.startsWith("chat_room") == true ||
+                currentRoute?.startsWith("chat_details") == true ||
+                currentRoute?.startsWith("media_viewer") == true ||
+                currentRoute?.startsWith("profile_details") == true
+
+            if (currentRoute == null || (!currentRoute.startsWith("global_search") && !isChatRelated)) {
                 // Using Box to ensure the bottom bar floats correctly and allows content behind
                 Box(
                     modifier = Modifier
@@ -550,9 +571,36 @@ fun MainScreen(
             composable(Screen.Books.route) { BooksScreen(navController, authViewModel, rootNavController) }
             composable("resources") { com.example.ui.home.ResourcesScreen(navController, rootNavController) }
             composable(Screen.Chat.route) { com.example.ui.chat.ChatListScreen(navController) }
-            composable("chat_room/{conversationId}") { backStackEntry -> 
+            composable(
+                "chat_room/{conversationId}",
+                arguments = listOf(androidx.navigation.navArgument("conversationId") { type = androidx.navigation.NavType.StringType })
+            ) { backStackEntry -> 
                 val id = backStackEntry.arguments?.getString("conversationId") ?: return@composable
                 com.example.ui.chat.ChatRoomScreen(navController, id) 
+            }
+            composable(
+                "chat_details/{conversationId}",
+                arguments = listOf(androidx.navigation.navArgument("conversationId") { type = androidx.navigation.NavType.StringType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("conversationId") ?: ""
+                com.example.ui.chat.ChatDetailsScreen(navController, id)
+            }
+            composable(
+                "media_viewer?url={url}",
+                arguments = listOf(androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType; defaultValue = "" })
+            ) { backStackEntry ->
+                val url = backStackEntry.arguments?.getString("url") ?: ""
+                com.example.ui.chat.MediaViewerScreen(navController, url)
+            }
+            composable(
+                "profile_details/{userId}",
+                arguments = listOf(androidx.navigation.navArgument("userId") { type = androidx.navigation.NavType.StringType; defaultValue = "" })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                com.example.ui.profile.ProfileDetailsScreen(rootNavController, authViewModel, userId)
+            }
+            composable("profile_details") {
+                com.example.ui.profile.ProfileDetailsScreen(rootNavController, authViewModel, null)
             }
             composable(Screen.Profile.route) { ProfileScreen(navController, authViewModel, rootNavController, themeViewModel) }
         }

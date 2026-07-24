@@ -98,7 +98,12 @@ fun AdminHomeCustomizationScreen(navController: NavController) {
             } else {
                 when (selectedTab) {
                     0 -> BannerList(banners, repository, onRefresh = { loadData() }, navController)
-                    1 -> SectionList(sections, repository, onRefresh = { loadData() })
+                    1 -> {
+                        val dynamicSections = sections.filter {
+                            it.type != "home" && it.type != "books" && it.type != "videos"
+                        }
+                        SectionList(dynamicSections, repository, onRefresh = { loadData() })
+                    }
                 }
             }
         }
